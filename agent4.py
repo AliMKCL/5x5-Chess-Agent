@@ -19,7 +19,7 @@ PIECE_VALUES = {
 
 
 PAWN_TABLE = [
-    [0,  0,  0,  0,  0],
+    [100,  100,  100,  100,  100],
     [50, 50, 50, 50, 50],
     [15, 10, 20, 10, 10],
     [-5,  5, -5, 5,  0],
@@ -128,37 +128,45 @@ def evaluate_board(board, player_name):
             score -= total_piece_value
 
     # --- 2. KING SAFETY ---------------------------------------------------
-    def king_safety_bonus(king_piece):
-        """Return bonus if at least two friendly pieces near the king."""
-        kx, ky = king_piece.position.x, king_piece.position.y
-        friendly_pieces = [
-            p for p in all_pieces
-            if p.player == king_piece.player and p != king_piece
-        ]
-
-        # Count how many friendly pieces are within 1 square (Chebyshev distance ≤ 1)
-        nearby_allies = 0
-        for p in friendly_pieces:
-            px, py = p.position.x, p.position.y
-            if abs(px - kx) <= 1 and abs(py - ky) <= 1:
-                nearby_allies += 1
-
-        # Return a safety bonus if at least two are adjacent
-        if nearby_allies >= 2:
-            return 50   # Safe king (well protected)
-        elif nearby_allies == 1:
-            return 20   # Partially protected
-        else:
-            return -50  # Exposed king (penalty)
-
-    # Find both kings and adjust score accordingly
+    # Find both kings and count nearby allies in a single pass
+    player_king = None
+    opponent_king = None
+    player_pieces = []
+    opponent_pieces = []
+    
     for piece in all_pieces:
         if piece.name.lower() == 'king':
-            bonus = king_safety_bonus(piece)
             if piece.player.name == player_name:
-                score += bonus
+                player_king = piece
             else:
-                score -= bonus
+                opponent_king = piece
+        elif piece.player.name == player_name:
+            player_pieces.append(piece)
+        else:
+            opponent_pieces.append(piece)
+    
+    # Calculate king safety for both kings
+    if player_king:
+        kx, ky = player_king.position.x, player_king.position.y
+        nearby_allies = sum(1 for p in player_pieces 
+                           if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
+        if nearby_allies >= 2:
+            score += 50
+        elif nearby_allies == 1:
+            score += 20
+        else:
+            score -= 50
+    
+    if opponent_king:
+        kx, ky = opponent_king.position.x, opponent_king.position.y
+        nearby_allies = sum(1 for p in opponent_pieces 
+                           if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
+        if nearby_allies >= 2:
+            score -= 50
+        elif nearby_allies == 1:
+            score -= 20
+        else:
+            score += 50
 
     return score
 
@@ -176,15 +184,9 @@ def order_moves(board, moves):
       3. Positional improvement (piece-square tables)
     """
     scored_moves = []
-
-    # Checks if a square is defended before capturing it.
-    def is_square_defended(board, square, defending_player):
-        """Check if any of defending_player's pieces can move to 'square'."""
-        defending_moves = list_legal_moves_for(board, defending_player)
-        for dpiece, dmove in defending_moves:
-            if hasattr(dmove, "position") and dmove.position == square:
-                return True
-        return False
+    
+    # Create position-to-piece lookup for faster capture evaluation
+    pos_to_piece = {piece.position: piece for piece in board.get_pieces()}
 
     for piece, move in moves:
         score = 0
@@ -197,22 +199,23 @@ def order_moves(board, moves):
         if hasattr(move, "checkmate") and move.checkmate:
             score += 100000000
 
-        # 2️⃣ Valuable or safe captures
+        # 2️⃣ Valuable captures
+        # Prioritize high-value captures (MVV-LVA: Most Valuable Victim - Least Valuable Attacker)
         if hasattr(move, "captures") and move.captures:
             for capture_pos in move.captures:
-                for target in board.get_pieces():
-                    if target.position == capture_pos:
-                        victim_value = get_piece_value(target)
-                        opponent = next(p for p in board.players if p != piece.player)
-
-                        # Check if capture square is defended
-                        defended = is_square_defended(board, capture_pos, opponent)
-
-                        # Reward captures that are either favorable or undefended
-                        if victim_value >= attacker_value or not defended:
-                            score += (victim_value * 10) - attacker_value
-                            added_capture_bonus = True
-                        break
+                target = pos_to_piece.get(capture_pos)
+                if target:
+                    victim_value = get_piece_value(target)
+                    
+                    # MVV-LVA: prioritize capturing valuable pieces with cheap pieces
+                    # Winning captures (victim >= attacker) get extra bonus
+                    if victim_value >= attacker_value:
+                        score += (victim_value * 10) - attacker_value + 5000
+                    else:
+                        # Losing captures still considered but with lower priority
+                        score += (victim_value * 10) - attacker_value
+                    
+                    added_capture_bonus = True
 
         # 3️⃣ Positional improvement (if no good capture bonus)
         if not added_capture_bonus:
@@ -273,6 +276,8 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
 
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
+        print(depth)
+
         # Time check before each new depth
         if time.time() - start_time >= time_limit:
             break
