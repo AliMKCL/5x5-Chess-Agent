@@ -3,6 +3,7 @@ import time
 from extension.board_utils import list_legal_moves_for
 from chessmaker.chess.pieces import King, Queen, Bishop, Knight, Pawn
 from extension.piece_right import Right
+from extension.board_rules import get_result
 
 # ============================================================================
 # CONSTANTS & HEURISTICS
@@ -90,6 +91,32 @@ def get_positional_value(piece, is_white):
     elif piece.name.lower() == 'queen':
         return QUEEN_TABLE[y][x]
     return 0
+
+def is_stalemate(board):
+    """
+    Helper function to determine if a move results in a stalemate.
+        
+    Args:
+        board: The current board state.
+
+    Returns:
+        True if the move results in a stalemate (draw), False otherwise.
+    """
+    result = get_result(board)
+    
+    # If result is None, there's no stalemate
+    if result is None:
+        return False
+    
+    res = result.lower()
+    # Check if the result indicates a stalemate or draw
+    if (res == "stalemate (no more possible moves) - black loses" or 
+        res == "stalemate (no more possible moves) - white loses" or 
+        res == "draw - only 2 kings left" or 
+        res == "draw - fivefold repetition"):
+        return True
+    
+    return False
 
 # ============================================================================
 # EVALUATION FUNCTION
@@ -195,11 +222,11 @@ def order_moves(board, moves):
         attacker_value = get_piece_value(piece)
         added_capture_bonus = False
 
-        # 1️⃣ Checkmate
+        # 1 Checkmate   POTENTIALLY NOT WORKING AS INTENDED??
         if hasattr(move, "checkmate") and move.checkmate:
             score += 100000000
 
-        # 2️⃣ Valuable captures
+        # 2 Valuable captures
         # Prioritize high-value captures (MVV-LVA: Most Valuable Victim - Least Valuable Attacker)
         if hasattr(move, "captures") and move.captures:
             for capture_pos in move.captures:
@@ -210,14 +237,14 @@ def order_moves(board, moves):
                     # MVV-LVA: prioritize capturing valuable pieces with cheap pieces
                     # Winning captures (victim >= attacker) get extra bonus
                     if victim_value >= attacker_value:
-                        score += (victim_value * 10) - attacker_value + 5000
+                        score += (victim_value * 10) - attacker_value
                     else:
                         # Losing captures still considered but with lower priority
                         score += (victim_value * 10) - attacker_value
                     
                     added_capture_bonus = True
 
-        # 3️⃣ Positional improvement (if no good capture bonus)
+        # 3 Positional improvement (if no good capture bonus)
         if not added_capture_bonus:
             old_pos_value = get_positional_value(piece, is_white)
 
@@ -250,7 +277,7 @@ def order_moves(board, moves):
 import time
 import random
 
-def find_best_move(board, player, max_depth=10, time_limit=10.0):
+def find_best_move(board, player, max_depth=10, time_limit=30.0):
     """
     Iterative deepening search using alpha-beta minimax.
 
@@ -273,10 +300,16 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
 
     best_move = random.choice(legal_moves)  # fallback move
     best_score = float('-inf')
+    
+    # Global counter for nodes explored (for debugging)
+    global nodes_explored
+    nodes_explored = 0
 
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
-        print(depth)
+        depth_start_time = time.time()
+        depth_nodes_before = nodes_explored
+        print(f"\n=== Depth {depth} ===")
 
         # Time check before each new depth
         if time.time() - start_time >= time_limit:
@@ -289,6 +322,7 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
         ordered_moves = order_moves(board, legal_moves)
 
         # Try each move at this depth
+        found_checkmate = False
         for piece, move in ordered_moves:
             if time.time() - start_time >= time_limit:
                 break  # stop if time runs out
@@ -307,8 +341,24 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
                     continue
 
                 new_piece.move(new_move)
+                print(f"Testing move at depth {depth}: {piece} to ({move.position.x},{move.position.y})")
+
                 # Switch turn
                 new_board.current_player = [p for p in new_board.players if p != player][0]
+
+                
+                # Check if this move causes a stalemate
+                if is_stalemate(new_board):
+                    current_eval = evaluate_board(board, player.name)
+
+                    # If we're winning (eval > -500), skip this stalemate move
+                    if current_eval > -500:
+                        print(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
+                        continue
+                    else:
+                        # If we're losing badly, stalemate is acceptable
+                        print(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
+                
 
                 # Run minimax for OPPONENT's reply
                 # This runs after our hypothetical move (that we are checking) so it works.
@@ -320,17 +370,23 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
                     player_name=player.name,
                     time_limit = time_limit,
                     start_time = start_time,
-                    is_max_turn=False
+                    is_max_turn=False,
+                    indent_level=1  # Start with indent level 1 for opponent moves
                 )
 
                 # If the current move is better than the previous best at this depth, update new best move.
                 if score > current_best_score:
                     current_best_score = score
                     current_best_move = (piece, move)
+                    # Debug: Show when we find a very good move (potential checkmate)
+                    if score >= 999999:
+                        print(f"  *** FOUND FORCED CHECKMATE: {piece} to ({move.position.x},{move.position.y}) with score {score}")
+                        found_checkmate = True
+                        break  # Stop evaluating other moves - we have a forced win!
 
+                # Update alpha for the minimax search (used in recursive calls)
+                # but DON'T prune at root level - we want to evaluate all moves
                 alpha = max(alpha, score)
-                if beta <= alpha:
-                    break  # prune
 
             except Exception:
                 continue
@@ -339,11 +395,22 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
         if current_best_move:
             best_move = current_best_move
             best_score = current_best_score
+        
+        # Print statistics for this depth
+        depth_nodes = nodes_explored - depth_nodes_before
+        depth_time = time.time() - depth_start_time
+        print(f"Depth {depth} complete: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
+        
+        # EARLY TERMINATION: If we found a forced checkmate, stop iterative deepening immediately
+        # No need to search deeper - we already have a guaranteed winning sequence!
+        if found_checkmate or current_best_score >= 999999:
+            print(f"*** FORCED CHECKMATE SEQUENCE FOUND AT DEPTH {depth} - Stopping search immediately ***")
+            print(f"*** Playing: {best_move[0]} to ({best_move[1].position.x},{best_move[1].position.y}) ***")
+            break
 
         # Stop if time runs out mid-search
         if time.time() - start_time >= time_limit:
             break
-
     return best_move
 
 # ============================================================================
@@ -352,7 +419,7 @@ def find_best_move(board, player, max_depth=10, time_limit=10.0):
 
 import time
 
-def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_max_turn=True):
+def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_max_turn=True, indent_level=0):
     """
     Minimax search with alpha-beta pruning, time awareness, and custom early pruning rule.
 
@@ -364,11 +431,16 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         time_limit: Max allowed time (seconds)
         start_time: When search started
         is_max_turn: True if this turn belongs to the agent
+        indent_level: For debug printing (optional)
 
     Returns:
         Evaluation score for the position (float)
     """
     from extension.board_rules import get_result
+    
+    # Increment global node counter
+    global nodes_explored
+    nodes_explored += 1
 
     # --- 0 Time check ----------------------------------------------------
     if time.time() - start_time >= time_limit:
@@ -377,10 +449,20 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
 
     # --- 1 Terminal / base cases ----------------------------------------
     result = get_result(board)
+
     if result is not None:
         res = result.lower()
-        if "win" in res:
-            return 999999 if player_name in res else -999999
+        if "checkmate - black loses" in res:
+            # Prefer faster checkmates: add bonus for shallower depth
+            # If we're at depth 5, checkmate is 5 moves away → bonus = (10-5) = 5
+            # If we're at depth 1, checkmate is 1 move away → bonus = (10-1) = 9
+            mate_bonus = (10 - depth) * 1000
+            
+            # Check if we (player_name) won or the opponent won
+            if player_name in res or (player_name == "white" and "checkmate - black loses" in res) or (player_name == "black" and "checkmate - white loses" in res):
+                return 999999 + mate_bonus  # We win: prefer faster mate
+            else:
+                return -999999 - mate_bonus  # We lose: delay mate as long as possible
         elif "draw" in res:
             return 0
 
@@ -405,6 +487,11 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         if time.time() - start_time >= time_limit:
             break
 
+        # DEBUG: Print what's being explored (comment out for production)
+        indent = "  " * indent_level
+        turn_type = "MAX" if is_max_turn else "MIN"
+        print(f"{indent}[Depth {depth}, {turn_type}] Testing: {piece.name} to ({move.position.x},{move.position.y})")
+
         new_board = board.clone()
         try:
             # Locate piece & move equivalents on cloned board
@@ -421,7 +508,16 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             # Switch turn
             new_board.current_player = [p for p in new_board.players if p != current_player][0]
 
-            # --- 7️⃣ Recursive minimax call -------------------------------
+            # Check for stalemate
+            if not list_legal_moves_for(new_board, new_board.current_player) and evaluate_board(new_board, player_name) > 0:
+                if is_max_turn:
+                    return -50000  # Bad for maximizing player
+                else:
+                    return 50000   # Good for minimizing player
+                
+
+
+            # --- 7 Recursive minimax call -------------------------------
             value = minimax(
                 new_board,
                 depth - 1,
@@ -430,7 +526,8 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
                 player_name,
                 time_limit,
                 start_time,
-                is_max_turn=not is_max_turn
+                is_max_turn=not is_max_turn,
+                indent_level=indent_level + 1
             )
 
             # --- 8️⃣ Alpha-beta updates -----------------------------------
@@ -448,24 +545,6 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             continue
 
     return best_value
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # ============================================================================
 # AGENT ENTRY POINT
