@@ -9,6 +9,28 @@ from agent4 import agent
 from pre_endgame import agent as pre_endgame_agent
 from opponent import opponent
 
+def write_board_to_file(board, move_number, filename="game.txt"):
+    """
+    Writes the current board state to a file after each move.
+    
+    Args:
+        board: The current board state
+        move_number: The current move number
+        filename: The output filename (default: "game.txt")
+    """
+    with open(filename, "a") as f:
+        f.write(f"{move_number}\n")
+        # Capture the board output
+        import io
+        from contextlib import redirect_stdout
+        
+        board_output = io.StringIO()
+        with redirect_stdout(board_output):
+            print_board_ascii(board)
+        
+        f.write(board_output.getvalue())
+        f.write("\n")
+
 def make_custom_board(board_sample):
     # player1: white vs player2: black
     players = [white, black]
@@ -24,10 +46,19 @@ def testgame(p_white, p_black, board_sample):
     board, players = make_custom_board(board_sample)
     turn_order = cycle(players)
     var = None
+    move_number = 0
+    
+    # Clear the game file at the start
+    with open("game.txt", "w") as f:
+        f.write("")
+    
     print("=== Initial position ===")
     print_board_ascii(board)
+    write_board_to_file(board, move_number)
+    
     while True:
         try:
+            move_number += 1
             player = next(turn_order)
             temp_board = board.clone()
             if player.name == "white":
@@ -58,6 +89,7 @@ def testgame(p_white, p_black, board_sample):
                     break
 
             print_board_ascii(board)
+            write_board_to_file(board, move_number)
             res = get_result(board)
             if res:
                 print(f"=== Game ended: {res} ===")

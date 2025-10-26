@@ -4,88 +4,127 @@ from extension.board_utils import list_legal_moves_for
 from chessmaker.chess.pieces import King, Queen, Bishop, Knight, Pawn
 from extension.piece_right import Right
 from extension.board_rules import get_result
-from helpers import *
 
 # ============================================================================
 # CONSTANTS & HEURISTICS
 # ============================================================================
 
-# Global file handle for logging
-LOG_FILE = None
-MOVE_COUNTER = 0
+PIECE_VALUES = {
+    'pawn': 100,
+    'knight': 330,
+    'bishop': 320,
+    'right': 500,
+    'queen': 900,
+    'king': 20000
+}
 
-def init_log_file():
-    """Initialize the log file for this game session."""
-    global LOG_FILE
-    LOG_FILE = open("game_log.txt", "w")
-    LOG_FILE.write("=== GAME LOG ===\n\n")
 
-def close_log_file():
-    """Close the log file."""
-    global LOG_FILE
-    if LOG_FILE:
-        LOG_FILE.close()
-        LOG_FILE = None
+PAWN_TABLE = [
+    [100,  100,  100,  100,  100],
+    [50, 50, 50, 50, 50],
+    [15, 10, 20, 10, 10],
+    [-5,  5, -5, 5,  0],
+    [0,  0,  0,  0,  0]
+]
 
-def log_message(message):
-    """Write a message to the log file."""
-    global LOG_FILE
-    if LOG_FILE:
-        LOG_FILE.write(message + "\n")
-        LOG_FILE.flush()
+KNIGHT_TABLE = [
+    [-10,  -5,  -5,  -5,  -10],
+    [-5, 0, 0, 0, -5],
+    [-5, 0, 0, 0, -5],
+    [-5,  0, 0, 0,  -5],
+    [-10,  -5,  -5,  -5,  -10]
+]
 
-def log_board_state(board, title=""):
-    """Log the current board state to file."""
-    global LOG_FILE
-    if not LOG_FILE:
-        return
-    
-    if title:
-        LOG_FILE.write(f"\n{title}\n")
-    
-    # Write board representation
-    LOG_FILE.write("  0 1 2 3 4\n")
-    for y in range(5):
-        LOG_FILE.write(f"{y} ")
-        for x in range(5):
-            piece = None
-            for p in board.get_pieces():
-                if p.position.x == x and p.position.y == y:
-                    piece = p
-                    break
-            if piece:
-                # Map piece names to their correct symbols
-                piece_name_lower = piece.name.lower()
-                if piece_name_lower == "knight":
-                    symbol = 'n'
-                elif piece_name_lower == "king":
-                    symbol = 'k'
-                elif piece_name_lower == "queen":
-                    symbol = 'q'
-                elif piece_name_lower == "bishop":
-                    symbol = 'b'
-                elif piece_name_lower == "right":
-                    symbol = 'r'
-                elif piece_name_lower == "pawn":
-                    symbol = 'p'
-                else:
-                    symbol = piece.name[0].lower()
-                
-                # Uppercase for white pieces
-                if piece.player.name == "white":
-                    symbol = symbol.upper()
-                LOG_FILE.write(f"{symbol} ")
-            else:
-                LOG_FILE.write(". ")
-        LOG_FILE.write("\n")
-    LOG_FILE.write("\n")
-    LOG_FILE.flush()
+BISHOP_TABLE = [
+    [-10,  -5,  -5,  -5,  -10],
+    [-5, 0, 0, 0, -5],
+    [-5, 0, 5, 0, -5],
+    [-5,  0, 0, 0,  -5],
+    [-10,  -5,  -5,  -5,  -10]
+]
+
+RIGHT_TABLE = [
+    [-5,  5,  5,  5,  -5],
+    [0, 5, 5, 5, 0],
+    [0, 0, 0, 0, 0],
+    [0,  0, 0, 0,  0],
+    [-5,  0,  0,  0,  -5]
+]
+
+QUEEN_TABLE = [
+    [-5,  0,  0,  0,  -5],
+    [0, 5, 5, 5, 0],
+    [0, 5, 5, 5, 0],
+    [0,  5, 5, 5,  0],
+    [-5,  0,  0,  0,  -5]
+]
+
+KING_TABLE = [
+    [-20, -20, -20, -20, -20],
+    [-15, -15, -15, -15, -15],
+    [-10, -10, -10, -10, -10],
+    [-5, -5, -5, -5, -5],
+    [5, 5, 5, 5, 5]
+]
+
+KING_TABLE_ENDGAME = [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0]
+]
 
 # ============================================================================
 # HELPER FUNCTIONS
 # ============================================================================
 
+def get_piece_value(piece):
+    return PIECE_VALUES.get(piece.name.lower(), 0)
 
+def get_positional_value(piece, is_white):
+    x, y = piece.position.x, piece.position.y
+    if not is_white:
+        y = 4 - y
+    if piece.name.lower() == 'pawn':
+        return PAWN_TABLE[y][x]
+    elif piece.name.lower() == 'knight':
+        return KNIGHT_TABLE[y][x]
+    elif piece.name.lower() == 'king':
+        return KING_TABLE[y][x]
+    elif piece.name.lower() == 'bishop':
+        return BISHOP_TABLE[y][x]
+    elif piece.name.lower() == 'right':
+        return RIGHT_TABLE[y][x]
+    elif piece.name.lower() == 'queen':
+        return QUEEN_TABLE[y][x]
+    return 0
+
+def is_stalemate(board):
+    """
+    Helper function to determine if a move results in a stalemate.
+        
+    Args:
+        board: The current board state.
+
+    Returns:
+        True if the move results in a stalemate (draw), False otherwise.
+    """
+    result = get_result(board)
+    
+    # If result is None, there's no stalemate
+    if result is None:
+        return False
+    
+    res = result.lower()
+    # Check if the result indicates a stalemate or draw
+    if (res == "stalemate (no more possible moves) - black loses" or 
+        res == "stalemate (no more possible moves) - white loses" or 
+        res == "draw - only 2 kings left" or 
+        res == "draw - fivefold repetition"):
+        return True
+    
+    return False
 
 # ============================================================================
 # EVALUATION FUNCTION
@@ -109,40 +148,38 @@ def evaluate_board(board, player_name):
     player = next(p for p in board.players if p.name == player_name)
     opponent = next(p for p in board.players if p.name != player_name)
 
-    # --- SINGLE-PASS EVALUATION -------------------------------------------
-    # Collect material, positional values, and piece positions in one iteration
+    # --- 1. MATERIAL + POSITIONAL VALUE -----------------------------------
+    for piece in all_pieces:
+        base_value = get_piece_value(piece)
+        is_white = piece.player.name == "white"
+        pos_value = get_positional_value(piece, is_white)
+
+        # Combine material and positional value
+        total_piece_value = base_value + pos_value
+
+        if piece.player.name == player_name:
+            score += total_piece_value
+        else:
+            score -= total_piece_value
+
+    # --- 2. KING SAFETY ---------------------------------------------------
+    # Find both kings and count nearby allies in a single pass
     player_king = None
     opponent_king = None
     player_pieces = []
     opponent_pieces = []
     
     for piece in all_pieces:
-        piece_name_lower = piece.name.lower()
-        is_player_piece = piece.player.name == player_name
-        
-        # 1. Material + Positional Value
-        base_value = get_piece_value(piece)
-        is_white = piece.player.name == "white"
-        pos_value = get_positional_value(piece, is_white, board)
-        total_piece_value = base_value + pos_value
-        
-        if is_player_piece:
-            score += total_piece_value
-        else:
-            score -= total_piece_value
-        
-        # 2. Collect pieces for king safety (done in same loop)
-        if piece_name_lower == 'king':
-            if is_player_piece:
+        if piece.name.lower() == 'king':
+            if piece.player.name == player_name:
                 player_king = piece
             else:
                 opponent_king = piece
-        elif is_player_piece:
+        elif piece.player.name == player_name:
             player_pieces.append(piece)
         else:
             opponent_pieces.append(piece)
     
-    # --- 3. KING SAFETY ---------------------------------------------------
     # Calculate king safety for both kings
     if player_king:
         kx, ky = player_king.position.x, player_king.position.y
@@ -185,14 +222,6 @@ def order_moves(board, moves):
     
     # Create position-to-piece lookup for faster capture evaluation
     pos_to_piece = {piece.position: piece for piece in board.get_pieces()}
-    
-    # Cache piece counts per player for endgame king table lookup (computed once instead of per-move)
-    all_pieces = board.get_pieces()
-    piece_counts = {}
-    for p in all_pieces:
-        if p.player not in piece_counts:
-            piece_counts[p.player] = 0
-        piece_counts[p.player] += 1
 
     for piece, move in moves:
         score = 0
@@ -201,61 +230,47 @@ def order_moves(board, moves):
         attacker_value = get_piece_value(piece)
         added_capture_bonus = False
 
-        # ===== 1 Checkmate (if the move object has this attribute set) ===============
+        # 1 Checkmate   POTENTIALLY NOT WORKING AS INTENDED??
         if hasattr(move, "checkmate") and move.checkmate:
             score += 100000000
-            print(f"Move ordering: Found checkmate move {piece.name} to ({move.position.x},{move.position.y})")
-            log_message(f"Move ordering: Checkmate move detected - {piece.name} to ({move.position.x},{move.position.y})")
 
-        #=====  2 Valuable captures ===============================================
+        # 2 Valuable captures
         # Prioritize high-value captures (MVV-LVA: Most Valuable Victim - Least Valuable Attacker)
-        
         if hasattr(move, "captures") and move.captures:
             for capture_pos in move.captures:
                 target = pos_to_piece.get(capture_pos)
                 if target:
                     victim_value = get_piece_value(target)
                     
-                    # Get opponent player for exchange evaluation
-                    opponent = next(p for p in board.players if p != piece.player)
-                    num_diff, val_diff = attacker_defender_ratio(board, move.position, opponent, piece.player)
+                    # MVV-LVA: prioritize capturing valuable pieces with cheap pieces
+                    # Winning captures (victim >= attacker) get extra bonus
+                    if victim_value >= attacker_value:
+                        score += (victim_value * 10) - attacker_value
+                    else:
+                        # Losing captures still considered but with lower priority
+                        score += (victim_value * 10) - attacker_value
                     
-                    # Base MVV-LVA score: prefer low-value attackers capturing high-value victims
-                    # Using (victim * 10) ensures victim value is prioritized
-                    base_mvv_lva = (victim_value * 10) - attacker_value
+                    added_capture_bonus = True
 
-                    # Case 1: More or equal defenders than attackers
-                    if not val_diff or val_diff < 0:
-                        score += base_mvv_lva    # Check if weakest attacker < victim_value
-                        log_message(f"Equal/losing numbers but potentially favorable: {piece.name} captures {target.name}, num_diff={num_diff}, score = {score} move {piece.name} to ({move.position.x},{move.position.y})")
+        # 3 Positional improvement (if no good capture bonus)
+        if not added_capture_bonus:
+            old_pos_value = get_positional_value(piece, is_white)
 
-                    # Case 2: More attackers than defenders, and positive trade
-                    elif val_diff > 0:
-                        score += base_mvv_lva + 1000    # Capture with the weakest attacker and prefer the capture
-                        log_message(f"Winning exchange: {piece.name} captures {target.name}, net={val_diff}, score={score}, move {piece.name} to ({move.position.x},{move.position.y})")
+            new_x, new_y = move.position.x, move.position.y
+            if not is_white:
+                new_y = 4 - new_y
 
+            piece_tables = {
+                'pawn': PAWN_TABLE,
+                'knight': KNIGHT_TABLE,
+                'bishop': BISHOP_TABLE,
+                'right': RIGHT_TABLE,
+                'queen': QUEEN_TABLE,
+                'king': KING_TABLE
+            }
+            new_pos_value = piece_tables.get(piece_name, [[0]*5]*5)[new_y][new_x]
 
-        
-        # ===== 3 Positional improvement (if no good capture bonus)==================
-        old_pos_value = get_positional_value(piece, is_white, board)
-
-        new_x, new_y = move.position.x, move.position.y
-        if not is_white:
-            new_y = 4 - new_y
-
-        # Use cached piece count instead of recalculating for every move
-        player_piece_count = piece_counts.get(piece.player, 0)
-        piece_tables = {
-            'pawn': PAWN_TABLE,
-            'knight': KNIGHT_TABLE,
-            'bishop': BISHOP_TABLE,
-            'right': RIGHT_TABLE,
-            'queen': QUEEN_TABLE,
-            'king': KING_TABLE_ENDGAME if player_piece_count <= 4 else KING_TABLE
-        }
-        new_pos_value = piece_tables.get(piece_name, [[0]*5]*5)[new_y][new_x]
-
-        score += (new_pos_value - old_pos_value)
+            score += (new_pos_value - old_pos_value)
 
         scored_moves.append((score, piece, move))
 
@@ -316,7 +331,6 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
 
         # Try each move at this depth
         found_checkmate = False
-        moves_evaluated = 0  # Track how many moves we fully evaluated
         for piece, move in ordered_moves:
             if time.time() - start_time >= time_limit:
                 break  # stop if time runs out
@@ -336,28 +350,10 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
 
                 new_piece.move(new_move)
                 print(f"Testing move at depth {depth}: {piece} to ({move.position.x},{move.position.y})")
-                log_message(f"  Testing move at depth {depth}: {piece.name} from ({piece.position.x},{piece.position.y}) to ({move.position.x},{move.position.y})")
-                
-                # Log board state and evaluation for depth 1 moves (for debugging)
-                if depth == 1:
-                    static_eval = evaluate_board(new_board, player.name, debug=True)
-                    log_message(f"  Static evaluation after move: {static_eval}")
 
                 # Switch turn
                 new_board.current_player = [p for p in new_board.players if p != player][0]
 
-                # Check game result after this move
-                result = get_result(new_board)
-                
-                # Check for CHECKMATE - instant win!
-                if result and "checkmate" in result.lower():
-                    # Determine if we won or opponent won
-                    opponent_name = "black" if player.name == "white" else "white"
-                    if opponent_name in result.lower() and "loses" in result.lower():
-                        # We delivered checkmate! This is the best possible move
-                        print(f"  *** CHECKMATE FOUND: {piece} to ({move.position.x},{move.position.y}) ***")
-                        log_message(f"  *** CHECKMATE FOUND: {piece.name} to ({move.position.x},{move.position.y}) - Instant win! ***")
-                        return (piece, move)  # Return immediately, this is the best move possible
                 
                 # Check if this move causes a stalemate
                 if is_stalemate(new_board):
@@ -366,12 +362,10 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     # If we're winning (eval > -500), skip this stalemate move
                     if current_eval > -500:
                         print(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
-                        log_message(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
                         continue
                     else:
                         # If we're losing badly, stalemate is acceptable
                         print(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
-                        log_message(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
                 
 
                 # Run minimax for OPPONENT's reply
@@ -387,93 +381,44 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     is_max_turn=False,
                     indent_level=1  # Start with indent level 1 for opponent moves
                 )
-                
-                # Log the raw score from minimax
-                log_message(f"    -> Minimax returned score: {score} for {player.name}")
-                log_message(f"    -> Current best score: {current_best_score}, Testing if {score} > {current_best_score}")
 
                 # If the current move is better than the previous best at this depth, update new best move.
                 if score > current_best_score:
                     current_best_score = score
                     current_best_move = (piece, move)
-                    log_message(f"    -> New best move! Score: {score} (player: {player.name}, piece: {piece.name}, move: ({move.position.x},{move.position.y}))")
                     # Debug: Show when we find a very good move (potential checkmate)
-                    # Check for inf/nan and treat as non-checkmate
-                    if score >= 999999 and score < float('inf'):
+                    if score >= 999999:
                         print(f"  *** FOUND FORCED CHECKMATE: {piece} to ({move.position.x},{move.position.y}) with score {score}")
-                        log_message(f"    *** FOUND FORCED CHECKMATE: {piece.name} to ({move.position.x},{move.position.y}) with score {score}")
                         found_checkmate = True
                         break  # Stop evaluating other moves - we have a forced win!
 
                 # Update alpha for the minimax search (used in recursive calls)
                 # but DON'T prune at root level - we want to evaluate all moves
                 alpha = max(alpha, score)
-                
-                # Increment moves evaluated counter
-                moves_evaluated += 1
 
             except Exception:
                 continue
-        
-        # ============= Partial Depth Results Handling (Due to timeout) =============
 
-        # Determine if we should use the results from this depth
-        # We trust the results if:
-        # 1. We evaluated at least one move, AND
-        # 2. Either we finished all moves OR the new best score is significantly better
-        total_moves = len(ordered_moves)
-        all_moves_searched = (moves_evaluated == total_moves)
-        
-        if current_best_move and moves_evaluated > 0:
-            # We found at least one move - decide whether to use it
-            if all_moves_searched:
-                # Completed the full depth - always use it
-                best_move = current_best_move
-                best_score = current_best_score
-                print(f"Depth {depth} complete: Best move is {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score}")
-                log_message(f"Depth {depth} FULLY COMPLETED ({moves_evaluated}/{total_moves} moves) - Updated best move")
-            else:
-                # Partial search - only use if significantly better than previous depth
-                improvement = current_best_score - best_score
-                if improvement > 0:  # Improvement threshold
-                    best_move = current_best_move
-                    best_score = current_best_score
-                    print(f"Depth {depth} PARTIAL ({moves_evaluated}/{total_moves} moves): Using move {best_move[0].name} with score {best_score} (improvement: +{improvement})")
-                    log_message(f"Depth {depth} PARTIAL but IMPROVED - Updated best move (searched {moves_evaluated}/{total_moves})")
-                else:
-                    print(f"Depth {depth} INCOMPLETE ({moves_evaluated}/{total_moves} moves): Found {current_best_move[0].name} with score {current_best_score}, keeping previous best (score {best_score}, improvement only +{improvement})")
-                    log_message(f"Depth {depth} INCOMPLETE - Keeping previous depth's best move (searched {moves_evaluated}/{total_moves})")
-        else:
-            print(f"Depth {depth} complete: No valid move found at this depth (using previous depth's best)")
+        # If we found a valid move at this depth, remember it as the best so far
+        if current_best_move:
+            best_move = current_best_move
+            best_score = current_best_score
         
         # Print statistics for this depth
         depth_nodes = nodes_explored - depth_nodes_before
         depth_time = time.time() - depth_start_time
-        print(f"Depth {depth} stats: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
-        log_message(f"Depth {depth} complete: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
-        if current_best_move:
-            log_message(f"Best move at depth {depth}: {current_best_move[0].name} to ({current_best_move[1].position.x},{current_best_move[1].position.y}) with score {current_best_score}")
-        else:
-            log_message(f"No valid move found at depth {depth}, keeping previous best")
+        print(f"Depth {depth} complete: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
         
         # EARLY TERMINATION: If we found a forced checkmate, stop iterative deepening immediately
         # No need to search deeper - we already have a guaranteed winning sequence!
         if found_checkmate or current_best_score >= 999999:
             print(f"*** FORCED CHECKMATE SEQUENCE FOUND AT DEPTH {depth} - Stopping search immediately ***")
             print(f"*** Playing: {best_move[0]} to ({best_move[1].position.x},{best_move[1].position.y}) ***")
-            log_message(f"*** FORCED CHECKMATE SEQUENCE FOUND AT DEPTH {depth} - Stopping search immediately ***")
             break
 
         # Stop if time runs out mid-search
         if time.time() - start_time >= time_limit:
-            print(f"Time limit reached after depth {depth}")
-            log_message(f"Time limit reached after depth {depth}")
             break
-    
-    # Log final decision
-    print(f"\n*** FINAL MOVE SELECTION: {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score} ***")
-    log_message(f"\n*** FINAL MOVE SELECTION: {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score} ***")
-    
     return best_move
 
 # ============================================================================
@@ -554,7 +499,6 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         indent = "  " * indent_level
         turn_type = "MAX" if is_max_turn else "MIN"
         print(f"{indent}[Depth {depth}, {turn_type}] Testing: {piece.name} to ({move.position.x},{move.position.y})")
-        log_message(f"{indent}[Depth {depth}, {turn_type}] Testing: {piece.name} to ({move.position.x},{move.position.y})")
 
         new_board = board.clone()
         try:
@@ -563,10 +507,8 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
                               if type(p) == type(piece) and p.position == piece.position), None)
             if not new_piece:
                 continue
-
             new_move = next((m for m in new_piece.get_move_options()
                              if hasattr(m, "position") and m.position == move.position), None)
-            
             if not new_move:
                 continue
 
@@ -574,18 +516,14 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             # Switch turn
             new_board.current_player = [p for p in new_board.players if p != current_player][0]
 
-            # Check for stalemate using our helper function
-            if is_stalemate(new_board):
-                # Stalemate in the middle of a minimax tree:
-                # If we're maximizing and caused a stalemate, that's bad (unless we're losing)
-                # If we're minimizing and caused a stalemate, that's good (opponent forced a draw)
-                current_eval = evaluate_board(new_board, player_name)
-                if is_max_turn and current_eval > 0:
-                    # We caused stalemate - bad if we're winning
-                    return -50000
+            # Check for stalemate
+            if not list_legal_moves_for(new_board, new_board.current_player) and evaluate_board(new_board, player_name) > 0:
+                if is_max_turn:
+                    return -50000  # Bad for maximizing player
                 else:
-                    # Opponent caused stalemate - good if we're losing
-                    return 50000 
+                    return 50000   # Good for minimizing player
+                
+
 
             # --- 7 Recursive minimax call -------------------------------
             value = minimax(
@@ -599,24 +537,16 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
                 is_max_turn=not is_max_turn,
                 indent_level=indent_level + 1
             )
-            
-            # Log the returned value for debugging
-            log_message(f"{indent}  -> Returned: {value} (alpha={alpha}, beta={beta})")
 
             # --- 8️⃣ Alpha-beta updates -----------------------------------
             if is_max_turn:
                 best_value = max(best_value, value)
                 alpha = max(alpha, value)
-                if value > best_value or best_value == float('-inf'):
-                    log_message(f"{indent}  -> New MAX best: {value}")
             else:
                 best_value = min(best_value, value)
                 beta = min(beta, value)
-                if value < best_value or best_value == float('inf'):
-                    log_message(f"{indent}  -> New MIN best: {value}")
 
             if beta <= alpha:
-                log_message(f"{indent}  -> PRUNED! (beta={beta} <= alpha={alpha})")
                 break  # Prune rest of branch
 
         except Exception:
@@ -632,15 +562,9 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
     """
-    piece, move = find_best_move(board, player, time_limit=10)
+    piece, move = find_best_move(board, player, time_limit=4.5)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:
             piece, move = random.choice(legal)
-            log_message(f"No best move found, playing random move: {piece.name} to ({move.position.x},{move.position.y})")
-    else:
-        log_message(f"\n*** FINAL DECISION: Playing {piece.name} from ({piece.position.x},{piece.position.y}) to ({move.position.x},{move.position.y}) ***")
-    
-    # Add a 1-second delay before continuing after a move is made
-    #time.sleep(1)
     return piece, move
