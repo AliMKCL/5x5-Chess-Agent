@@ -338,11 +338,6 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                 print(f"Testing move at depth {depth}: {piece} to ({move.position.x},{move.position.y})")
                 log_message(f"  Testing move at depth {depth}: {piece.name} from ({piece.position.x},{piece.position.y}) to ({move.position.x},{move.position.y})")
                 
-                # Log board state and evaluation for depth 1 moves (for debugging)
-                if depth == 1:
-                    static_eval = evaluate_board(new_board, player.name, debug=True)
-                    log_message(f"  Static evaluation after move: {static_eval}")
-
                 # Switch turn
                 new_board.current_player = [p for p in new_board.players if p != player][0]
 

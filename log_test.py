@@ -178,4 +178,4 @@ def testgame(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame(p_white=agent, p_black=pre_endgame_agent, board_sample=sample0)
+    testgame(p_white=agent, p_black=agent, board_sample=sample0)
