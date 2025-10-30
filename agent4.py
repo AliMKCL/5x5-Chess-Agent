@@ -308,6 +308,9 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
         if time.time() - start_time >= time_limit:
             break
 
+        # alpha: Best value that maximizing player can guarantee.
+        # beta: Best value that the minimizing player can guarantee.
+
         alpha, beta = float('-inf'), float('inf')
         current_best_move = None
         current_best_score = float('-inf')
@@ -627,7 +630,7 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
     """
-    piece, move = find_best_move(board, player, time_limit=10)
+    piece, move = find_best_move(board, player, time_limit=300)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:
