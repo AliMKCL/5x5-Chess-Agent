@@ -85,6 +85,46 @@ def log_board_state(board, title=""):
 # HELPER FUNCTIONS
 # ============================================================================
 
+def build_move_cache(board):
+    """
+    Build a cache of move options for all pieces on the board.
+    
+    This is CRITICAL-2 optimization: Instead of calling piece.get_move_options()
+    multiple times for the same piece in the same board state, we cache all moves
+    once and reuse them.
+    
+    Time Complexity:
+    - WITHOUT cache: O(n²) - n pieces × n calls per piece = n²
+    - WITH cache: O(n) - one call per piece
+    
+    Returns:
+        dict: {(piece.position.x, piece.position.y, piece.name, piece.player.name): [moves]}
+    """
+    cache = {}
+    for piece in board.get_pieces():
+        # Create a unique key for this piece (position + type + player)
+        key = (piece.position.x, piece.position.y, piece.name, piece.player.name)
+        cache[key] = piece.get_move_options()
+    return cache
+
+def get_cached_moves(piece, cache):
+    """
+    Retrieve cached move options for a piece.
+    
+    Args:
+        piece: The piece to get moves for
+        cache: The move cache dictionary
+        
+    Returns:
+        list: Cached move options, or fresh moves if not cached
+    """
+    key = (piece.position.x, piece.position.y, piece.name, piece.player.name)
+    if key in cache:
+        return cache[key]
+    # Fallback: if somehow not in cache, compute fresh
+    print("Warning: Piece moves not found in cache, computing fresh.")
+    return piece.get_move_options()
+
 
 
 # ============================================================================
@@ -172,7 +212,7 @@ def evaluate_board(board, player_name):
 # MOVE ORDERING
 # ============================================================================
 
-def order_moves(board, moves):
+def order_moves(board, moves, move_cache=None):
     """
     Orders moves by tactical and positional importance.
 
@@ -180,8 +220,17 @@ def order_moves(board, moves):
       1. Checkmate moves
       2. Valuable or safe captures (victim >= attacker OR target is undefended)
       3. Positional improvement (piece-square tables)
+      
+    Args:
+        board: Current board state
+        moves: List of (piece, move) tuples to order
+        move_cache: Optional cache of piece move options to avoid redundant calculations
     """
     scored_moves = []
+    
+    # Build move cache if not provided (for backwards compatibility)
+    if move_cache is None:
+        move_cache = build_move_cache(board)
     
     # Create position-to-piece lookup for faster capture evaluation
     pos_to_piece = {piece.position: piece for piece in board.get_pieces()}
@@ -218,7 +267,7 @@ def order_moves(board, moves):
                     
                     # Get opponent player for exchange evaluation
                     opponent = next(p for p in board.players if p != piece.player)
-                    num_diff, val_diff = attacker_defender_ratio(board, move.position, opponent, piece.player)
+                    num_diff, val_diff = attacker_defender_ratio(board, move.position, opponent, piece.player, move_cache)
                     
                     # Base MVV-LVA score: prefer low-value attackers capturing high-value victims
                     # Using (victim * 10) ensures victim value is prioritized
@@ -297,6 +346,10 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
     # Global counter for nodes explored (for debugging)
     global nodes_explored
     nodes_explored = 0
+    
+    # CRITICAL-2 OPTIMIZATION: Build move cache ONCE for the root position
+    # This avoids redundant get_move_options() calls in order_moves
+    root_move_cache = build_move_cache(board)
 
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
@@ -315,7 +368,7 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
         current_best_move = None
         current_best_score = float('-inf')
 
-        ordered_moves = order_moves(board, legal_moves)
+        ordered_moves = order_moves(board, legal_moves, root_move_cache)
 
         # Try each move at this depth
         found_checkmate = False
@@ -332,7 +385,9 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                 if not new_piece:
                     continue
 
-                new_move = next((m for m in new_piece.get_move_options()
+                # CRITICAL-2 OPTIMIZATION: Use cached moves instead of calling get_move_options()
+                cached_moves = get_cached_moves(new_piece, root_move_cache)
+                new_move = next((m for m in cached_moves
                                  if hasattr(m, "position") and m.position == move.position), None)
                 if not new_move:
                     continue
@@ -442,7 +497,13 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     print(f"Depth {depth} INCOMPLETE ({moves_evaluated}/{total_moves} moves): Found {current_best_move[0].name} with score {current_best_score}, keeping previous best (score {best_score}, improvement only +{improvement})")
                     log_message(f"Depth {depth} INCOMPLETE - Keeping previous depth's best move (searched {moves_evaluated}/{total_moves})")
         else:
-            print(f"Depth {depth} complete: No valid move found at this depth (using previous depth's best)")
+            # No moves were fully evaluated at this depth (likely due to timeout or all moves failed)
+            if moves_evaluated == 0:
+                print(f"Depth {depth} TIMEOUT: No moves completed ({total_moves} moves available) - using previous depth's best")
+                log_message(f"Depth {depth} TIMEOUT before completing first move - keeping previous best")
+            else:
+                print(f"Depth {depth} ERROR: Moves evaluated but no valid move found - using previous depth's best")
+                log_message(f"Depth {depth} ERROR: {moves_evaluated} moves evaluated but current_best_move is None")
         
         # Print statistics for this depth
         depth_nodes = nodes_explored - depth_nodes_before
@@ -540,7 +601,9 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
     best_value = float('-inf') if is_max_turn else float('inf')
 
     # --- 4 Order moves for better pruning -------------------------------
-    ordered_moves = order_moves(board, legal_moves)
+    # CRITICAL-2 OPTIMIZATION: Build move cache once per board state
+    move_cache = build_move_cache(board)
+    ordered_moves = order_moves(board, legal_moves, move_cache)
 
     # --- 5 Explore moves ------------------------------------------------
     for piece, move in ordered_moves:
@@ -562,7 +625,9 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             if not new_piece:
                 continue
 
-            new_move = next((m for m in new_piece.get_move_options()
+            # CRITICAL-2 OPTIMIZATION: Use cached moves instead of calling get_move_options()
+            cached_moves = get_cached_moves(new_piece, move_cache)
+            new_move = next((m for m in cached_moves
                              if hasattr(m, "position") and m.position == move.position), None)
             
             if not new_move:
@@ -630,7 +695,7 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
     """
-    piece, move = find_best_move(board, player, time_limit=300)
+    piece, move = find_best_move(board, player, time_limit=60)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:

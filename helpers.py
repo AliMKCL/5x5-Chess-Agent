@@ -71,7 +71,7 @@ KING_TABLE_ENDGAME = [
     [0, 0, 0, 0, 0]
 ]
 
-def attacker_defender_ratio(board, target_position, attacking_player, defending_player):
+def attacker_defender_ratio(board, target_position, attacking_player, defending_player, move_cache=None):
     """
     Analyzes the attacker/defender balance for a given square and calculates exchange outcomes.
     
@@ -80,6 +80,7 @@ def attacker_defender_ratio(board, target_position, attacking_player, defending_
         target_position: The position to analyze (Position object with x, y)
         attacking_player: The player whose pieces might attack this square
         defending_player: The player whose pieces might defend this square
+        move_cache: Optional cache of piece move options to avoid redundant calculations
     
     Returns:
         (num_diff, val_diff): Tuple containing:
@@ -120,8 +121,15 @@ def attacker_defender_ratio(board, target_position, attacking_player, defending_
     attacker_list = []  # List of (piece, value) tuples
     
     for piece in attacking_pieces:
-        # OPTIMIZATION: Cache move options to avoid repeated calls
-        move_options = piece.get_move_options()
+        # OPTIMIZATION: Use cached move options if available
+        if move_cache:
+            key = (piece.position.x, piece.position.y, piece.name, piece.player.name)
+            if key in move_cache:
+                move_options = move_cache[key]
+            else:
+                move_options = piece.get_move_options()
+        else:
+            move_options = piece.get_move_options()
         
         # Filter attacking pieces
         for move in move_options:
@@ -139,8 +147,15 @@ def attacker_defender_ratio(board, target_position, attacking_player, defending_
         if piece.position == target_position:
             continue
         
-        # OPTIMIZATION: Cache move options to avoid repeated calls
-        move_options = piece.get_move_options()
+        # OPTIMIZATION: Use cached move options if available
+        if move_cache:
+            key = (piece.position.x, piece.position.y, piece.name, piece.player.name)
+            if key in move_cache:
+                move_options = move_cache[key]
+            else:
+                move_options = piece.get_move_options()
+        else:
+            move_options = piece.get_move_options()
         
         # Filter defending pieces
         for move in move_options:

@@ -5,8 +5,8 @@ from chessmaker.chess.base import Board
 from extension.board_utils import print_board_ascii, copy_piece_move
 from extension.board_rules import get_result
 from samples import white, black, sample0, sample1
-from agent4 import agent
-from pre_endgame import agent as pre_endgame_agent
+from agent import agent as agent_pre_cache
+from agentS import agent
 from opponent import opponent
 
 def make_custom_board(board_sample):
@@ -68,4 +68,4 @@ def testgame(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame(p_white=agent, p_black=pre_endgame_agent, board_sample=sample0)
+    testgame(p_white=agent, p_black=agent, board_sample=sample0)
