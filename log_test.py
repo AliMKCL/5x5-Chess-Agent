@@ -7,6 +7,8 @@ from extension.board_rules import get_result
 from samples import white, black, sample0, sample1
 from agent import agent, log_message, log_board_state, init_log_file
 from opponent import opponent
+from agentS import agent, log_message, log_board_state, init_log_file
+from agent_logless import agent as agent_logless
 
 # Global move counter for logging
 global_move_counter = 0

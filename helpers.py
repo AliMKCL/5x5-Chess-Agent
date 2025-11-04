@@ -71,7 +71,7 @@ KING_TABLE_ENDGAME = [
     [0, 0, 0, 0, 0]
 ]
 
-def attacker_defender_ratio(board, target_position, attacking_player, defending_player, move_cache=None):
+def attacker_defender_ratio(board, target_position, attacking_player, defending_player, move_cache=None, pos_map=None):
     """
     Analyzes the attacker/defender balance for a given square and calculates exchange outcomes.
     
@@ -81,6 +81,7 @@ def attacker_defender_ratio(board, target_position, attacking_player, defending_
         attacking_player: The player whose pieces might attack this square
         defending_player: The player whose pieces might defend this square
         move_cache: Optional cache of piece move options to avoid redundant calculations
+        pos_map: Optional position-to-piece lookup dict for O(1) piece lookups
     
     Returns:
         (num_diff, val_diff): Tuple containing:
@@ -106,12 +107,17 @@ def attacker_defender_ratio(board, target_position, attacking_player, defending_
           3. No more defenders, exchange ends
         val_diff = +100 - 100 = 0
     """
-    # ===== STEP 1: Find the piece on the target square =====
-    target_piece = None
-    for piece in board.get_pieces():
-        if piece.position == target_position:
-            target_piece = piece
-            break
+    # ===== STEP 1: Find the piece on the target square (CRITICAL-3 OPTIMIZED) =====
+    if pos_map is not None:
+        # O(1) lookup using position map
+        target_piece = pos_map.get((target_position.x, target_position.y))
+    else:
+        # Fallback to O(n) scan if no position map provided
+        target_piece = None
+        for piece in board.get_pieces():
+            if piece.position == target_position:
+                target_piece = piece
+                break
     
     # Get all pieces for both players
     attacking_pieces = board.get_player_pieces(attacking_player)

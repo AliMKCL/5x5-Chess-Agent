@@ -86,7 +86,7 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
 - The hash function should be fast; consider Zobrist hashing for better performance
 
 ---
-
+### DONE
 ### CRITICAL-2: Cache Move Options to Avoid Redundant Calculations
 **Location:** agent4.py:318, 543; helpers.py:124, 143
 **Estimated Impact:** 15-25% speedup
@@ -166,17 +166,17 @@ def order_moves(board, moves):
 **Expected Impact:** CRITICAL - Reduces get_move_options() calls from O(pieces * captures) to O(pieces) per board state. In a typical position with 8 pieces and 4 captures being evaluated, this reduces from 64+ calls to 8 calls (87% reduction).
 
 ---
-
+### DONE
 ### CRITICAL-3: Optimize Board Position Lookup in Evaluation and Move Ordering
-**Location:** agent4.py:187; helpers.py:110-113
+**Location:** agentS.py:234; helpers.py:76-85
 **Estimated Impact:** 10-15% speedup
 
 **Current Implementation:**
 ```python
-# In order_moves (agent4.py:187)
+# In order_moves (agentS.py:234)
 pos_to_piece = {piece.position: piece for piece in board.get_pieces()}
 
-# In attacker_defender_ratio (helpers.py:110-113)
+# In attacker_defender_ratio (helpers.py:76-85)
 target_piece = None
 for piece in board.get_pieces():
     if piece.position == target_position:

@@ -283,8 +283,6 @@ def order_moves(board, moves, move_cache=None, pos_map=None):
         # ===== 1 Checkmate (if the move object has this attribute set) ===============
         if hasattr(move, "checkmate") and move.checkmate:
             score += 100000000
-            print(f"Move ordering: Found checkmate move {piece.name} to ({move.position.x},{move.position.y})")
-            log_message(f"Move ordering: Checkmate move detected - {piece.name} to ({move.position.x},{move.position.y})")
 
         #=====  2 Valuable captures ===============================================
         # Prioritize high-value captures (MVV-LVA: Most Valuable Victim - Least Valuable Attacker)
@@ -307,12 +305,10 @@ def order_moves(board, moves, move_cache=None, pos_map=None):
                     # Case 1: More or equal defenders than attackers
                     if not val_diff or val_diff < 0:
                         score += base_mvv_lva    # Check if weakest attacker < victim_value
-                        log_message(f"Equal/losing numbers but potentially favorable: {piece.name} captures {target.name}, num_diff={num_diff}, score = {score} move {piece.name} to ({move.position.x},{move.position.y})")
 
                     # Case 2: More attackers than defenders, and positive trade
                     elif val_diff > 0:
                         score += base_mvv_lva + 1000    # Capture with the weakest attacker and prefer the capture
-                        log_message(f"Winning exchange: {piece.name} captures {target.name}, net={val_diff}, score={score}, move {piece.name} to ({move.position.x},{move.position.y})")
 
 
         
@@ -428,9 +424,7 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     continue
 
                 new_piece.move(new_move)
-                print(f"Testing move at depth {depth}: {piece} to ({move.position.x},{move.position.y})")
-                log_message(f"  Testing move at depth {depth}: {piece.name} from ({piece.position.x},{piece.position.y}) to ({move.position.x},{move.position.y})")
-                
+
                 # Switch turn
                 new_board.current_player = [p for p in new_board.players if p != player][0]
 
@@ -443,8 +437,6 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     opponent_name = "black" if player.name == "white" else "white"
                     if opponent_name in result.lower() and "loses" in result.lower():
                         # We delivered checkmate! This is the best possible move
-                        print(f"  *** CHECKMATE FOUND: {piece} to ({move.position.x},{move.position.y}) ***")
-                        log_message(f"  *** CHECKMATE FOUND: {piece.name} to ({move.position.x},{move.position.y}) - Instant win! ***")
                         return (piece, move)  # Return immediately, this is the best move possible
                 
                 # Check if this move causes a stalemate
@@ -453,13 +445,10 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
 
                     # If we're winning (eval > -500), skip this stalemate move
                     if current_eval > -500:
-                        print(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
-                        log_message(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
                         continue
                     else:
+                        pass
                         # If we're losing badly, stalemate is acceptable
-                        print(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
-                        log_message(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
                 
 
                 # Run minimax for OPPONENT's reply
@@ -476,20 +465,14 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                     indent_level=1  # Start with indent level 1 for opponent moves
                 )
                 
-                # Log the raw score from minimax
-                log_message(f"    -> Minimax returned score: {score} for {player.name}")
-                log_message(f"    -> Current best score: {current_best_score}, Testing if {score} > {current_best_score}")
 
                 # If the current move is better than the previous best at this depth, update new best move.
                 if score > current_best_score and score < float('inf'):
                     current_best_score = score
                     current_best_move = (piece, move)
-                    log_message(f"    -> New best move! Score: {score} (player: {player.name}, piece: {piece.name}, move: ({move.position.x},{move.position.y}))")
                     # Debug: Show when we find a very good move (potential checkmate)
                     # Check for inf/nan and treat as non-checkmate
                     if score >= 999999 and score < float('inf'):
-                        print(f"  *** FOUND FORCED CHECKMATE: {piece} to ({move.position.x},{move.position.y}) with score {score}")
-                        log_message(f"    *** FOUND FORCED CHECKMATE: {piece.name} to ({move.position.x},{move.position.y}) with score {score}")
                         found_checkmate = True
                         break  # Stop evaluating other moves - we have a forced win!
 
@@ -518,55 +501,37 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                 # Completed the full depth - always use it
                 best_move = current_best_move
                 best_score = current_best_score
-                print(f"Depth {depth} complete: Best move is {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score}")
-                log_message(f"Depth {depth} FULLY COMPLETED ({moves_evaluated}/{total_moves} moves) - Updated best move")
             else:
                 # Partial search - only use if significantly better than previous depth
                 improvement = current_best_score - best_score
                 if improvement > 0:  # Improvement threshold
                     best_move = current_best_move
                     best_score = current_best_score
-                    print(f"Depth {depth} PARTIAL ({moves_evaluated}/{total_moves} moves): Using move {best_move[0].name} with score {best_score} (improvement: +{improvement})")
-                    log_message(f"Depth {depth} PARTIAL but IMPROVED - Updated best move (searched {moves_evaluated}/{total_moves})")
                 else:
-                    print(f"Depth {depth} INCOMPLETE ({moves_evaluated}/{total_moves} moves): Found {current_best_move[0].name} with score {current_best_score}, keeping previous best (score {best_score}, improvement only +{improvement})")
-                    log_message(f"Depth {depth} INCOMPLETE - Keeping previous depth's best move (searched {moves_evaluated}/{total_moves})")
+                    pass
         else:
             # No moves were fully evaluated at this depth (likely due to timeout or all moves failed)
             if moves_evaluated == 0:
-                print(f"Depth {depth} TIMEOUT: No moves completed ({total_moves} moves available) - using previous depth's best")
-                log_message(f"Depth {depth} TIMEOUT before completing first move - keeping previous best")
+                pass
             else:
-                print(f"Depth {depth} ERROR: Moves evaluated but no valid move found - using previous depth's best")
-                log_message(f"Depth {depth} ERROR: {moves_evaluated} moves evaluated but current_best_move is None")
+                pass
         
         # Print statistics for this depth
         depth_nodes = nodes_explored - depth_nodes_before
         depth_time = time.time() - depth_start_time
         print(f"Depth {depth} stats: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
         log_message(f"Depth {depth} complete: {depth_nodes} nodes explored in {depth_time:.3f}s (Total: {nodes_explored} nodes)")
-        if current_best_move:
-            log_message(f"Best move at depth {depth}: {current_best_move[0].name} to ({current_best_move[1].position.x},{current_best_move[1].position.y}) with score {current_best_score}")
-        else:
-            log_message(f"No valid move found at depth {depth}, keeping previous best")
         
         # EARLY TERMINATION: If we found a forced checkmate, stop iterative deepening immediately
         # No need to search deeper - we already have a guaranteed winning sequence!
         if found_checkmate or current_best_score >= 999999:
-            print(f"*** FORCED CHECKMATE SEQUENCE FOUND AT DEPTH {depth} - Stopping search immediately ***")
-            print(f"*** Playing: {best_move[0]} to ({best_move[1].position.x},{best_move[1].position.y}) ***")
-            log_message(f"*** FORCED CHECKMATE SEQUENCE FOUND AT DEPTH {depth} - Stopping search immediately ***")
             break
 
         # Stop if time runs out mid-search
         if time.time() - start_time >= time_limit:
-            print(f"Time limit reached after depth {depth}")
-            log_message(f"Time limit reached after depth {depth}")
             break
     
     # Log final decision
-    print(f"\n*** FINAL MOVE SELECTION: {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score} ***")
-    log_message(f"\n*** FINAL MOVE SELECTION: {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score} ***")
     
     return best_move
 
@@ -653,9 +618,6 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         # DEBUG: Print what's being explored (comment out for production)
         indent = "  " * indent_level
         turn_type = "MAX" if is_max_turn else "MIN"
-        print(f"{indent}[Depth {depth}, {turn_type}] Testing: {piece.name} to ({move.position.x},{move.position.y})")
-        log_message(f"{indent}[Depth {depth}, {turn_type}] Testing: {piece.name} to ({move.position.x},{move.position.y})")
-
         new_board = board.clone()
         try:
             # Locate piece & move equivalents on cloned board
@@ -702,23 +664,19 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
                 indent_level=indent_level + 1
             )
             
-            # Log the returned value for debugging
-            log_message(f"{indent}  -> Returned: {value} (alpha={alpha}, beta={beta})")
 
             # --- 8️⃣ Alpha-beta updates -----------------------------------
             if is_max_turn:
                 best_value = max(best_value, value)
                 alpha = max(alpha, value)
                 if value > best_value or best_value == float('-inf'):
-                    log_message(f"{indent}  -> New MAX best: {value}")
+                    pass
             else:
                 best_value = min(best_value, value)
                 beta = min(beta, value)
                 if value < best_value or best_value == float('inf'):
-                    log_message(f"{indent}  -> New MIN best: {value}")
-
+                    pass
             if beta <= alpha:
-                log_message(f"{indent}  -> PRUNED! (beta={beta} <= alpha={alpha})")
                 break  # Prune rest of branch
 
         except Exception:
@@ -739,10 +697,8 @@ def agent(board, player, var):
         legal = list_legal_moves_for(board, player)
         if legal:
             piece, move = random.choice(legal)
-            log_message(f"No best move found, playing random move: {piece.name} to ({move.position.x},{move.position.y})")
     else:
-        log_message(f"\n*** FINAL DECISION: Playing {piece.name} from ({piece.position.x},{piece.position.y}) to ({move.position.x},{move.position.y}) ***")
-    
+        pass
     # Add a 1-second delay before continuing after a move is made
     #time.sleep(1)
     return piece, move
