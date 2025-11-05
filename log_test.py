@@ -9,6 +9,7 @@ from agent import agent, log_message, log_board_state, init_log_file
 from opponent import opponent
 from agentS import agent, log_message, log_board_state, init_log_file
 from agent_logless import agent as agent_logless
+from agentQ import agent as agentQ
 
 # Global move counter for logging
 global_move_counter = 0
@@ -179,4 +180,4 @@ def testgame(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame(p_white=agent, p_black=agent, board_sample=sample0)
+    testgame(p_white=agentQ, p_black=agent, board_sample=sample0)

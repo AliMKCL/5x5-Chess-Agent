@@ -481,7 +481,7 @@ def find_best_move(board, player, max_depth=10, time_limit=30.0):
                 log_message(f"    -> Current best score: {current_best_score}, Testing if {score} > {current_best_score}")
 
                 # If the current move is better than the previous best at this depth, update new best move.
-                if score > current_best_score and score < float('inf'):
+                if score > current_best_score and score != float('inf') and score != float('-inf'):
                     current_best_score = score
                     current_best_move = (piece, move)
                     log_message(f"    -> New best move! Score: {score} (player: {player.name}, piece: {piece.name}, move: ({move.position.x},{move.position.y}))")
@@ -734,7 +734,7 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
     """
-    piece, move = find_best_move(board, player, time_limit=60)
+    piece, move = find_best_move(board, player, time_limit=100)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:
