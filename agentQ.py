@@ -16,7 +16,7 @@ MOVE_COUNTER = 0
 
 # Quiescence search configuration
 QUIESCENCE_ENABLED = True  # Toggle quiescence search on/off
-MAX_QUIESCENCE_DEPTH = 10  # Maximum quiescence search depth
+MAX_QUIESCENCE_DEPTH = 7  # Maximum quiescence search depth
 
 def init_log_file():
     """Initialize the log file for this game session."""
@@ -1005,7 +1005,7 @@ def agent(board, player, var):
 
     This version includes Phase 1: Quiescence Search
     """
-    piece, move = find_best_move(board, player, time_limit=100)
+    piece, move = find_best_move(board, player, time_limit=12.5)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:

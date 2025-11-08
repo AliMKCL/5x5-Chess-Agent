@@ -1,5 +1,9 @@
+import concurrent.futures
 from chessmaker.chess.pieces import King
 from chessmaker.chess.results import no_kings, checkmate
+
+THINKING_TIME_BUDGET = 14.0 # (secs)
+GAME_TIME_BUDGET = 300.0 # (secs)
 
 def _position_key(board):
     pieces = []
@@ -47,3 +51,12 @@ def only_2kings(board):
             return None
     if len(all_pieces) == 2 and all(isinstance(piece, King) for piece in all_pieces):
         return "Draw - only 2 kings left"
+
+def thinking_with_timeout(func, thinking_time, *args, **kwargs):
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(func, *args, **kwargs)
+        try:
+            result = future.result(timeout=thinking_time)
+            return result
+        except concurrent.futures.TimeoutError:
+            return 99, None

@@ -734,7 +734,7 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
     """
-    piece, move = find_best_move(board, player, time_limit=100)
+    piece, move = find_best_move(board, player, time_limit=13)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:
