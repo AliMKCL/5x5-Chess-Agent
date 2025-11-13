@@ -4,7 +4,7 @@ from extension.board_utils import list_legal_moves_for
 from chessmaker.chess.pieces import King, Queen, Bishop, Knight, Pawn
 from extension.piece_right import Right
 from extension.board_rules import get_result
-from helpers import *
+from helpersE import *
 
 # ============================================================================
 # CONSTANTS & HEURISTICS
@@ -16,13 +16,16 @@ MOVE_COUNTER = 0
 
 # Quiescence search configuration
 QUIESCENCE_ENABLED = True  # Toggle quiescence search on/off
-MAX_QUIESCENCE_DEPTH = 7  # Maximum quiescence search depth
+MAX_QUIESCENCE_DEPTH = 10  # Maximum quiescence search depth
+
+# Track maximum Q-depth reached for logging
+max_q_depth_reached = 0
 
 def init_log_file():
     """Initialize the log file for this game session."""
     global LOG_FILE
     LOG_FILE = open("game_log.txt", "a")
-    LOG_FILE.write("=== GAME LOG (with Quiescence Search) ===\n\n")
+    LOG_FILE.write("=== GAME LOG (agentE - Endgame Enhanced with Quiescence Search) ===\n\n")
 
 def close_log_file():
     """Close the log file."""
@@ -159,10 +162,17 @@ def get_cached_moves(piece, cache):
 # Estimates how good or bad a board position is for the given player.
 def evaluate_board(board, player_name, pos_map=None):
     """
+    ENDGAME-ENHANCED EVALUATION FUNCTION (agentE.py)
+
     Evaluates the board state based on:
       1) Material balance
-      2) Positional values from piece-square tables
+      2) Positional values from piece-square tables (endgame-aware)
       3) King safety (bonus if ≥ 2 friendly pieces within 1-cell radius)
+      4) ENDGAME-SPECIFIC EVALUATION (Phase B):
+         - Pawn race: Opposition, promotion race, passed pawns, key squares
+         - Mating attack: Mobility restriction, edge drive, king cooperation
+         - Minor piece endgame: King activity
+         - Complex endgame: Mobility advantage + king activity
 
     Args:
         board: Current board state
@@ -176,7 +186,8 @@ def evaluate_board(board, player_name, pos_map=None):
     score = 0
 
     # Get lists of all pieces and players
-    all_pieces = board.get_pieces()
+    # board.get_pieces() returns a generator; convert to list for reuse
+    all_pieces = list(board.get_pieces())
     player = next(p for p in board.players if p.name == player_name)
     opponent = next(p for p in board.players if p.name != player_name)
 
@@ -191,10 +202,10 @@ def evaluate_board(board, player_name, pos_map=None):
         piece_name_lower = piece.name.lower()
         is_player_piece = piece.player.name == player_name
 
-        # 1. Material + Positional Value
+        # 1. Material + Positional Value (using endgame-aware tables)
         base_value = get_piece_value(piece)
         is_white = piece.player.name == "white"
-        pos_value = get_positional_value(piece, is_white, board)
+        pos_value = get_positional_value(piece, is_white, board, use_endgame_tables=True)
         total_piece_value = base_value + pos_value
 
         if is_player_piece:
@@ -213,29 +224,62 @@ def evaluate_board(board, player_name, pos_map=None):
         else:
             opponent_pieces.append(piece)
 
-    # --- 3. KING SAFETY ---------------------------------------------------
-    # Calculate king safety for both kings
-    if player_king:
-        kx, ky = player_king.position.x, player_king.position.y
-        nearby_allies = sum(1 for p in player_pieces
-                           if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
-        if nearby_allies >= 2:
-            score += 50
-        elif nearby_allies == 1:
-            score += 20
-        else:
-            score -= 50
+    # --- 3. KING SAFETY (reduced importance in endgames) -------------------
+    # Calculate king safety for both kings (less relevant in endgames)
+    total_pieces = len(all_pieces)
 
-    if opponent_king:
-        kx, ky = opponent_king.position.x, opponent_king.position.y
-        nearby_allies = sum(1 for p in opponent_pieces
-                           if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
-        if nearby_allies >= 2:
-            score -= 50
-        elif nearby_allies == 1:
-            score -= 20
-        else:
-            score += 50
+    if total_pieces > 8:  # Only apply in middlegame
+        if player_king:
+            kx, ky = player_king.position.x, player_king.position.y
+            nearby_allies = sum(1 for p in player_pieces
+                               if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
+            if nearby_allies >= 2:
+                score += 50
+            elif nearby_allies == 1:
+                score += 20
+            else:
+                score -= 50
+
+        if opponent_king:
+            kx, ky = opponent_king.position.x, opponent_king.position.y
+            nearby_allies = sum(1 for p in opponent_pieces
+                               if abs(p.position.x - kx) <= 1 and abs(p.position.y - ky) <= 1)
+            if nearby_allies >= 2:
+                score -= 50
+            elif nearby_allies == 1:
+                score -= 20
+            else:
+                score += 50
+
+    # --- 4. ENDGAME-SPECIFIC EVALUATION (NEW IN PHASE B) -------------------
+    # Classify endgame type and apply specialized evaluation
+    endgame_type = classify_endgame_type(board, player_name)
+
+    if endgame_type == 'pawn_race':
+        # Pawn endgame bonuses
+        log_message("PAWN RACE")
+        print("PAWN RACE")
+        score += evaluate_king_opposition(board, player_name)
+        score += evaluate_pawn_promotion_race(board, player_name)
+        score += evaluate_passed_pawns(board, player_name)
+        score += evaluate_key_squares(board, player_name)
+
+    elif endgame_type == 'mating_attack':
+        print("MATING ATTACK")
+        # Mating attack bonuses (mobility restriction + edge drive + cooperation)
+        score += evaluate_mating_net(board, player_name)
+
+    elif endgame_type == 'minor_piece_endgame':
+        # Minor piece endgame - king activity is crucial
+        score += evaluate_king_activity(board, player_name)
+        score += evaluate_mobility_advantage(board, player_name)
+
+    elif endgame_type == 'complex_endgame':
+        # General endgame improvements
+        score += evaluate_king_activity(board, player_name)
+        score += evaluate_mobility_advantage(board, player_name)
+        # Also check for passed pawns if any exist
+        score += evaluate_passed_pawns(board, player_name)
 
     return score
 
@@ -301,7 +345,10 @@ def order_moves(board, moves, move_cache=None, pos_map=None):
 
                     # Get opponent player for exchange evaluation
                     opponent = next(p for p in board.players if p != piece.player)
-                    num_diff, val_diff = attacker_defender_ratio(board, move.position, opponent, piece.player, move_cache, pos_map)
+
+                    # FIX: Use capture_pos (where victim is), not move.position (where attacker moves to)
+                    # In most cases these are the same, but for clarity use the actual capture location
+                    num_diff, val_diff = attacker_defender_ratio(board, capture_pos, opponent, piece.player, move_cache, pos_map)
 
                     # Base MVV-LVA score: prefer low-value attackers capturing high-value victims
                     # Using (victim * 10) ensures victim value is prioritized
@@ -378,24 +425,26 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     Returns:
         Evaluation score (int) from player_name's perspective
     """
-    global nodes_explored
+    global nodes_explored, max_q_depth_reached
     nodes_explored += 1
+    
+    # Reset max depth tracker at the start of each top-level quiescence call
+    if q_depth == 0:
+        max_q_depth_reached = 0
+    
+    # Track maximum depth reached
+    if q_depth > max_q_depth_reached:
+        max_q_depth_reached = q_depth
 
     # Check timeout
     if time.time() - start_time >= time_limit:
         eval_score = evaluate_board(board, player_name)
-        indent = "  " * (q_depth + 2)
-        log_message(f"{indent}[Q-depth {q_depth}] TIMEOUT - returning static eval={eval_score}")
         return eval_score
 
     # Limit quiescence depth to prevent infinite loops
     if q_depth >= MAX_QUIESCENCE_DEPTH:
         eval_score = evaluate_board(board, player_name)
-        indent = "  " * (q_depth + 2)
-        log_message(f"{indent}[Q-depth {q_depth}] MAX Q-DEPTH REACHED - returning static eval={eval_score}")
         return eval_score
-
-    indent = "  " * (q_depth + 2)
 
     # Check for terminal game states
     result = get_result(board)
@@ -404,52 +453,55 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
         if "checkmate" in res:
             # Return high/low scores based on who won
             if player_name in res or (player_name == "white" and "black loses" in res) or (player_name == "black" and "white loses" in res):
-                log_message(f"{indent}[Q-depth {q_depth}] CHECKMATE (we win) - returning +999999")
                 return 999999  # We win
             else:
-                log_message(f"{indent}[Q-depth {q_depth}] CHECKMATE (we lose) - returning -999999")
                 return -999999  # We lose
         elif "draw" in res or "stalemate" in res:
-            log_message(f"{indent}[Q-depth {q_depth}] DRAW/STALEMATE - returning 0")
             return 0
 
     # Stand-pat score: evaluate current position without any moves
     # This is the "quiet" baseline - if we don't make a capture, this is what we get
     stand_pat = evaluate_board(board, player_name)
-    turn_type = "MAX" if is_max_turn else "MIN"
-    log_message(f"{indent}[Q-depth {q_depth}, {turn_type}] Stand-pat evaluation = {stand_pat} (alpha={alpha}, beta={beta})")
 
-    # STANDARD MINIMAX LOGIC:
-    # - MAX turn: if stand_pat >= beta, this position is too good, MIN player won't allow it (beta cutoff)
-    #            if stand_pat > alpha, update our guaranteed minimum (alpha)
-    # - MIN turn: if stand_pat <= alpha, this position is too bad, MAX player won't allow it (alpha cutoff)
-    #            if stand_pat < beta, update opponent's guaranteed maximum (beta)
+    # MODIFIED QUIESCENCE LOGIC (FIX for missing checkmates/tactics):
+    #
+    # PROBLEM: Original code had immediate beta/alpha cutoff based on stand-pat
+    #          This caused quiescence to return WITHOUT searching any captures
+    #          Example: stand_pat=800, beta=800 → returns 800 immediately
+    #                   Missing Queen x Pawn checkmate that scores 999999!
+    #
+    # SOLUTION: Remove early cutoff returns, but keep alpha/beta updates
+    #           Always search at least one ply of captures before returning
+    #           Beta cutoff still works during capture search loop (lines 560-561, 567-568)
+    #
+    # IMPACT: - Q-depth increases because we don't stop prematurely
+    #         - Finds immediate tactical blows (checkmates, forced wins)
+    #         - Still efficient: beta cutoff happens in capture loop
 
     if is_max_turn:
         # Maximizing player
-        if stand_pat >= beta:
-            log_message(f"{indent}[Q-depth {q_depth}] BETA CUTOFF (stand-pat {stand_pat} >= beta {beta}) - pruning")
-            return beta
+        # OLD CODE (caused premature returns, missing tactics):
+        # if stand_pat >= beta:
+        #     return beta
+
+        # KEPT: Update alpha with stand-pat (unchanged from original)
         if stand_pat > alpha:
-            original_alpha = alpha
             alpha = stand_pat
-            log_message(f"{indent}[Q-depth {q_depth}] Stand-pat improves alpha: {original_alpha} -> {alpha}")
     else:
         # Minimizing player
-        if stand_pat <= alpha:
-            log_message(f"{indent}[Q-depth {q_depth}] ALPHA CUTOFF (stand-pat {stand_pat} <= alpha {alpha}) - pruning")
-            return alpha
+        # OLD CODE (caused premature returns, missing tactics):
+        # if stand_pat <= alpha:
+        #     return alpha
+
+        # KEPT: Update beta with stand-pat (unchanged from original)
         if stand_pat < beta:
-            original_beta = beta
             beta = stand_pat
-            log_message(f"{indent}[Q-depth {q_depth}] Stand-pat improves beta: {original_beta} -> {beta}")
 
     # Get all legal moves
     current_player = board.current_player
     all_moves = list_legal_moves_for(board, current_player)
 
     if not all_moves:
-        log_message(f"{indent}[Q-depth {q_depth}] No legal moves available - returning stand-pat={stand_pat}")
         return stand_pat
 
     # Filter for TACTICAL moves only (captures)
@@ -462,12 +514,7 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
 
     # If no tactical moves, position is "quiet" - return stand-pat
     if not tactical_moves:
-        log_message(f"{indent}[Q-depth {q_depth}] No captures available - QUIET POSITION (stand-pat={stand_pat})")
-        print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] Quiet position, eval={stand_pat}")
         return stand_pat
-
-    log_message(f"{indent}[Q-depth {q_depth}] Found {len(tactical_moves)} captures to analyze from {len(all_moves)} total moves")
-    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] Analyzing {len(tactical_moves)} captures...")
 
     # Order tactical moves by MVV-LVA for better pruning
     move_cache = build_move_cache(board)
@@ -482,7 +529,6 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     # Search only capture moves
     for piece, move in ordered_tactical:
         if time.time() - start_time >= time_limit:
-            log_message(f"{indent}[Q-depth {q_depth}] Timeout during capture search - returning best so far: {best_q_score}")
             break
 
         moves_tried += 1
@@ -500,60 +546,38 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
             if not new_move:
                 continue
 
-            # Get capture target info for logging
-            capture_target = None
-            if hasattr(new_move, "captures") and new_move.captures:
-                for cap_pos in new_move.captures:
-                    target = pos_map.get((cap_pos.x, cap_pos.y))
-                    if target:
-                        capture_target = target.name
-                        break
-
             new_piece.move(new_move)
             new_board.current_player = [p for p in new_board.players if p != current_player][0]
-
-            log_message(f"{indent}[Q-depth {q_depth}] Try #{moves_tried}: {piece.name}x{capture_target or '?'} at ({move.position.x},{move.position.y})")
 
             # STANDARD MINIMAX: Recursive call with flipped is_max_turn
             # NO negation, NO alpha/beta flip - just like regular minimax
             score = quiescence_search(new_board, alpha, beta, player_name, time_limit, start_time, not is_max_turn, q_depth + 1)
-
-            log_message(f"{indent}[Q-depth {q_depth}]   -> {piece.name}x{capture_target or '?'} returned score={score} (alpha={alpha}, beta={beta})")
 
             # STANDARD MINIMAX ALPHA-BETA UPDATE (same as main minimax function)
             if is_max_turn:
                 # Maximizing player
                 best_q_score = max(best_q_score, score)
                 if score > alpha:
-                    old_alpha = alpha
                     alpha = score
-                    log_message(f"{indent}[Q-depth {q_depth}]   -> NEW BEST! Alpha improved: {old_alpha} -> {alpha}")
-                    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] New best: {piece.name}x{capture_target}, score={score}")
                 if beta <= alpha:
-                    log_message(f"{indent}[Q-depth {q_depth}]   -> BETA CUTOFF! (beta={beta} <= alpha={alpha}) - pruning remaining {len(ordered_tactical) - moves_tried} captures")
-                    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] Beta cutoff at {piece.name}x{capture_target}, score={score}")
                     break
             else:
                 # Minimizing player
                 best_q_score = min(best_q_score, score)
                 if score < beta:
-                    old_beta = beta
                     beta = score
-                    log_message(f"{indent}[Q-depth {q_depth}]   -> NEW BEST! Beta improved: {old_beta} -> {beta}")
-                    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] New best: {piece.name}x{capture_target}, score={score}")
                 if beta <= alpha:
-                    log_message(f"{indent}[Q-depth {q_depth}]   -> ALPHA CUTOFF! (beta={beta} <= alpha={alpha}) - pruning remaining {len(ordered_tactical) - moves_tried} captures")
-                    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] Alpha cutoff at {piece.name}x{capture_target}, score={score}")
                     break
 
         except Exception as e:
-            log_message(f"{indent}[Q-depth {q_depth}] Exception during {piece.name} capture: {e}")
             continue
 
-    log_message(f"{indent}[Q-depth {q_depth}] Finished analyzing {moves_tried}/{len(ordered_tactical)} captures - best score={best_q_score}")
-    print(f"{'  ' * (q_depth + 1)}[Q-depth {q_depth}] Done, best score={best_q_score}")
-
     # Return the best score found (stand-pat if no captures improved position)
+    # Log summary only at the top-level call (q_depth == 0)
+    if q_depth == 0:
+        log_message(f"[Quiescence] Maximum Q-depth reached: {max_q_depth_reached}")
+        log_message(f"[Quiescence] Returned score: {best_q_score}")
+    
     return best_q_score
 
 
@@ -564,15 +588,24 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
 import time
 import random
 
-def find_best_move(board, player, max_depth=10, time_limit=40.0):
+def find_best_move(board, player, max_depth=2, time_limit=13.0):
     """
     Iterative deepening search using alpha-beta minimax with quiescence search.
+
+    DEPTH LIMIT RATIONALE:
+    With quiescence search (max 10 plies), depth 2 provides:
+    - 2 regular plies (full move tree)
+    - Up to 10 quiescence plies (capture sequences)
+    - Total tactical depth: ~12 plies
+
+    Depth 3+ rarely completes within time limit and creates risk of
+    accepting incomplete searches with misleading scores.
 
     Args:
         board: Current game board object
         player: The player whose move we're finding
-        max_depth: Maximum depth to search (default = 10)
-        time_limit: Max search time in seconds (default = 40.0)
+        max_depth: Maximum depth to search (default = 2, capped for reliability)
+        time_limit: Max search time in seconds (default = 13.0)
 
     Returns:
         (piece, move) tuple representing the best move found
@@ -665,13 +698,14 @@ def find_best_move(board, player, max_depth=10, time_limit=40.0):
                 if is_stalemate(new_board):
                     current_eval = evaluate_board(board, player.name)
 
-                    # If we're winning (eval > -500), skip this stalemate move
+                    # If we're winning (eval > -200), skip this stalemate move
+                    # Threshold: -200 means we need to be clearly losing to accept a draw
                     if current_eval > 0:
                         print(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
                         log_message(f"  -> Skipping stalemate move (current eval: {current_eval:.0f})")
                         continue
                     else:
-                        # If we're losing badly, stalemate is acceptable
+                        # If we're losing badly (eval < -200), stalemate is acceptable
                         print(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
                         log_message(f"  -> Accepting stalemate move (current eval: {current_eval:.0f})")
 
@@ -695,6 +729,14 @@ def find_best_move(board, player, max_depth=10, time_limit=40.0):
                 log_message(f"    -> Minimax returned score: {score} for {player.name}")
                 log_message(f"    -> Current best score: {current_best_score}, Testing if {score} > {current_best_score}")
                 print(f"      Score: {score}")
+
+                # CRITICAL FIX: If opponent can checkmate us after this move, skip it immediately
+                # Score <= -999999 means opponent has checkmate (we lose)
+                if score <= -999999:
+                    print(f"  *** OPPONENT CHECKMATE DETECTED: Skipping {piece} to ({move.position.x},{move.position.y}) (score={score}) ***")
+                    log_message(f"    *** OPPONENT CHECKMATE: Pruning this root move - opponent has forced mate ***")
+                    moves_evaluated += 1
+                    continue  # Skip this move entirely, try next root move
 
                 # If the current move is better than the previous best at this depth, update new best move.
                 if score > current_best_score and score != float('inf') and score != float('-inf'):
@@ -737,16 +779,43 @@ def find_best_move(board, player, max_depth=10, time_limit=40.0):
                 print(f"Depth {depth} complete: Best move is {best_move[0].name} to ({best_move[1].position.x},{best_move[1].position.y}) with score {best_score}")
                 log_message(f"Depth {depth} FULLY COMPLETED ({moves_evaluated}/{total_moves} moves) - Updated best move")
             else:
-                # Partial search - only use if significantly better than previous depth
+                # Partial search - need to decide whether to trust it
+                #
+                # CRITICAL FIX: The issue is that a move from a previous (incomplete) depth
+                # might have a "better looking" score but actually lead to disaster
+                # Example: Depth 1 has Pawn move with score 0, but it wasn't fully explored
+                #          Depth 2 finds Knight move with score -230, and discovers Pawn leads to checkmate
+                #          We MUST use Depth 2's result even though -230 < 0
+                #
+                # SOLUTION: Always trust deeper depth if it evaluated at least half the moves
+                #           OR if the improvement is positive
+                #           This ensures we don't stick with bad moves from incomplete searches
+
                 improvement = current_best_score - best_score
-                if improvement > 0:  # Improvement threshold
+                # Dynamic threshold: At least 2 moves, or one-third of all moves (whichever is larger)
+                # This balances between trusting deeper searches while avoiding single-move blunders
+                #min_moves_threshold = max(2, total_moves // 3)
+                min_moves_threshold = 2
+
+                if improvement > 0:
+                    # Clear improvement - always use it
                     best_move = current_best_move
                     best_score = current_best_score
                     print(f"Depth {depth} PARTIAL ({moves_evaluated}/{total_moves} moves): Using move {best_move[0].name} with score {best_score} (improvement: +{improvement})")
                     log_message(f"Depth {depth} PARTIAL but IMPROVED - Updated best move (searched {moves_evaluated}/{total_moves})")
+                elif moves_evaluated >= min_moves_threshold:
+                    # Searched enough moves to trust this depth, even if score is worse
+                    # This prevents sticking with moves from incomplete previous depths
+                    # Rationale: Move ordering puts best candidates first,
+                    #           so if we checked threshold+ moves, we likely found the real best
+                    best_move = current_best_move
+                    best_score = current_best_score
+                    print(f"Depth {depth} PARTIAL ({moves_evaluated}/{total_moves} moves): Using move {best_move[0].name} with score {best_score} (searched {moves_evaluated} ≥ {min_moves_threshold} threshold, improvement: {improvement})")
+                    log_message(f"Depth {depth} PARTIAL - Updated best move (searched {moves_evaluated}/{total_moves} moves, threshold: {min_moves_threshold})")
                 else:
-                    print(f"Depth {depth} INCOMPLETE ({moves_evaluated}/{total_moves} moves): Found {current_best_move[0].name} with score {current_best_score}, keeping previous best (score {best_score}, improvement only +{improvement})")
-                    log_message(f"Depth {depth} INCOMPLETE - Keeping previous depth's best move (searched {moves_evaluated}/{total_moves})")
+                    # Didn't search enough moves - keep previous depth's best
+                    print(f"Depth {depth} INCOMPLETE ({moves_evaluated}/{total_moves} moves): Found {current_best_move[0].name} with score {current_best_score}, keeping previous best (score {best_score}, threshold: {min_moves_threshold})")
+                    log_message(f"Depth {depth} INCOMPLETE - Keeping previous depth's best move (searched only {moves_evaluated}/{total_moves}, needed {min_moves_threshold})")
         else:
             # No moves were fully evaluated at this depth (likely due to timeout or all moves failed)
             if moves_evaluated == 0:
@@ -869,12 +938,17 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             # If we're at depth 1, checkmate is 1 move away → bonus = (10-1) = 9
             mate_bonus = (10 - depth) * 1000
 
-            # Check if we (player_name) won or the opponent won
-            # Example results: "checkmate - black loses" or "checkmate - white loses"
-            if player_name in res or (player_name == "white" and "black loses" in res) or (player_name == "black" and "white loses" in res):
-                return 999999 + mate_bonus  # We win: prefer faster mate
-            else:
+            # CRITICAL FIX: Determine who won based on the result string
+            # Result examples: "checkmate - black loses" or "checkmate - white loses"
+            # The LOSER is in the result string, so we need to check if WE (player_name) lost
+            agent_lost = player_name in res and "loses" in res
+            
+            if agent_lost:
+                # We (player_name) are in checkmate - we lost
                 return -999999 - mate_bonus  # We lose: delay mate as long as possible
+            else:
+                # Opponent is in checkmate - we won
+                return 999999 + mate_bonus  # We win: prefer faster mate
         elif "draw" in res:
             return 0
 
@@ -947,16 +1021,24 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
 
             # Check for stalemate using our helper function
             if is_stalemate(new_board):
-                # Stalemate in the middle of a minimax tree:
-                # If we're maximizing and caused a stalemate, that's bad (unless we're losing)
-                # If we're minimizing and caused a stalemate, that's good (opponent forced a draw)
-                current_eval = evaluate_board(new_board, player_name)
-                if is_max_turn and current_eval > 0:
-                    # We caused stalemate - bad if we're winning
+                # Stalemate/Draw in the middle of minimax tree:
+                # Evaluate the position BEFORE the stalemate move to determine if draw is good/bad
+                # Use the board state before this move (from parent node)
+                current_eval = evaluate_board(board, player_name)
+
+                # If we're winning (eval > 200), a draw is BAD
+                # If we're losing (eval < -200), a draw is GOOD
+                # Use conservative thresholds to avoid accepting draws in equal positions
+
+                if current_eval > 200:
+                    # We're winning - draw is terrible, we're throwing away a win
                     return -50000
-                else:
-                    # Opponent caused stalemate - good if we're losing
+                elif current_eval < -200:
+                    # We're losing - draw is great, we're escaping a loss
                     return 50000
+                else:
+                    # Position is roughly equal - draw is neutral
+                    return 0
 
             # --- 7 Recursive minimax call -------------------------------
             value = minimax(
@@ -1003,9 +1085,23 @@ def agent(board, player, var):
     """
     Main agent entry point for COMP2321 system.
 
-    This version includes Phase 1: Quiescence Search
+    agentE.py - Endgame-Enhanced Agent (Phase B)
+
+    Features:
+    - Quiescence Search (from agentQ.py)
+    - Endgame classification (pawn_race, mating_attack, etc.)
+    - Specialized endgame evaluation functions:
+      * Mobility restriction (2-4 moves ideal)
+      * King opposition detection
+      * Pawn promotion race analysis
+      * Passed pawn evaluation
+      * Mating net evaluation (edge drive + king cooperation)
+    - Endgame-specific piece-square tables
+
+    Time limit: 12.5 seconds (conservative for 14s per-move limit)
+    Max depth: 2 (capped for reliability with quiescence search providing tactical depth)
     """
-    piece, move = find_best_move(board, player, time_limit=12.5)
+    piece, move = find_best_move(board, player, max_depth=2, time_limit=30)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:

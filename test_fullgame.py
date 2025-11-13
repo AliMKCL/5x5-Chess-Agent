@@ -8,6 +8,8 @@ from samples import white, black, sample0, sample1
 from agent import agent
 from agentS import agent as agentS
 from agentQ import agent as agentQ
+from agentE import agent as agentE
+from agentEyolla import agent as agentEY
 from opponent import opponent
 
 
@@ -89,4 +91,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agent, p_black=agentQ, board_sample=sample0)
+    testgame_timeout(p_white=agentEY, p_black=agentE, board_sample=sample1)

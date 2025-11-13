@@ -14,15 +14,44 @@
 
 ---
 
-## Your Algorithmic Strategy (agent4.py)
+## Agent Implementations
 
-### Core Algorithm: **Minimax with Alpha-Beta Pruning + Iterative Deepening**
+### agentS.py - Standard Minimax Agent
+**Core Algorithm**: Minimax with Alpha-Beta Pruning + Iterative Deepening
+
+The foundational agent implementing classical game-tree search with:
+- Material + positional evaluation
+- MVV-LVA move ordering
+- Alpha-beta pruning
+- Iterative deepening (depth 1-10)
+- Time management
+
+### agentQ.py - Quiescence Search Agent
+**Core Algorithm**: agentS.py + Quiescence Search
+
+Extends agentS.py with tactical horizon extension:
+- Quiescence search at leaf nodes (max depth 7)
+- Resolves capture sequences to "quiet" positions
+- Prevents horizon effect in tactical positions
+- Better tactical awareness in complex positions
+
+### agentE.py - Endgame-Enhanced Agent
+**Core Algorithm**: agentQ.py + Advanced Endgame Handling
+
+Builds upon agentQ.py with sophisticated endgame capabilities:
+- **Endgame classification**: Detects pawn races, mating attacks, minor piece endings
+- **Mobility restriction**: Limits opponent moves to 2-4 (avoiding stalemate)
+- **Specialized evaluation**: Pawn promotion races, king opposition, mating nets
+- **Dynamic search depth**: Searches deeper (up to depth 20) with fewer pieces
+- **Endgame-specific piece-square tables**: Active king, aggressive pawn advancement
 
 ---
 
-### 1. **Evaluation Function** 
+## Core Algorithmic Strategy (Shared by All Agents)
 
-Your position evaluation considers three key factors:
+### 1. **Evaluation Function**
+
+Position evaluation considers three key factors:
 
 #### A. Material Balance
 Base piece values defined in `PIECE_VALUES`:
@@ -95,12 +124,12 @@ Row 4 (start):  [ 0,   0,   0,   0,   0]
 [  5,   5,   5,   5,   5]  ← Safe home rank
 ```
 
-**KING_TABLE_ENDGAME (≤4 pieces)** - Neutral positioning:
+**KING_TABLE_ENDGAME (≤4 pieces, agentS/Q)** - Neutral positioning:
 ```
 All zeros - allows king to activate freely
 ```
 
-#### C. King Safety 
+#### C. King Safety
 Dynamic evaluation based on nearby friendly pieces:
 - **≥2 allies within 1 square**: +50 bonus
 - **1 ally within 1 square**: +20 bonus
@@ -108,7 +137,7 @@ Dynamic evaluation based on nearby friendly pieces:
 
 ---
 
-### 2. **Move Ordering** 
+### 2. **Move Ordering**
 
 Optimizes alpha-beta efficiency by prioritizing moves in descending order of tactical importance:
 
@@ -132,43 +161,29 @@ The `attacker_defender_ratio()` function performs sophisticated tactical analysi
    - Simulate alternating captures until one side runs out
    - Return `(num_diff, val_diff)` where `val_diff` is net material outcome
 
-**Example Exchange Calculation**:
-```
-Target square: Enemy Pawn (100)
-Attackers: Pawn (100), Knight (330), Queen (900)  → 3 attackers
-Defenders: Pawn (100)                              → 1 defender
-
-num_diff = 3 - 1 = 2 (excess attackers)
-Exchange simulation (exclude 2 strongest: Knight, Queen):
-  1. Pawn captures Pawn: +100 (gain target)
-  2. Defender Pawn recaptures: -100 (lose attacking pawn)
-  3. Attacking piece recaptures (now an undefended pawn)
-  3. No more defenders → exchange ends
-val_diff = +100 - 100 + 100 = 100 (pozitive trade, and we keep Knight & Queen)
-```
-
-**Move Ordering Integration** :
+**Move Ordering Integration**:
 - **More attackers than defenders + positive trade**: `base_mvv_lva + 1000` bonus
 - **Equal/fewer attackers but favorable victim value**: `base_mvv_lva` score only
 - Base MVV-LVA formula: `(victim_value × 10) - attacker_value`
 
 ---
 
-### 3. **Iterative Deepening Search** 
+### 3. **Iterative Deepening Search**
 
 Progressively deepens search with time-aware fallback mechanism:
 
 #### Configuration:
-- **Depth range**: 1 → 10
-- **Time limit**:  Flexible (defined in agent() in agent4.py)
+- **agentS.py**: Depth range 1 → 10, time limit ~13s
+- **agentQ.py**: Depth range 1 → 10, time limit ~12.5s
+- **agentE.py**: Depth range 1 → 20 (dynamic), time limit ~12.5s
 - **Fallback strategy**: Uses previous depth's best move if timeout occurs
 
 #### Key Features:
-1. **Partial Depth Handling** :
+1. **Partial Depth Handling**:
    - Only trusts incomplete depth if score improves significantly
    - Tracks `moves_evaluated` vs `total_moves` to assess completeness
 
-2. **Early Termination** :
+2. **Early Termination**:
    - Stops immediately upon finding forced checkmate (score ≥999,999)
    - No need to search deeper when mate sequence is guaranteed
 
@@ -176,19 +191,6 @@ Progressively deepens search with time-aware fallback mechanism:
    - Nodes explored per depth
    - Time spent per depth
    - Cumulative totals
-
-#### Decision Logic:
-```python
-if all_moves_searched:
-    # Trust complete depth unconditionally
-    best_move = current_best_move
-elif improvement > 0:
-    # Accept partial depth if better than previous
-    best_move = current_best_move
-else:
-    # Keep previous depth's result
-    # (partial depth not sufficiently better)
-```
 
 ---
 
@@ -201,7 +203,7 @@ Recursive search algorithm with aggressive optimizations:
    - `mate_bonus = (10 - depth) × 1000`
    - Prefers faster mates, delays losses
 2. **Draw/Stalemate**: 0
-3. **Depth limit**: Return static evaluation
+3. **Depth limit**: Return static evaluation (or quiescence search in agentQ/E)
 4. **Time limit**: Return immediate evaluation
 
 #### Stalemate Handling:
@@ -220,24 +222,121 @@ Recursive search algorithm with aggressive optimizations:
   - Maximizer causes stalemate while winning: -50,000 penalty
   - Minimizer causes stalemate (opponent forced draw): +50,000 bonus
 
-#### Alpha-Beta Pruning:
-```python
-if is_max_turn:
-    best_value = max(best_value, value)
-    alpha = max(alpha, value)
-else:
-    best_value = min(best_value, value)
-    beta = min(beta, value)
+---
 
-if beta <= alpha:
-    break  # Prune remaining branches
+## Endgame Enhancements (agentE.py Only)
+
+### Endgame Classification System
+
+**`classify_endgame_type(board, player_name)`** detects specific material configurations:
+
+- **'pawn_race'**: Pawn endgames → Triggers opposition + promotion race evaluation
+- **'mating_attack'**: Queen/Right vs King → Triggers mobility restriction + edge drive
+- **'minor_piece_endgame'**: Only Knights/Bishops → Triggers king activity bonus
+- **'complex_endgame'**: 5-8 pieces → General endgame improvements
+- **'none'**: Middlegame (>8 pieces)
+
+### Endgame-Specific Piece-Square Tables
+
+**KING_TABLE_ENDGAME_ACTIVE** - Centralized king (used in agentE.py):
+```
+[-10, -5,  0, -5, -10]
+[ -5, 10, 15, 10,  -5]
+[  0, 15, 20, 15,   0]  ← Strong center control
+[ -5, 10, 15, 10,  -5]
+[-10, -5,  0, -5, -10]
 ```
 
-#### Time Management:
-- Checks `time.time() - start_time >= time_limit` at:
-  - Entry to function (line 507)
-  - Inside move loop (line 548)
-- Returns static evaluation immediately on timeout
+**PAWN_TABLE_ENDGAME** - Aggressive promotion drive:
+```
+[200, 200, 200, 200, 200]  ← Promotion imminent!
+[ 80,  80,  80,  80,  80]  ← Very close
+[ 40,  40,  40,  40,  40]  ← Halfway
+[ 15,  15,  15,  15,  15]
+[  0,   0,   0,   0,   0]
+```
+
+**QUEEN_TABLE_ENDGAME** - Centralized control for mating:
+```
+[-20,  -5,   0,  -5, -20]
+[ -5,  15,  20,  15,  -5]
+[  0,  20,  25,  20,   0]  ← Maximum control
+[ -5,  15,  20,  15,  -5]
+[-20,  -5,   0,  -5, -20]
+```
+
+**RIGHT_TABLE_ENDGAME** - Similar centralized control:
+```
+[-20,  -5,   0,  -5, -20]
+[ -5,  15,  20,  15,  -5]
+[  0,  20,  25,  20,   0]
+[ -5,  15,  20,  15,  -5]
+[-20,  -5,   0,  -5, -20]
+```
+
+### Specialized Endgame Evaluation Functions
+
+#### 1. Mobility Restriction (`evaluate_mating_net`)
+**Key Innovation**: Restricts opponent king mobility to ideal range (2-4 moves)
+
+```python
+opponent_mobility = count_legal_moves(opponent)
+
+if opponent_mobility == 0:
+    penalty = -10000  # Stalemate!
+elif opponent_mobility == 1:
+    penalty = -5000   # Risky, close to stalemate
+elif 2 <= opponent_mobility <= 4:
+    bonus = +300      # Perfect restriction!
+else:
+    penalty = -(opponent_mobility * 20)  # Too much freedom
+```
+
+Also includes:
+- **Edge drive**: Penalty based on king's distance to nearest edge
+- **King cooperation**: Bonus when our king is 2-3 squares away (supporting distance)
+
+#### 2. Pawn Promotion Race (`evaluate_pawn_promotion_race`)
+Analyzes race to promotion:
+- Calculates squares to promotion for each pawn
+- Compares our king's distance vs opponent's king distance to promotion square
+- Awards bonus if our king is closer (can support pawn)
+- Checks if pawn path is clear
+
+#### 3. King Opposition (`evaluate_king_opposition`)
+Detects opposition patterns:
+- **Direct opposition**: Kings facing with 1 square between (same file/rank)
+- **Distant opposition**: Kings 2+ squares apart on same file/rank
+- Awards bonus if we have opposition
+
+#### 4. Passed Pawns (`evaluate_passed_pawns`)
+Identifies pawns with no opposing pawns on:
+- Same file
+- Adjacent files (no blockers in path)
+Awards large bonuses for passed pawns
+
+#### 5. Key Squares (`evaluate_key_squares`)
+In pawn endgames, certain squares near promotion are critical
+- Identifies promotion square and squares ±1 rank
+- Awards bonus for controlling these with our king
+
+#### 6. King Activity (`evaluate_king_activity`)
+General endgame king centralization bonus
+
+#### 7. Mobility Advantage (`evaluate_mobility_advantage`)
+Compares total mobility (legal moves) between players
+- Having more moves = positional advantage
+
+### Dynamic Search Depth (agentE.py)
+
+Adjusts max depth based on piece count:
+
+```python
+total_pieces <= 4:  max_depth = 20  # Very deep endgame
+total_pieces <= 6:  max_depth = 15  # Deep search
+total_pieces <= 8:  max_depth = 12
+Otherwise:          max_depth = 10  # Standard middlegame
+```
 
 ---
 
@@ -254,30 +353,48 @@ if beta <= alpha:
 
 ### Search
 ✓ **Move ordering**: Better pruning through tactical prioritization
-✓ **Iterative deepening**: Goes deeper as long as there is time.
-✓ **Alpha-beta pruning**: Eliminates branches determined "useless".
+✓ **Iterative deepening**: Goes deeper as long as there is time
+✓ **Alpha-beta pruning**: Eliminates branches determined "useless"
 ✓ **Early mate termination**: Stops search when forced win found
+✓ **Quiescence search** (agentQ/E): Resolves tactical sequences
+✓ **Dynamic depth** (agentE): Searches deeper with fewer pieces
 
 ---
 
 ## Implementation Architecture
 
 ### File Structure
-- **agent4.py**: Main agent logic (search, minimax, move ordering)
-- **helpers.py**: Evaluation functions (piece values, tables, exchange analysis)
+- **agentS.py**: Standard minimax agent (search, minimax, move ordering)
+- **agentQ.py**: Quiescence search agent (builds on agentS.py)
+- **agentE.py**: Endgame-enhanced agent (builds on agentQ.py) 🆕
+- **helpers.py**: Evaluation functions (piece values, tables, exchange analysis, endgame evaluation)
 - **extension/**: Custom game components (Right piece, board utilities)
 - **chessmaker/**: Base chess framework
 
 ### Helper Functions (helpers.py)
 
-| Function | Purpose | Lines |
-|----------|---------|-------|
-| `get_piece_value(piece)` | Returns base material value | 208-209 |
-| `get_positional_value(piece, is_white, board)` | Returns piece-square table bonus | 211-232 |
-| `attacker_defender_ratio(board, pos, attacker, defender)` | Calculates exchange outcomes | 74-206 |
-| `is_stalemate(board)` | Detects stalemate/draw conditions | 234-258 |
+#### Basic Evaluation Functions
+| Function | Purpose |
+|----------|---------|
+| `get_piece_value(piece)` | Returns base material value |
+| `get_positional_value(piece, is_white, board)` | Returns piece-square table bonus |
+| `attacker_defender_ratio(board, pos, attacker, defender)` | Calculates exchange outcomes |
+| `is_stalemate(board)` | Detects stalemate/draw conditions |
 
-### Logging System (agent4.py:14-82)
+#### Endgame Evaluation Functions 🆕
+| Function | Purpose |
+|----------|---------|
+| `classify_endgame_type(board, player_name)` | Detects endgame type classification |
+| `count_mobility(board, player)` | Counts legal moves for mobility restriction |
+| `evaluate_king_opposition(board, player_name)` | Opposition detection for pawn endgames |
+| `evaluate_pawn_promotion_race(board, player_name)` | Analyzes race to promotion |
+| `evaluate_mating_net(board, player_name)` | Mobility restriction + edge drive + cooperation |
+| `evaluate_passed_pawns(board, player_name)` | Detects and values passed pawns |
+| `evaluate_key_squares(board, player_name)` | Control of critical squares |
+| `evaluate_king_activity(board, player_name)` | General endgame king centralization |
+| `evaluate_mobility_advantage(board, player_name)` | Mobility-based evaluation |
+
+### Logging System
 - **File**: `game_log.txt`
 - **Contents**: Board states, move evaluations, minimax traces, search statistics
 - **Format**: Readable text with indentation showing search depth
@@ -286,14 +403,24 @@ if beta <= alpha:
 
 ## Algorithm Summary
 
-Your implementation combines **classical game-tree search** with **modern optimizations**:
+### agentS.py - Classical Approach
+1. Minimax with alpha-beta pruning
+2. Iterative deepening (depth 1-10)
+3. MVV-LVA move ordering
+4. Material + position + king safety evaluation
+5. Time management
 
-1. **Minimax**: Exhaustively explores game tree assuming optimal play
-2. **Alpha-Beta Pruning**: Eliminates provably suboptimal branches
-3. **Iterative Deepening**: Provides anytime algorithm behavior (always has a valid move)
-4. **Move Ordering**: MVV-LVA + positional heuristics maximize pruning efficiency
-5. **Sophisticated Evaluation**: Material + Position + King Safety + Tactical awareness
-6. **Time Management**: Graceful degradation under time pressure
-7. **Tactical Awareness**: Checkmate detection, exchange evaluation, stalemate avoidance
+### agentQ.py - Tactical Enhancement
+All of agentS.py, plus:
+6. Quiescence search (resolves capture sequences)
+7. Better tactical awareness
 
-This represents a **strong classical AI approach** suitable for competitive play in the 5×5 Chess Fragments variant!
+### agentE.py - Endgame Mastery 🆕
+All of agentQ.py, plus:
+8. **Endgame classification** (pawn race, mating attack, etc.)
+9. **Mobility restriction** (limits opponent to 2-4 moves)
+10. **Specialized endgame evaluation** (opposition, promotion race, mating nets)
+11. **Dynamic search depth** (20 ply in simple endgames)
+12. **Endgame-specific piece-square tables** (active king, aggressive pawns)
+
+This represents a **sophisticated AI system** combining classical game-tree search with modern tactical awareness and expert endgame knowledge - suitable for competitive play in the 5×5 Chess Fragments variant!
