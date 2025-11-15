@@ -5,11 +5,11 @@ from chessmaker.chess.base import Board
 from extension.board_utils import print_board_ascii, copy_piece_move
 from extension.board_rules import get_result, thinking_with_timeout, THINKING_TIME_BUDGET, GAME_TIME_BUDGET
 from samples import white, black, sample0, sample1
-from agent import agent
-from agentS import agent as agentS
-from agentQ import agent as agentQ
+from old_agents.agent import agent
+from old_agents.agentS import agent as agentS
+from old_agents.agentQ import agent as agentQ
 from agentE import agent as agentE
-from agentEyolla import agent as agentEY
+from agentD import agent as agentEY
 from opponent import opponent
 
 

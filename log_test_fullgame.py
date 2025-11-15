@@ -5,11 +5,15 @@ from chessmaker.chess.base import Board
 from extension.board_utils import print_board_ascii, copy_piece_move
 from extension.board_rules import get_result, thinking_with_timeout, THINKING_TIME_BUDGET, GAME_TIME_BUDGET
 from samples import white, black, sample0, sample1, sample2
-import agentS
-import agentQ
+import old_agents.agentS as agentS
+import old_agents.agentQ as agentQ
 import agentE
-import agentEyolla as agentEY
+import agentD
+import agentD_new as agentDN
+import agentT
+import agentAN as agentAN
 from opponent import opponent
+import agentBitboard as agentB
 
 # Global move counter for logging
 global_move_counter = 0
@@ -172,7 +176,11 @@ def testgame_timeout(p_white, p_black, board_sample):
     agentS.LOG_FILE = GAME_LOG_FILE
     agentQ.LOG_FILE = GAME_LOG_FILE
     agentE.LOG_FILE = GAME_LOG_FILE
-    agentEY.LOG_FILE = GAME_LOG_FILE
+    agentD.LOG_FILE = GAME_LOG_FILE
+    agentT.LOG_FILE = GAME_LOG_FILE
+    agentDN.LOG_FILE = GAME_LOG_FILE
+    agentAN.LOG_FILE = GAME_LOG_FILE
+    agentB.LOG_FILE = GAME_LOG_FILE
     
     init_moves_log()
 
@@ -305,4 +313,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentEY.agent, p_black=agentE.agent, board_sample=sample0)
+    testgame_timeout(p_white=agentB.agent, p_black=agentT.agent, board_sample=sample1)

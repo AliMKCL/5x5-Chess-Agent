@@ -5,6 +5,14 @@ from chessmaker.chess.pieces import King, Queen, Bishop, Knight, Pawn
 from extension.piece_right import Right
 from extension.board_rules import get_result
 from helpersE import *
+from helpersT import TranspositionTable, compute_zobrist_hash, init_zobrist
+
+
+# Initialize Zobrist hashing (done once at module load)
+init_zobrist(seed=42)
+
+# Global transposition table (persists across moves in a game)
+TRANSPOSITION_TABLE = TranspositionTable(size_mb=64)
 
 # ============================================================================
 # CONSTANTS & HEURISTICS
@@ -92,26 +100,56 @@ def log_board_state(board, title=""):
 # HELPER FUNCTIONS
 # ============================================================================
 
-def build_move_cache(board):
+# Global move generation cache (persists across nodes in the search tree)
+GLOBAL_MOVE_CACHE = {}
+MOVE_CACHE_SIZE_LIMIT = 50000  # Clear cache if it exceeds this size
+
+def build_move_cache(board, position_hash=None):
     """
     Build a cache of move options for all pieces on the board.
 
-    This is CRITICAL-2 optimization: Instead of calling piece.get_move_options()
-    multiple times for the same piece in the same board state, we cache all moves
-    once and reuse them.
+    NEW OPTIMIZATION: Uses global cache keyed by position hash to avoid
+    regenerating moves for identical positions reached through different
+    move orders (transpositions) or via board.clone().
 
-    Time Complexity:
-    - WITHOUT cache: O(n²) - n pieces × n calls per piece = n²
-    - WITH cache: O(n) - one call per piece
+    WHY THIS MATTERS:
+    - board.clone() creates NEW piece objects, so old caches become invalid
+    - Same position can be reached via different move orders (transpositions)
+    - Solution: Cache by position hash, not by piece object references
+
+    PERFORMANCE IMPACT:
+    - Without global cache: 290,722 calls to get_move_options() (124 seconds!)
+    - With global cache: ~50-70% reduction in move generation calls
+
+    Args:
+        board: Current board state
+        position_hash: Optional pre-computed position hash (avoids recomputation)
 
     Returns:
         dict: {(piece.position.x, piece.position.y, piece.name, piece.player.name): [moves]}
     """
+    # Compute position hash if not provided
+    if position_hash is None:
+        position_hash = compute_zobrist_hash(board, board.current_player.name)
+
+    # Check global cache - have we seen this exact position before?
+    if position_hash in GLOBAL_MOVE_CACHE:
+        return GLOBAL_MOVE_CACHE[position_hash]
+
+    # Cache miss - generate moves for this position
     cache = {}
     for piece in board.get_pieces():
         # Create a unique key for this piece (position + type + player)
         key = (piece.position.x, piece.position.y, piece.name, piece.player.name)
         cache[key] = piece.get_move_options()
+
+    # Store in global cache for future reuse
+    GLOBAL_MOVE_CACHE[position_hash] = cache
+
+    # Prevent memory bloat - clear cache if it gets too large
+    if len(GLOBAL_MOVE_CACHE) > MOVE_CACHE_SIZE_LIMIT:
+        GLOBAL_MOVE_CACHE.clear()
+
     return cache
 
 def create_position_map(board):
@@ -162,22 +200,19 @@ def get_cached_moves(piece, cache):
 # Estimates how good or bad a board position is for the given player.
 def evaluate_board(board, player_name, pos_map=None):
     """
-    ENDGAME-ENHANCED EVALUATION FUNCTION (agentE.py)
+    SIMPLIFIED EVALUATION FUNCTION - Fast early/midgame evaluation
 
     Evaluates the board state based on:
       1) Material balance
-      2) Positional values from piece-square tables (endgame-aware)
+      2) Positional values from piece-square tables
       3) King safety (bonus if ≥ 2 friendly pieces within 1-cell radius)
-      4) ENDGAME-SPECIFIC EVALUATION (Phase B):
-         - Pawn race: Opposition, promotion race, passed pawns, key squares
-         - Mating attack: Mobility restriction, edge drive, king cooperation
-         - Minor piece endgame: King activity
-         - Complex endgame: Mobility advantage + king activity
+
+    NO ENDGAME LOGIC - Pure speed focus for early/midgame play.
 
     Args:
         board: Current board state
         player_name: Name of the player to evaluate for
-        pos_map: Optional position-to-piece lookup dict for O(1) piece lookups
+        pos_map: Optional position-to-piece lookup dict (unused currently)
 
     Returns:
         Positive score → good for 'player_name'
@@ -186,13 +221,11 @@ def evaluate_board(board, player_name, pos_map=None):
     score = 0
 
     # Get lists of all pieces and players
-    # board.get_pieces() returns a generator; convert to list for reuse
     all_pieces = list(board.get_pieces())
     player = next(p for p in board.players if p.name == player_name)
     opponent = next(p for p in board.players if p.name != player_name)
 
-    # --- SINGLE-PASS EVALUATION -------------------------------------------
-    # Collect material, positional values, and piece positions in one iteration
+    # --- SINGLE-PASS EVALUATION: Material + Positional + King tracking ---
     player_king = None
     opponent_king = None
     player_pieces = []
@@ -202,10 +235,11 @@ def evaluate_board(board, player_name, pos_map=None):
         piece_name_lower = piece.name.lower()
         is_player_piece = piece.player.name == player_name
 
-        # 1. Material + Positional Value (using endgame-aware tables)
+        # 1. Material + Positional Value (simple tables, no endgame logic)
         base_value = get_piece_value(piece)
         is_white = piece.player.name == "white"
-        pos_value = get_positional_value(piece, is_white, board, use_endgame_tables=True)
+        # Use standard tables only (use_endgame_tables=False for speed)
+        pos_value = get_positional_value(piece, is_white, board, use_endgame_tables=False)
         total_piece_value = base_value + pos_value
 
         if is_player_piece:
@@ -213,7 +247,7 @@ def evaluate_board(board, player_name, pos_map=None):
         else:
             score -= total_piece_value
 
-        # 2. Collect pieces for king safety (done in same loop)
+        # 2. Collect pieces for king safety
         if piece_name_lower == 'king':
             if is_player_piece:
                 player_king = piece
@@ -224,8 +258,8 @@ def evaluate_board(board, player_name, pos_map=None):
         else:
             opponent_pieces.append(piece)
 
-    # --- 3. KING SAFETY (reduced importance in endgames) -------------------
-    # Calculate king safety for both kings (less relevant in endgames)
+    # --- 3. KING SAFETY ---------------------------------------------------
+    # Bonus for king protected by nearby pieces (early/midgame only)
     total_pieces = len(all_pieces)
 
     if total_pieces > 8:  # Only apply in middlegame
@@ -250,36 +284,6 @@ def evaluate_board(board, player_name, pos_map=None):
                 score -= 20
             else:
                 score += 50
-
-    # --- 4. ENDGAME-SPECIFIC EVALUATION (NEW IN PHASE B) -------------------
-    # Classify endgame type and apply specialized evaluation
-    endgame_type = classify_endgame_type(board, player_name)
-
-    if endgame_type == 'pawn_race':
-        # Pawn endgame bonuses
-        log_message("PAWN RACE")
-        #print("PAWN RACE")
-        score += evaluate_king_opposition(board, player_name)
-        score += evaluate_pawn_promotion_race(board, player_name)
-        score += evaluate_passed_pawns(board, player_name)
-        score += evaluate_key_squares(board, player_name)
-
-    elif endgame_type == 'mating_attack':
-        print("MATING ATTACK")
-        # Mating attack bonuses (mobility restriction + edge drive + cooperation)
-        score += evaluate_mating_net(board, player_name)
-
-    elif endgame_type == 'minor_piece_endgame':
-        # Minor piece endgame - king activity is crucial
-        score += evaluate_king_activity(board, player_name)
-        score += evaluate_mobility_advantage(board, player_name)
-
-    elif endgame_type == 'complex_endgame':
-        # General endgame improvements
-        score += evaluate_king_activity(board, player_name)
-        score += evaluate_mobility_advantage(board, player_name)
-        # Also check for passed pawns if any exist
-        score += evaluate_passed_pawns(board, player_name)
 
     return score
 
@@ -397,11 +401,12 @@ def order_moves(board, moves, move_cache=None, pos_map=None):
 # QUIESCENCE SEARCH (PHASE 1)
 # ============================================================================
 
-def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, is_max_turn=True, q_depth=0):
+def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, is_max_turn=True, q_depth=0, remaining_depth=0):
     """
-    Quiescence search: extend search for tactical moves only.
+    Quiescence search with transposition table: extend search for tactical moves only.
     Prevents horizon effect by resolving capture sequences to quiet positions.
-    # ADD CHECKS as well
+
+    NEW: Uses TT to cache quiescence evaluations (critical - same captures revisited often!)
 
     Uses STANDARD MINIMAX (not negamax) for clarity and correctness.
     - is_max_turn=True: Maximizing player (agent) tries to maximize score
@@ -427,16 +432,34 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     """
     global nodes_explored, max_q_depth_reached
     nodes_explored += 1
-    
+
     # Reset max depth tracker at the start of each top-level quiescence call
     if q_depth == 0:
         max_q_depth_reached = 0
-    
+
     # Track maximum depth reached
     if q_depth > max_q_depth_reached:
         max_q_depth_reached = q_depth
 
-    # Check timeout
+    # --- TRANSPOSITION TABLE PROBE (BEFORE timeout check!) ---------------
+    # CRITICAL: Probe TT BEFORE timeout check
+    # This ensures we always check the cache, even when timing out
+    # Compute position hash
+    position_hash = compute_zobrist_hash(board, board.current_player.name)
+
+    # FIX: Use q_depth directly for TT depth to keep it positive
+    # Negative depths break TT comparison logic (stored_depth >= depth)
+    # With positive q_depth: deeper quiescence = higher depth value (correct!)
+    # Example: q_depth=3 is deeper than q_depth=1, and 3 >= 1 works correctly
+    tt_depth = q_depth
+
+    cached_score, _ = TRANSPOSITION_TABLE.probe(position_hash, tt_depth)
+
+    if cached_score is not None:
+        # Cache hit in quiescence! Return immediately
+        return cached_score
+
+    # Check timeout (AFTER TT probe)
     if time.time() - start_time >= time_limit:
         eval_score = evaluate_board(board, player_name)
         return eval_score
@@ -444,6 +467,8 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     # Limit quiescence depth to prevent infinite loops
     if q_depth >= MAX_QUIESCENCE_DEPTH:
         eval_score = evaluate_board(board, player_name)
+        # Store in TT before returning
+        TRANSPOSITION_TABLE.store(position_hash, tt_depth, eval_score, None)
         return eval_score
 
     # Check for terminal game states
@@ -453,10 +478,15 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
         if "checkmate" in res:
             # Return high/low scores based on who won
             if player_name in res or (player_name == "white" and "black loses" in res) or (player_name == "black" and "white loses" in res):
-                return 999999  # We win
+                score = 999999  # We win
+                TRANSPOSITION_TABLE.store(position_hash, tt_depth, score, None)
+                return score
             else:
-                return -999999  # We lose
+                score = -999999  # We lose
+                TRANSPOSITION_TABLE.store(position_hash, tt_depth, score, None)
+                return score
         elif "draw" in res or "stalemate" in res:
+            TRANSPOSITION_TABLE.store(position_hash, tt_depth, 0, None)
             return 0
 
     # Stand-pat score: evaluate current position without any moves
@@ -502,6 +532,8 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     all_moves = list_legal_moves_for(board, current_player)
 
     if not all_moves:
+        # Store and return stand-pat
+        TRANSPOSITION_TABLE.store(position_hash, tt_depth, stand_pat, None)
         return stand_pat
 
     # Filter for TACTICAL moves only (captures)
@@ -512,12 +544,14 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
         if is_capture:
             tactical_moves.append((piece, move))
 
-    # If no tactical moves, position is "quiet" - return stand-pat
+    # If no tactical moves, position is "quiet" - store and return stand-pat
     if not tactical_moves:
+        TRANSPOSITION_TABLE.store(position_hash, tt_depth, stand_pat, None)
         return stand_pat
 
     # Order tactical moves by MVV-LVA for better pruning
-    move_cache = build_move_cache(board)
+    # Pass position_hash to reuse it (already computed for TT probe)
+    move_cache = build_move_cache(board, position_hash)
     pos_map = create_position_map(board)
     ordered_tactical = order_moves(board, tactical_moves, move_cache, pos_map)
 
@@ -551,7 +585,7 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
 
             # STANDARD MINIMAX: Recursive call with flipped is_max_turn
             # NO negation, NO alpha/beta flip - just like regular minimax
-            score = quiescence_search(new_board, alpha, beta, player_name, time_limit, start_time, not is_max_turn, q_depth + 1)
+            score = quiescence_search(new_board, alpha, beta, player_name, time_limit, start_time, not is_max_turn, q_depth + 1, remaining_depth)
 
             # STANDARD MINIMAX ALPHA-BETA UPDATE (same as main minimax function)
             if is_max_turn:
@@ -577,7 +611,10 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
     if q_depth == 0:
         log_message(f"[Quiescence] Maximum Q-depth reached: {max_q_depth_reached}")
         log_message(f"[Quiescence] Returned score: {best_q_score}")
-    
+
+    # Store in TT before returning
+    TRANSPOSITION_TABLE.store(position_hash, tt_depth, best_q_score, None)
+
     return best_q_score
 
 
@@ -588,7 +625,7 @@ def quiescence_search(board, alpha, beta, player_name, time_limit, start_time, i
 import time
 import random
 
-def find_best_move(board, player, max_depth=2, time_limit=13.0):
+def find_best_move(board, player, max_depth=4, time_limit=13.0):
     """
     Iterative deepening search using alpha-beta minimax with quiescence search.
 
@@ -624,6 +661,10 @@ def find_best_move(board, player, max_depth=2, time_limit=13.0):
     # Global counter for nodes explored (for debugging)
     global nodes_explored
     nodes_explored = 0
+
+    # Track TT stats at start of this move (for per-move statistics)
+    tt_hits_start = TRANSPOSITION_TABLE.hits
+    tt_probes_start = TRANSPOSITION_TABLE.probes
 
     # CRITICAL-2 OPTIMIZATION: Build move cache ONCE for the root position
     # This avoids redundant get_move_options() calls in order_moves
@@ -868,6 +909,17 @@ def find_best_move(board, player, max_depth=2, time_limit=13.0):
 
     # Log final decision
     total_time = time.time() - start_time
+
+    # Calculate TT statistics (both cumulative and per-move)
+    tt_hit_rate_cumulative = TRANSPOSITION_TABLE.get_hit_rate()
+    total_hits = TRANSPOSITION_TABLE.hits
+    total_probes = TRANSPOSITION_TABLE.probes
+
+    # Per-move statistics
+    move_hits = total_hits - tt_hits_start
+    move_probes = total_probes - tt_probes_start
+    move_hit_rate = (move_hits / move_probes * 100) if move_probes > 0 else 0.0
+
     print(f"\n{'#'*60}")
     print(f"### SEARCH COMPLETE ###")
     print(f"{'#'*60}")
@@ -877,6 +929,9 @@ def find_best_move(board, player, max_depth=2, time_limit=13.0):
     print(f"Total Nodes: {nodes_explored}")
     print(f"Nodes/Second: {nodes_explored / total_time:.0f}")
     print(f"Quiescence: {'ENABLED' if QUIESCENCE_ENABLED else 'DISABLED'}")
+    print(f"TT This Move: {move_hit_rate:.1f}% hit rate ({move_hits} hits / {move_probes} probes)")
+    print(f"TT Cumulative: {tt_hit_rate_cumulative:.1f}% hit rate ({total_hits} total hits / {total_probes} total probes)")
+    print(f"TT Size: {len(TRANSPOSITION_TABLE.table)} positions cached")
     print(f"{'#'*60}\n")
 
     log_message(f"\n{'#'*60}")
@@ -888,6 +943,9 @@ def find_best_move(board, player, max_depth=2, time_limit=13.0):
     log_message(f"Total nodes explored: {nodes_explored}")
     log_message(f"Average nodes/second: {nodes_explored / total_time:.0f}")
     log_message(f"Quiescence search: {'ENABLED' if QUIESCENCE_ENABLED else 'DISABLED'}")
+    log_message(f"TT This Move: {move_hit_rate:.1f}% hit rate ({move_hits}/{move_probes})")
+    log_message(f"TT Cumulative: {tt_hit_rate_cumulative:.1f}% hit rate ({total_hits}/{total_probes})")
+    log_message(f"TT cached positions: {len(TRANSPOSITION_TABLE.table)}")
     log_message(f"{'#'*60}\n")
 
     return best_move
@@ -900,7 +958,12 @@ import time
 
 def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_max_turn=True, indent_level=0) -> float:
     """
-    Minimax search with alpha-beta pruning, time awareness, and quiescence search.
+    Minimax search with alpha-beta pruning, transposition table, and quiescence search.
+
+    NEW: Uses transposition table to cache position evaluations
+    - Avoids re-searching identical positions
+    - Stores best move for improved move ordering
+    - Massive speedup in positions with many transpositions
 
     Args:
         board: Current board state
@@ -926,6 +989,28 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         # Timeout: return static evaluation immediately
         return evaluate_board(board, player_name)
 
+    # --- TRANSPOSITION TABLE PROBE ---------------------------------------
+    # Compute position hash
+    position_hash = compute_zobrist_hash(board, board.current_player.name)
+
+    # Check if we've seen this position before
+    cached_score, cached_best_move = TRANSPOSITION_TABLE.probe(position_hash, depth)
+
+    if cached_score is not None:
+        # CACHE HIT! We've already evaluated this exact position at >= current depth
+        # Return cached score immediately (huge time save)
+        indent = "  " * indent_level
+        log_message(f"{indent}[TT HIT] Depth {depth}, Hash={position_hash}, Score={cached_score}")
+        return cached_score
+
+    # Debug: Log cache miss with hash for first few nodes
+    if nodes_explored <= 10:
+        indent = "  " * indent_level
+        log_message(f"{indent}[TT MISS] Depth {depth}, Hash={position_hash}, Player={board.current_player.name}")
+
+    # If we get here: either cache miss, or cached depth was too shallow
+    # Continue with normal search, but use cached_best_move for move ordering
+
     # --- 1 Terminal / base cases ----------------------------------------
     result = get_result(board)
 
@@ -942,14 +1027,19 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             # Result examples: "checkmate - black loses" or "checkmate - white loses"
             # The LOSER is in the result string, so we need to check if WE (player_name) lost
             agent_lost = player_name in res and "loses" in res
-            
+
             if agent_lost:
                 # We (player_name) are in checkmate - we lost
-                return -999999 - mate_bonus  # We lose: delay mate as long as possible
+                score = -999999 - mate_bonus  # We lose: delay mate as long as possible
+                TRANSPOSITION_TABLE.store(position_hash, depth, score, None)
+                return score
             else:
                 # Opponent is in checkmate - we won
-                return 999999 + mate_bonus  # We win: prefer faster mate
+                score = 999999 + mate_bonus  # We win: prefer faster mate
+                TRANSPOSITION_TABLE.store(position_hash, depth, score, None)
+                return score
         elif "draw" in res:
+            TRANSPOSITION_TABLE.store(position_hash, depth, 0, None)
             return 0
 
     # --- QUIESCENCE SEARCH AT LEAF NODES ---
@@ -960,32 +1050,60 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
             # Pass is_max_turn to maintain consistent perspective
             indent = "  " * indent_level
             log_message(f"{indent}[Depth 0] Entering QUIESCENCE SEARCH (alpha={alpha}, beta={beta}, is_max_turn={is_max_turn})")
-            q_score = quiescence_search(board, alpha, beta, player_name, time_limit, start_time, is_max_turn, q_depth=0)
+            q_score = quiescence_search(board, alpha, beta, player_name, time_limit, start_time, is_max_turn, q_depth=0, remaining_depth=depth)
             log_message(f"{indent}[Depth 0] Quiescence returned: {q_score}")
+            # Store leaf node evaluation in TT
+            TRANSPOSITION_TABLE.store(position_hash, depth, q_score, None)
             return q_score
         else:
             static_eval = evaluate_board(board, player_name)
             indent = "  " * indent_level
             log_message(f"{indent}[Depth 0] Static evaluation (Q-search OFF): {static_eval}")
+            # Store leaf node evaluation in TT
+            TRANSPOSITION_TABLE.store(position_hash, depth, static_eval, None)
             return static_eval
 
     # --- 2 Get legal moves ----------------------------------------------
     current_player = board.current_player
     legal_moves = list_legal_moves_for(board, current_player)
     if not legal_moves:
-        return evaluate_board(board, player_name)
+        # No legal moves - terminal position (stalemate or checkmate)
+        score = evaluate_board(board, player_name)
+        TRANSPOSITION_TABLE.store(position_hash, depth, score, None)
+        return score
 
     # --- 3 Initialize best value ----------------------------------------
     best_value = float('-inf') if is_max_turn else float('inf')
+    best_move_found = None  # Track best move for TT storage
 
     # --- 4 Order moves for better pruning -------------------------------
     # CRITICAL-2 OPTIMIZATION: Build move cache once per board state
-    move_cache = build_move_cache(board)
+    # Pass position_hash to avoid recomputing it (we already computed it for TT probe)
+    move_cache = build_move_cache(board, position_hash)
 
     # CRITICAL-3 OPTIMIZATION: Build position map once per board state
     pos_map = create_position_map(board)
 
     ordered_moves = order_moves(board, legal_moves, move_cache, pos_map)
+
+    # --- TT MOVE ORDERING: If we have a cached best move, prioritize it ---
+    if cached_best_move is not None:
+        # Move the TT move to front of list for better alpha-beta cutoffs
+        try:
+            # cached_best_move format: ((piece_x, piece_y), (move_x, move_y))
+            tt_piece_pos, tt_move_pos = cached_best_move
+
+            # Find matching move in ordered_moves
+            for i, (piece, move) in enumerate(ordered_moves):
+                if (piece.position.x == tt_piece_pos[0] and
+                    piece.position.y == tt_piece_pos[1] and
+                    move.position.x == tt_move_pos[0] and
+                    move.position.y == tt_move_pos[1]):
+                    # Move this to front
+                    ordered_moves.insert(0, ordered_moves.pop(i))
+                    break
+        except:
+            pass  # If TT move ordering fails, just continue with regular ordering
 
     # --- 5 Explore moves ------------------------------------------------
     for piece, move in ordered_moves:
@@ -1058,15 +1176,21 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
 
             # --- 8️⃣ Alpha-beta updates -----------------------------------
             if is_max_turn:
-                best_value = max(best_value, value)
-                alpha = max(alpha, value)
                 if value > best_value or best_value == float('-inf'):
+                    best_value = value
+                    # Track best move for TT storage
+                    best_move_found = ((piece.position.x, piece.position.y),
+                                      (move.position.x, move.position.y))
                     log_message(f"{indent}  -> New MAX best: {value}")
+                alpha = max(alpha, value)
             else:
-                best_value = min(best_value, value)
-                beta = min(beta, value)
                 if value < best_value or best_value == float('inf'):
+                    best_value = value
+                    # Track best move for TT storage
+                    best_move_found = ((piece.position.x, piece.position.y),
+                                      (move.position.x, move.position.y))
                     log_message(f"{indent}  -> New MIN best: {value}")
+                beta = min(beta, value)
 
             if beta <= alpha:
                 log_message(f"{indent}  -> PRUNED! (beta={beta} <= alpha={alpha})")
@@ -1075,7 +1199,18 @@ def minimax(board, depth, alpha, beta, player_name, time_limit, start_time, is_m
         except Exception:
             continue
 
-    return best_value if best_value != float('inf') and best_value != float('-inf') else evaluate_board(board, player_name)
+    # --- STORE IN TRANSPOSITION TABLE ------------------------------------
+    # Store this position's evaluation for future use
+    final_score = best_value if best_value != float('inf') and best_value != float('-inf') else evaluate_board(board, player_name)
+
+    # Debug: Log first few stores
+    if nodes_explored <= 10:
+        indent = "  " * indent_level
+        log_message(f"{indent}[TT STORE] Depth {depth}, Hash={position_hash}, Score={final_score}")
+
+    TRANSPOSITION_TABLE.store(position_hash, depth, final_score, best_move_found)
+
+    return final_score
 
 # ============================================================================
 # AGENT ENTRY POINT
@@ -1101,7 +1236,7 @@ def agent(board, player, var):
     Time limit: 12.5 seconds (conservative for 14s per-move limit)
     Max depth: 2 (capped for reliability with quiescence search providing tactical depth)
     """
-    piece, move = find_best_move(board, player, max_depth=2, time_limit=12.9)
+    piece, move = find_best_move(board, player, max_depth=2, time_limit=13)
     if piece is None or move is None:
         legal = list_legal_moves_for(board, player)
         if legal:

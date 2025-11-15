@@ -6,11 +6,11 @@ GAME START - Initial Position
 
 Initial Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 R B K Q N 
+4 B N K Q R 
 
 
 ============================================================
@@ -19,23 +19,283 @@ MOVE 0 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 R B K Q N 
+4 B N K Q R 
+
+  Testing move at depth 1: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [TT MISS] Depth 0, Hash=16464300631908684374, Player=black
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -325
+  [Depth 0] Quiescence returned: -325
+    -> Minimax returned score: -325 for white
+    -> Current best score: -inf, Testing if -325 > -inf
+    -> New best move! Score: -325 (player: white, piece: Knight, move: (2,2))
+  Testing move at depth 1: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -495
+  [Depth 0] Quiescence returned: -495
+    -> Minimax returned score: -495 for white
+    -> Current best score: -325, Testing if -495 > -325
+  Testing move at depth 1: Pawn from (0,3) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 4
+[Quiescence] Returned score: 0
+  [Depth 0] Quiescence returned: 0
+    -> Minimax returned score: 0 for white
+    -> Current best score: -325, Testing if 0 > -325
+    -> New best move! Score: 0 (player: white, piece: Pawn, move: (0,2))
+  Testing move at depth 1: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -105
+  [Depth 0] Quiescence returned: -105
+    -> Minimax returned score: -105 for white
+    -> Current best score: 0, Testing if -105 > 0
+  Testing move at depth 1: Pawn from (2,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 0
+  [Depth 0] Quiescence returned: 0
+    -> Minimax returned score: 0 for white
+    -> Current best score: 0, Testing if 0 > 0
+  Testing move at depth 1: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -105
+  [Depth 0] Quiescence returned: -105
+    -> Minimax returned score: -105 for white
+    -> Current best score: 0, Testing if -105 > 0
+  Testing move at depth 1: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 0
+  [Depth 0] Quiescence returned: 0
+    -> Minimax returned score: 0 for white
+    -> Current best score: 0, Testing if 0 > 0
+  Testing move at depth 1: Knight from (1,4) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 2
+[Quiescence] Returned score: -220
+  [Depth 0] Quiescence returned: -220
+    -> Minimax returned score: -220 for white
+    -> Current best score: 0, Testing if -220 > 0
+Depth 1 FULLY COMPLETED (8/8 moves) - Updated best move
+
+============================================================
+DEPTH 1 SUMMARY:
+  Nodes explored: 73 in 3.852s (19 nodes/sec)
+  Total nodes: 73
+  Moves evaluated: 8/8
+  Best move at depth 1: Pawn to (0,2) with score 0
+============================================================
+
+  Testing move at depth 2: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=7880177456223842351, Score=-325
+    -> Returned: -325 (alpha=-inf, beta=inf)
+    -> New MIN best: -325
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=12792563091375646310, Score=-325
+    -> Returned: -325 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Knight to (2,2)
+    [TT HIT] Depth 0, Hash=11753195376628869912, Score=-105
+    -> Returned: -105 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Right to (1,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 275
+    [Depth 0] Quiescence returned: 275
+    -> Returned: 275 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Knight to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 4
+[Quiescence] Returned score: 5
+    [Depth 0] Quiescence returned: 5
+    -> Returned: 5 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 675
+    [Depth 0] Quiescence returned: 675
+    -> Returned: 675 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Pawn to (1,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 675
+    [Depth 0] Quiescence returned: 675
+    -> Returned: 675 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 675
+    [Depth 0] Quiescence returned: 675
+    -> Returned: 675 (alpha=-inf, beta=-325)
+  [Depth 1, MIN] Testing: Pawn to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-325, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 675
+    [Depth 0] Quiescence returned: 675
+    -> Returned: 675 (alpha=-inf, beta=-325)
+    -> Minimax returned score: -325 for white
+    -> Current best score: -inf, Testing if -325 > -inf
+    -> New best move! Score: -325 (player: white, piece: Knight, move: (2,2))
+  Testing move at depth 2: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [TT HIT] Depth 0, Hash=12847421500890036563, Score=-495
+    -> Returned: -495 (alpha=-325, beta=inf)
+    -> New MIN best: -495
+    -> PRUNED! (beta=-495 <= alpha=-325)
+    -> Minimax returned score: -495 for white
+    -> Current best score: -325, Testing if -495 > -325
+  Testing move at depth 2: Pawn from (0,3) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [TT HIT] Depth 0, Hash=12877316489951179755, Score=0
+    -> Returned: 0 (alpha=-325, beta=inf)
+    -> New MIN best: 0
+  [Depth 1, MIN] Testing: Right to (1,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 495
+    [Depth 0] Quiescence returned: 495
+    -> Returned: 495 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Knight to (2,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 320
+    [Depth 0] Quiescence returned: 320
+    -> Returned: 320 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Knight to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 325
+    [Depth 0] Quiescence returned: 325
+    -> Returned: 325 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Pawn to (1,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 4
+[Quiescence] Returned score: 0
+    [Depth 0] Quiescence returned: 0
+    -> Returned: 0 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 100
+    [Depth 0] Quiescence returned: 100
+    -> Returned: 100 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 100
+    [Depth 0] Quiescence returned: 100
+    -> Returned: 100 (alpha=-325, beta=0)
+  [Depth 1, MIN] Testing: Pawn to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-325, beta=0, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 4
+[Quiescence] Returned score: 0
+    [Depth 0] Quiescence returned: 0
+    -> Returned: 0 (alpha=-325, beta=0)
+    -> Minimax returned score: 0 for white
+    -> Current best score: -325, Testing if 0 > -325
+    -> New best move! Score: 0 (player: white, piece: Pawn, move: (0,2))
+  Testing move at depth 2: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (1,2)
+    [TT HIT] Depth 0, Hash=14547752599844777855, Score=-105
+    -> Returned: -105 (alpha=0, beta=inf)
+    -> New MIN best: -105
+    -> PRUNED! (beta=-105 <= alpha=0)
+    -> Minimax returned score: -105 for white
+    -> Current best score: 0, Testing if -105 > 0
+  Testing move at depth 2: Pawn from (2,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=11460043564533648369, Score=0
+    -> Returned: 0 (alpha=0, beta=inf)
+    -> New MIN best: 0
+    -> PRUNED! (beta=0 <= alpha=0)
+    -> Minimax returned score: 0 for white
+    -> Current best score: 0, Testing if 0 > 0
+  Testing move at depth 2: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [TT HIT] Depth 0, Hash=357005311011910469, Score=-105
+    -> Returned: -105 (alpha=0, beta=inf)
+    -> New MIN best: -105
+    -> PRUNED! (beta=-105 <= alpha=0)
+    -> Minimax returned score: -105 for white
+    -> Current best score: 0, Testing if -105 > 0
+  Testing move at depth 2: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (4,2)
+    [TT HIT] Depth 0, Hash=6139413917533180642, Score=0
+    -> Returned: 0 (alpha=0, beta=inf)
+    -> New MIN best: 0
+    -> PRUNED! (beta=0 <= alpha=0)
+    -> Minimax returned score: 0 for white
+    -> Current best score: 0, Testing if 0 > 0
+  Testing move at depth 2: Knight from (1,4) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [TT HIT] Depth 0, Hash=15282655293534001346, Score=-220
+    -> Returned: -220 (alpha=0, beta=inf)
+    -> New MIN best: -220
+    -> PRUNED! (beta=-220 <= alpha=0)
+    -> Minimax returned score: -220 for white
+    -> Current best score: 0, Testing if -220 > 0
+Depth 2 FULLY COMPLETED (8/8 moves) - Updated best move
+
+============================================================
+DEPTH 2 SUMMARY:
+  Nodes explored: 122 in 6.511s (19 nodes/sec)
+  Total nodes: 195
+  Moves evaluated: 8/8
+  Best move at depth 2: Pawn to (0,2) with score 0
+============================================================
 
 
-*** MOVE EXECUTED: Pawn from (2,3) to (2,2) ***
+############################################################
+### FINAL MOVE SELECTION ###
+############################################################
+Move: Pawn from (0,3) to (0,2)
+Score: 0
+Total search time: 10.41s
+Total nodes explored: 195
+Average nodes/second: 19
+Quiescence search: ENABLED
+TT This Move: 7.2% hit rate (14/195)
+TT Cumulative: 7.2% hit rate (14/195)
+TT cached positions: 152
+############################################################
+
+
+*** FINAL DECISION: Playing Pawn from (0,3) to (0,2) ***
+
+*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
 
 
 Board State After Move 0:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
-2 . . P . . 
-3 P P . P P 
-4 R B K Q N 
+2 P . . . . 
+3 . P P P P 
+4 B N K Q R 
 
 
 ============================================================
@@ -44,281 +304,23 @@ MOVE 1 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
-2 . . P . . 
-3 P P . P P 
-4 R B K Q N 
-
-  Testing move at depth 1: Pawn from (1,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -inf, Testing if -10 > -inf
-    -> New best move! Score: -10 (player: black, piece: Pawn, move: (2,2))
-  Testing move at depth 1: Pawn from (3,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 1: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -240
-  [Depth 0] Quiescence returned: -240
-    -> Minimax returned score: -240 for black
-    -> Current best score: -10, Testing if -240 > -10
-  Testing move at depth 1: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -405
-  [Depth 0] Quiescence returned: -405
-    -> Minimax returned score: -405 for black
-    -> Current best score: -10, Testing if -405 > -10
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -110
-  [Depth 0] Quiescence returned: -110
-    -> Minimax returned score: -110 for black
-    -> Current best score: -10, Testing if -110 > -10
-  Testing move at depth 1: Pawn from (1,1) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 1: Pawn from (3,1) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-Depth 1 FULLY COMPLETED (8/8 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 151 in 11.476s (13 nodes/sec)
-  Total nodes: 151
-  Moves evaluated: 8/8
-  Best move at depth 1: Pawn to (2,2) with score -10
-============================================================
-
-  Testing move at depth 2: Pawn from (1,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (2,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: Pawn to (2,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 95
-    [Depth 0] Quiescence returned: 95
-    -> Returned: 95 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 235
-    [Depth 0] Quiescence returned: 235
-    -> Returned: 235 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 825
-    [Depth 0] Quiescence returned: 825
-    -> Returned: 825 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 85
-    [Depth 0] Quiescence returned: 85
-    -> Returned: 85 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 495
-    [Depth 0] Quiescence returned: 495
-    -> Returned: 495 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 315
-    [Depth 0] Quiescence returned: 315
-    -> Returned: 315 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 1005
-    [Depth 0] Quiescence returned: 1005
-    -> Returned: 1005 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Knight to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 325
-    [Depth 0] Quiescence returned: 325
-    -> Returned: 325 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 210
-    [Depth 0] Quiescence returned: 210
-    -> Returned: 210 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (1,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 210
-    [Depth 0] Quiescence returned: 210
-    -> Returned: 210 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 105
-    [Depth 0] Quiescence returned: 105
-    -> Returned: 105 (alpha=-inf, beta=-10)
-  [Depth 1, MIN] Testing: King to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 105
-    [Depth 0] Quiescence returned: 105
-    -> Returned: 105 (alpha=-inf, beta=-10)
-    -> Minimax returned score: -10 for black
-    -> Current best score: -inf, Testing if -10 > -inf
-    -> New best move! Score: -10 (player: black, piece: Pawn, move: (2,2))
-  Testing move at depth 2: Pawn from (3,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (2,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-10 <= alpha=-10)
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 2: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (3,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-10 <= alpha=-10)
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 2: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -240
-    [Depth 0] Quiescence returned: -240
-    -> Returned: -240 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-240 <= alpha=-10)
-    -> Minimax returned score: -240 for black
-    -> Current best score: -10, Testing if -240 > -10
-  Testing move at depth 2: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -405
-    [Depth 0] Quiescence returned: -405
-    -> Returned: -405 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-405 <= alpha=-10)
-    -> Minimax returned score: -405 for black
-    -> Current best score: -10, Testing if -405 > -10
-Depth 2 PARTIAL - Updated best move (searched 5/8 moves, threshold: 2)
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 244 in 18.523s (13 nodes/sec)
-  Total nodes: 395
-  Moves evaluated: 5/8
-  Best move at depth 2: Pawn to (2,2) with score -10
-============================================================
-
-Time limit reached after depth 2
-
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Pawn from (1,1) to (2,2)
-Score: -10
-Total search time: 30.07s
-Total nodes explored: 395
-Average nodes/second: 13
-Quiescence search: ENABLED
-############################################################
+2 P . . . . 
+3 . P P P P 
+4 B N K Q R 
 
 
-*** FINAL DECISION: Playing Pawn from (1,1) to (2,2) ***
-
-*** MOVE EXECUTED: Pawn from (1,1) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Pawn from (2,1) to (2,2) ***
 
 
 Board State After Move 1:
   0 1 2 3 4
-0 n q k b r 
-1 p . p p p 
-2 . . p . . 
-3 P P . P P 
-4 R B K Q N 
+0 r q k n b 
+1 p p . p p 
+2 P . p . . 
+3 . P P P P 
+4 B N K Q R 
 
 
 ============================================================
@@ -327,24 +329,193 @@ MOVE 2 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
-1 p . p p p 
-2 . . p . . 
-3 P P . P P 
-4 R B K Q N 
+0 r q k n b 
+1 p p . p p 
+2 P . p . . 
+3 . P P P P 
+4 B N K Q R 
+
+  Testing move at depth 1: Pawn from (0,2) to (1,1)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [TT HIT] Depth 0, Hash=478587581715790734, Score=100
+    -> Minimax returned score: 100 for white
+    -> Current best score: -inf, Testing if 100 > -inf
+    -> New best move! Score: 100 (player: white, piece: Pawn, move: (1,1))
+  Testing move at depth 1: Pawn from (1,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [TT MISS] Depth 0, Hash=11760965049081424393, Player=black
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 0
+  [Depth 0] Quiescence returned: 0
+    -> Minimax returned score: 0 for white
+    -> Current best score: 100, Testing if 0 > 100
+  Testing move at depth 1: Pawn from (3,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 0
+  [Depth 0] Quiescence returned: 0
+    -> Minimax returned score: 0 for white
+    -> Current best score: 100, Testing if 0 > 100
+  Testing move at depth 1: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 3
+[Quiescence] Returned score: -220
+  [Depth 0] Quiescence returned: -220
+    -> Minimax returned score: -220 for white
+    -> Current best score: 100, Testing if -220 > 100
+  Testing move at depth 1: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -495
+  [Depth 0] Quiescence returned: -495
+    -> Minimax returned score: -495 for white
+    -> Current best score: 100, Testing if -495 > 100
+  Testing move at depth 1: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -105
+  [Depth 0] Quiescence returned: -105
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+  Testing move at depth 1: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -105
+  [Depth 0] Quiescence returned: -105
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+  Testing move at depth 1: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=100, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -105
+  [Depth 0] Quiescence returned: -105
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+Depth 1 FULLY COMPLETED (8/8 moves) - Updated best move
+
+============================================================
+DEPTH 1 SUMMARY:
+  Nodes explored: 78 in 4.504s (17 nodes/sec)
+  Total nodes: 78
+  Moves evaluated: 8/8
+  Best move at depth 1: Pawn to (1,1) with score 100
+============================================================
+
+  Testing move at depth 2: Pawn from (0,2) to (1,1)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [TT HIT] Depth 1, Hash=478587581715790734, Score=100
+    -> Minimax returned score: 100 for white
+    -> Current best score: -inf, Testing if 100 > -inf
+    -> New best move! Score: 100 (player: white, piece: Pawn, move: (1,1))
+  Testing move at depth 2: Pawn from (1,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=11349867599627044346, Score=0
+    -> Returned: 0 (alpha=100, beta=inf)
+    -> New MIN best: 0
+    -> PRUNED! (beta=0 <= alpha=100)
+    -> Minimax returned score: 0 for white
+    -> Current best score: 100, Testing if 0 > 100
+  Testing move at depth 2: Pawn from (3,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=5416224833766261224, Score=0
+    -> Returned: 0 (alpha=100, beta=inf)
+    -> New MIN best: 0
+    -> PRUNED! (beta=0 <= alpha=100)
+    -> Minimax returned score: 0 for white
+    -> Current best score: 100, Testing if 0 > 100
+  Testing move at depth 2: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=15040739017985141140, Score=-220
+    -> Returned: -220 (alpha=100, beta=inf)
+    -> New MIN best: -220
+    -> PRUNED! (beta=-220 <= alpha=100)
+    -> Minimax returned score: -220 for white
+    -> Current best score: 100, Testing if -220 > 100
+  Testing move at depth 2: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [TT HIT] Depth 0, Hash=3216075121710352496, Score=-495
+    -> Returned: -495 (alpha=100, beta=inf)
+    -> New MIN best: -495
+    -> PRUNED! (beta=-495 <= alpha=100)
+    -> Minimax returned score: -495 for white
+    -> Current best score: 100, Testing if -495 > 100
+  Testing move at depth 2: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (1,2)
+    [TT HIT] Depth 0, Hash=10856062217930668478, Score=-105
+    -> Returned: -105 (alpha=100, beta=inf)
+    -> New MIN best: -105
+    -> PRUNED! (beta=-105 <= alpha=100)
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+  Testing move at depth 2: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [TT HIT] Depth 0, Hash=7587126407486613892, Score=-105
+    -> Returned: -105 (alpha=100, beta=inf)
+    -> New MIN best: -105
+    -> PRUNED! (beta=-105 <= alpha=100)
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+  Testing move at depth 2: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [TT HIT] Depth 0, Hash=9280594392291363045, Score=-105
+    -> Returned: -105 (alpha=100, beta=inf)
+    -> New MIN best: -105
+    -> PRUNED! (beta=-105 <= alpha=100)
+    -> Minimax returned score: -105 for white
+    -> Current best score: 100, Testing if -105 > 100
+Depth 2 FULLY COMPLETED (8/8 moves) - Updated best move
+
+============================================================
+DEPTH 2 SUMMARY:
+  Nodes explored: 15 in 0.463s (32 nodes/sec)
+  Total nodes: 93
+  Moves evaluated: 8/8
+  Best move at depth 2: Pawn to (1,1) with score 100
+============================================================
 
 
-*** MOVE EXECUTED: Pawn from (1,3) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+############################################################
+### FINAL MOVE SELECTION ###
+############################################################
+Move: Pawn from (0,2) to (1,1)
+Score: 100
+Total search time: 4.98s
+Total nodes explored: 93
+Average nodes/second: 19
+Quiescence search: ENABLED
+TT This Move: 16.1% hit rate (15/93)
+TT Cumulative: 10.1% hit rate (29/288)
+TT cached positions: 216
+############################################################
+
+
+*** FINAL DECISION: Playing Pawn from (0,2) to (1,1) ***
+
+*** MOVE EXECUTED: Pawn from (0,2) to (1,1) ***
+*** CAPTURES at: (1,1) ***
 
 
 Board State After Move 2:
   0 1 2 3 4
-0 n q k b r 
-1 p . p p p 
-2 . . P . . 
-3 P . . P P 
-4 R B K Q N 
+0 r q k n b 
+1 p P . p p 
+2 . . p . . 
+3 . P P P P 
+4 B N K Q R 
 
 
 ============================================================
@@ -353,325 +524,23 @@ MOVE 3 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
-1 p . p p p 
-2 . . P . . 
-3 P . . P P 
-4 R B K Q N 
-
-  Testing move at depth 1: Queen from (1,0) to (1,4)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -600
-  [Depth 0] Quiescence returned: -600
-    -> Minimax returned score: -600 for black
-    -> Current best score: -inf, Testing if -600 > -inf
-    -> New best move! Score: -600 (player: black, piece: Queen, move: (1,4))
-  Testing move at depth 1: Pawn from (3,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -600, Testing if -10 > -600
-    -> New best move! Score: -10 (player: black, piece: Pawn, move: (2,2))
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -10
-  [Depth 0] Quiescence returned: -10
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 1: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -240
-  [Depth 0] Quiescence returned: -240
-    -> Minimax returned score: -240 for black
-    -> Current best score: -10, Testing if -240 > -10
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -815
-  [Depth 0] Quiescence returned: -815
-    -> Minimax returned score: -815 for black
-    -> Current best score: -10, Testing if -815 > -10
-  Testing move at depth 1: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: -805
-  [Depth 0] Quiescence returned: -805
-    -> Minimax returned score: -805 for black
-    -> Current best score: -10, Testing if -805 > -10
-  Testing move at depth 1: Queen from (1,0) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -900
-  [Depth 0] Quiescence returned: -900
-    -> Minimax returned score: -900 for black
-    -> Current best score: -10, Testing if -900 > -10
-  Testing move at depth 1: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -405
-  [Depth 0] Quiescence returned: -405
-    -> Minimax returned score: -405 for black
-    -> Current best score: -10, Testing if -405 > -10
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -110
-  [Depth 0] Quiescence returned: -110
-    -> Minimax returned score: -110 for black
-    -> Current best score: -10, Testing if -110 > -10
-  Testing move at depth 1: Pawn from (3,1) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -120
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: -10, Testing if -120 > -10
-Depth 1 FULLY COMPLETED (10/10 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 162 in 12.485s (13 nodes/sec)
-  Total nodes: 162
-  Moves evaluated: 10/10
-  Best move at depth 1: Pawn to (2,2) with score -10
-============================================================
-
-  Testing move at depth 2: Queen from (1,0) to (1,4)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Right to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -600
-    [Depth 0] Quiescence returned: -600
-    -> Returned: -600 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: King to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-600, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -595
-    [Depth 0] Quiescence returned: -595
-    -> Returned: -595 (alpha=-inf, beta=-600)
-    -> Minimax returned score: -600 for black
-    -> Current best score: -inf, Testing if -600 > -inf
-    -> New best move! Score: -600 (player: black, piece: Queen, move: (1,4))
-  Testing move at depth 2: Pawn from (3,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (2,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-600, beta=inf)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 235
-    [Depth 0] Quiescence returned: 235
-    -> Returned: 235 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 825
-    [Depth 0] Quiescence returned: 825
-    -> Returned: 825 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 85
-    [Depth 0] Quiescence returned: 85
-    -> Returned: 85 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 495
-    [Depth 0] Quiescence returned: 495
-    -> Returned: 495 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 345
-    [Depth 0] Quiescence returned: 345
-    -> Returned: 345 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 1005
-    [Depth 0] Quiescence returned: 1005
-    -> Returned: 1005 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Knight to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 320
-    [Depth 0] Quiescence returned: 320
-    -> Returned: 320 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 95
-    [Depth 0] Quiescence returned: 95
-    -> Returned: 95 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: Pawn to (3,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 10
-[Quiescence] Returned score: 100
-    [Depth 0] Quiescence returned: 100
-    -> Returned: 100 (alpha=-600, beta=-10)
-  [Depth 1, MIN] Testing: King to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-10, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 105
-    [Depth 0] Quiescence returned: 105
-    -> Returned: 105 (alpha=-600, beta=-10)
-    -> Minimax returned score: -10 for black
-    -> Current best score: -600, Testing if -10 > -600
-    -> New best move! Score: -10 (player: black, piece: Pawn, move: (2,2))
-  Testing move at depth 2: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (3,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-10 <= alpha=-10)
-    -> Minimax returned score: -10 for black
-    -> Current best score: -10, Testing if -10 > -10
-  Testing move at depth 2: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -240
-    [Depth 0] Quiescence returned: -240
-    -> Returned: -240 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-240 <= alpha=-10)
-    -> Minimax returned score: -240 for black
-    -> Current best score: -10, Testing if -240 > -10
-  Testing move at depth 2: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -815
-    [Depth 0] Quiescence returned: -815
-    -> Returned: -815 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-815 <= alpha=-10)
-    -> Minimax returned score: -815 for black
-    -> Current best score: -10, Testing if -815 > -10
-  Testing move at depth 2: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -805
-    [Depth 0] Quiescence returned: -805
-    -> Returned: -805 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-805 <= alpha=-10)
-    -> Minimax returned score: -805 for black
-    -> Current best score: -10, Testing if -805 > -10
-  Testing move at depth 2: Queen from (1,0) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: King to (1,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -900
-    [Depth 0] Quiescence returned: -900
-    -> Returned: -900 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-900 <= alpha=-10)
-    -> Minimax returned score: -900 for black
-    -> Current best score: -10, Testing if -900 > -10
-  Testing move at depth 2: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-10, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -405
-    [Depth 0] Quiescence returned: -405
-    -> Returned: -405 (alpha=-10, beta=inf)
-    -> PRUNED! (beta=-405 <= alpha=-10)
-    -> Minimax returned score: -405 for black
-    -> Current best score: -10, Testing if -405 > -10
-Depth 2 PARTIAL - Updated best move (searched 8/10 moves, threshold: 2)
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 240 in 17.509s (14 nodes/sec)
-  Total nodes: 402
-  Moves evaluated: 8/10
-  Best move at depth 2: Pawn to (2,2) with score -10
-============================================================
-
-Time limit reached after depth 2
-
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Pawn from (3,1) to (2,2)
-Score: -10
-Total search time: 30.06s
-Total nodes explored: 402
-Average nodes/second: 13
-Quiescence search: ENABLED
-############################################################
+0 r q k n b 
+1 p P . p p 
+2 . . p . . 
+3 . P P P P 
+4 B N K Q R 
 
 
-*** FINAL DECISION: Playing Pawn from (3,1) to (2,2) ***
-
-*** MOVE EXECUTED: Pawn from (3,1) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: King from (2,0) to (2,1) ***
 
 
 Board State After Move 3:
   0 1 2 3 4
-0 n q k b r 
-1 p . p . p 
+0 r q . n b 
+1 p P k p p 
 2 . . p . . 
-3 P . . P P 
-4 R B K Q N 
+3 . P P P P 
+4 B N K Q R 
 
 
 ============================================================
@@ -680,24 +549,284 @@ MOVE 4 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
-1 p . p . p 
+0 r q . n b 
+1 p P k p p 
 2 . . p . . 
-3 P . . P P 
-4 R B K Q N 
+3 . P P P P 
+4 B N K Q R 
+
+  Testing move at depth 1: Pawn from (1,1) to (0,0)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [TT MISS] Depth 0, Hash=7458230907149757445, Player=black
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 510
+  [Depth 0] Quiescence returned: 510
+    -> Minimax returned score: 510 for white
+    -> Current best score: -inf, Testing if 510 > -inf
+    -> New best move! Score: 510 (player: white, piece: Pawn, move: (0,0))
+  Testing move at depth 1: Pawn from (1,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 3
+[Quiescence] Returned score: 220
+  [Depth 0] Quiescence returned: 220
+    -> Minimax returned score: 220 for white
+    -> Current best score: 510, Testing if 220 > 510
+  Testing move at depth 1: Pawn from (3,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 3
+[Quiescence] Returned score: 220
+  [Depth 0] Quiescence returned: 220
+    -> Minimax returned score: 220 for white
+    -> Current best score: 510, Testing if 220 > 510
+  Testing move at depth 1: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 3
+[Quiescence] Returned score: 225
+  [Depth 0] Quiescence returned: 225
+    -> Minimax returned score: 225 for white
+    -> Current best score: 510, Testing if 225 > 510
+  Testing move at depth 1: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 15
+  [Depth 0] Quiescence returned: 15
+    -> Minimax returned score: 15 for white
+    -> Current best score: 510, Testing if 15 > 510
+  Testing move at depth 1: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 4
+[Quiescence] Returned score: 115
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 510, Testing if 115 > 510
+  Testing move at depth 1: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 115
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 510, Testing if 115 > 510
+  Testing move at depth 1: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 115
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 510, Testing if 115 > 510
+  Testing move at depth 1: Knight from (1,4) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=0)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=510, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 115
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 510, Testing if 115 > 510
+Depth 1 FULLY COMPLETED (9/9 moves) - Updated best move
+
+============================================================
+DEPTH 1 SUMMARY:
+  Nodes explored: 84 in 4.923s (17 nodes/sec)
+  Total nodes: 84
+  Moves evaluated: 9/9
+  Best move at depth 1: Pawn to (0,0) with score 510
+============================================================
+
+  Testing move at depth 2: Pawn from (1,1) to (0,0)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Queen to (0,0)
+    [TT HIT] Depth 0, Hash=17705854691440153989, Score=510
+    -> Returned: 510 (alpha=-inf, beta=inf)
+    -> New MIN best: 510
+  [Depth 1, MIN] Testing: Pawn to (3,3)
+    [TT HIT] Depth 0, Hash=9347613197346225747, Score=1405
+    -> Returned: 1405 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Pawn to (1,3)
+    [TT HIT] Depth 0, Hash=5133274510378513216, Score=1295
+    -> Returned: 1295 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Queen to (1,3)
+    [TT HIT] Depth 0, Hash=5538245886955255017, Score=1980
+    -> Returned: 1980 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: King to (2,0)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1530
+    [Depth 0] Quiescence returned: 1530
+    -> Returned: 1530 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Queen to (1,1)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1505
+    [Depth 0] Quiescence returned: 1505
+    -> Returned: 1505 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Queen to (1,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 2195
+    [Depth 0] Quiescence returned: 2195
+    -> Returned: 2195 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Knight to (1,1)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1495
+    [Depth 0] Quiescence returned: 1495
+    -> Returned: 1495 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Queen to (2,0)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1500
+    [Depth 0] Quiescence returned: 1500
+    -> Returned: 1500 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Knight to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1750
+    [Depth 0] Quiescence returned: 1750
+    -> Returned: 1750 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Pawn to (0,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1600
+    [Depth 0] Quiescence returned: 1600
+    -> Returned: 1600 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Pawn to (0,3)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1495
+    [Depth 0] Quiescence returned: 1495
+    -> Returned: 1495 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1530
+    [Depth 0] Quiescence returned: 1530
+    -> Returned: 1530 (alpha=-inf, beta=510)
+  [Depth 1, MIN] Testing: Pawn to (4,2)
+    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=510, is_max_turn=True)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 1530
+    [Depth 0] Quiescence returned: 1530
+    -> Returned: 1530 (alpha=-inf, beta=510)
+    -> Minimax returned score: 510 for white
+    -> Current best score: -inf, Testing if 510 > -inf
+    -> New best move! Score: 510 (player: white, piece: Pawn, move: (0,0))
+  Testing move at depth 2: Pawn from (1,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=7249232135277818467, Score=510
+    -> Returned: 510 (alpha=510, beta=inf)
+    -> New MIN best: 510
+    -> PRUNED! (beta=510 <= alpha=510)
+    -> Minimax returned score: 510 for white
+    -> Current best score: 510, Testing if 510 > 510
+  Testing move at depth 2: Pawn from (3,3) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=12840586624528119409, Score=510
+    -> Returned: 510 (alpha=510, beta=inf)
+    -> New MIN best: 510
+    -> PRUNED! (beta=510 <= alpha=510)
+    -> Minimax returned score: 510 for white
+    -> Current best score: 510, Testing if 510 > 510
+  Testing move at depth 2: Knight from (1,4) to (2,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (2,2)
+    [TT HIT] Depth 0, Hash=3000477312777215501, Score=290
+    -> Returned: 290 (alpha=510, beta=inf)
+    -> New MIN best: 290
+    -> PRUNED! (beta=290 <= alpha=510)
+    -> Minimax returned score: 290 for white
+    -> Current best score: 510, Testing if 290 > 510
+  Testing move at depth 2: Right from (4,4) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [TT HIT] Depth 0, Hash=679268377416968608, Score=15
+    -> Returned: 15 (alpha=510, beta=inf)
+    -> New MIN best: 15
+    -> PRUNED! (beta=15 <= alpha=510)
+    -> Minimax returned score: 15 for white
+    -> Current best score: 510, Testing if 15 > 510
+  Testing move at depth 2: Pawn from (1,3) to (1,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (1,2)
+    [TT HIT] Depth 0, Hash=12926613668050212974, Score=510
+    -> Returned: 510 (alpha=510, beta=inf)
+    -> New MIN best: 510
+    -> PRUNED! (beta=510 <= alpha=510)
+    -> Minimax returned score: 510 for white
+    -> Current best score: 510, Testing if 510 > 510
+  Testing move at depth 2: Pawn from (3,3) to (3,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (3,2)
+    [TT HIT] Depth 0, Hash=13822212755250668470, Score=405
+    -> Returned: 405 (alpha=510, beta=inf)
+    -> New MIN best: 405
+    -> PRUNED! (beta=405 <= alpha=510)
+    -> Minimax returned score: 405 for white
+    -> Current best score: 510, Testing if 405 > 510
+  Testing move at depth 2: Pawn from (4,3) to (4,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: Pawn to (4,2)
+    [TT HIT] Depth 0, Hash=3437624354101487091, Score=435
+    -> Returned: 435 (alpha=510, beta=inf)
+    -> New MIN best: 435
+    -> PRUNED! (beta=435 <= alpha=510)
+    -> Minimax returned score: 435 for white
+    -> Current best score: 510, Testing if 435 > 510
+  Testing move at depth 2: Knight from (1,4) to (0,2)
+  >> Starting minimax search for opponent's reply (depth=1)
+  [Depth 1, MIN] Testing: King to (1,1)
+    [TT HIT] Depth 0, Hash=1883321264755869322, Score=580
+    -> Returned: 580 (alpha=510, beta=inf)
+    -> New MIN best: 580
+    -> Minimax returned score: 580 for white
+    -> Current best score: 510, Testing if 580 > 510
+    -> New best move! Score: 580 (player: white, piece: Knight, move: (0,2))
+Depth 2 FULLY COMPLETED (9/9 moves) - Updated best move
+
+============================================================
+DEPTH 2 SUMMARY:
+  Nodes explored: 91 in 4.637s (20 nodes/sec)
+  Total nodes: 175
+  Moves evaluated: 9/9
+  Best move at depth 2: Knight to (0,2) with score 580
+============================================================
 
 
-*** MOVE EXECUTED: Pawn from (3,3) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+############################################################
+### FINAL MOVE SELECTION ###
+############################################################
+Move: Knight from (1,4) to (0,2)
+Score: 580
+Total search time: 9.63s
+Total nodes explored: 175
+Average nodes/second: 18
+Quiescence search: ENABLED
+TT This Move: 10.3% hit rate (18/175)
+TT Cumulative: 10.2% hit rate (47/463)
+TT cached positions: 345
+############################################################
+
+
+*** FINAL DECISION: Playing Knight from (1,4) to (0,2) ***
+
+*** MOVE EXECUTED: Knight from (1,4) to (0,2) ***
 
 
 Board State After Move 4:
   0 1 2 3 4
-0 n q k b r 
-1 p . p . p 
-2 . . P . . 
-3 P . . . P 
-4 R B K Q N 
+0 r q . n b 
+1 p P k p p 
+2 N . p . . 
+3 . P P P P 
+4 B . K Q R 
 
 
 ============================================================
@@ -706,339 +835,24 @@ MOVE 5 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
-1 p . p . p 
-2 . . P . . 
-3 P . . . P 
-4 R B K Q N 
-
-  Testing move at depth 1: Queen from (1,0) to (1,4)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 1
-[Quiescence] Returned score: -600
-  [Depth 0] Quiescence returned: -600
-    -> Minimax returned score: -600 for black
-    -> Current best score: -inf, Testing if -600 > -inf
-    -> New best move! Score: -600 (player: black, piece: Queen, move: (1,4))
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 0
-  [Depth 0] Quiescence returned: 0
-    -> Minimax returned score: 0 for black
-    -> Current best score: -600, Testing if 0 > -600
-    -> New best move! Score: 0 (player: black, piece: Pawn, move: (0,2))
-  Testing move at depth 1: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -230
-  [Depth 0] Quiescence returned: -230
-    -> Minimax returned score: -230 for black
-    -> Current best score: 0, Testing if -230 > 0
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -815
-  [Depth 0] Quiescence returned: -815
-    -> Minimax returned score: -815 for black
-    -> Current best score: 0, Testing if -815 > 0
-  Testing move at depth 1: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -805
-  [Depth 0] Quiescence returned: -805
-    -> Minimax returned score: -805 for black
-    -> Current best score: 0, Testing if -805 > 0
-  Testing move at depth 1: Queen from (1,0) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 1
-[Quiescence] Returned score: -900
-  [Depth 0] Quiescence returned: -900
-    -> Minimax returned score: -900 for black
-    -> Current best score: 0, Testing if -900 > 0
-  Testing move at depth 1: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -510
-  [Depth 0] Quiescence returned: -510
-    -> Minimax returned score: -510 for black
-    -> Current best score: 0, Testing if -510 > 0
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=0, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -5
-  [Depth 0] Quiescence returned: -5
-    -> Minimax returned score: -5 for black
-    -> Current best score: 0, Testing if -5 > 0
-Depth 1 FULLY COMPLETED (8/8 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 49 in 3.260s (15 nodes/sec)
-  Total nodes: 49
-  Moves evaluated: 8/8
-  Best move at depth 1: Pawn to (0,2) with score 0
-============================================================
-
-  Testing move at depth 2: Queen from (1,0) to (1,4)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Right to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-    [Depth 0] Quiescence returned: -600
-    -> Returned: -600 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: King to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-600, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 315
-    [Depth 0] Quiescence returned: 315
-    -> Returned: 315 (alpha=-inf, beta=-600)
-  [Depth 1, MIN] Testing: King to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-600, is_max_turn=True)
-    [Depth 0] Quiescence returned: -595
-    -> Returned: -595 (alpha=-inf, beta=-600)
-    -> Minimax returned score: -600 for black
-    -> Current best score: -inf, Testing if -600 > -inf
-    -> New best move! Score: -600 (player: black, piece: Queen, move: (1,4))
-  Testing move at depth 2: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 620
-    [Depth 0] Quiescence returned: 620
-    -> Returned: 620 (alpha=-600, beta=inf)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=620, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 250
-    [Depth 0] Quiescence returned: 250
-    -> Returned: 250 (alpha=-600, beta=620)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=250, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -5
-    [Depth 0] Quiescence returned: -5
-    -> Returned: -5 (alpha=-600, beta=250)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -5
-    [Depth 0] Quiescence returned: -5
-    -> Returned: -5 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 505
-    [Depth 0] Quiescence returned: 505
-    -> Returned: 505 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-    [Depth 0] Quiescence returned: -5
-    -> Returned: -5 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 355
-    [Depth 0] Quiescence returned: 355
-    -> Returned: 355 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Queen to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -5
-    [Depth 0] Quiescence returned: -5
-    -> Returned: -5 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Queen to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-5, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 830
-    [Depth 0] Quiescence returned: 830
-    -> Returned: 830 (alpha=-600, beta=-5)
-  [Depth 1, MIN] Testing: Queen to (3,1)
-    -> Returned: -1009999 (alpha=-600, beta=-5)
-    -> PRUNED! (beta=-1009999 <= alpha=-600)
-    -> Minimax returned score: -1009999 for black
-    -> Current best score: -600, Testing if -1009999 > -600
-    *** OPPONENT CHECKMATE: Pruning this root move - opponent has forced mate ***
-  Testing move at depth 2: Knight from (0,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -230
-    [Depth 0] Quiescence returned: -230
-    -> Returned: -230 (alpha=-600, beta=inf)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-230, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 170
-    [Depth 0] Quiescence returned: 170
-    -> Returned: 170 (alpha=-600, beta=-230)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-230, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 605
-    [Depth 0] Quiescence returned: 605
-    -> Returned: 605 (alpha=-600, beta=-230)
-  [Depth 1, MIN] Testing: King to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-230, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 1
-[Quiescence] Returned score: 495
-    [Depth 0] Quiescence returned: 495
-    -> Returned: 495 (alpha=-600, beta=-230)
-  [Depth 1, MIN] Testing: King to (1,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-600, beta=-230, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 160
-    [Depth 0] Quiescence returned: 160
-    -> Returned: 160 (alpha=-600, beta=-230)
-    -> Minimax returned score: -230 for black
-    -> Current best score: -600, Testing if -230 > -600
-    -> New best move! Score: -230 (player: black, piece: Knight, move: (1,2))
-  Testing move at depth 2: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -815
-    [Depth 0] Quiescence returned: -815
-    -> Returned: -815 (alpha=-230, beta=inf)
-    -> PRUNED! (beta=-815 <= alpha=-230)
-    -> Minimax returned score: -815 for black
-    -> Current best score: -230, Testing if -815 > -230
-  Testing move at depth 2: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -805
-    [Depth 0] Quiescence returned: -805
-    -> Returned: -805 (alpha=-230, beta=inf)
-    -> PRUNED! (beta=-805 <= alpha=-230)
-    -> Minimax returned score: -805 for black
-    -> Current best score: -230, Testing if -805 > -230
-  Testing move at depth 2: Queen from (1,0) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: King to (1,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=True)
-    [Depth 0] Quiescence returned: -900
-    -> Returned: -900 (alpha=-230, beta=inf)
-    -> PRUNED! (beta=-900 <= alpha=-230)
-    -> Minimax returned score: -900 for black
-    -> Current best score: -230, Testing if -900 > -230
-  Testing move at depth 2: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Pawn to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -395
-    [Depth 0] Quiescence returned: -395
-    -> Returned: -395 (alpha=-230, beta=inf)
-    -> PRUNED! (beta=-395 <= alpha=-230)
-    -> Minimax returned score: -395 for black
-    -> Current best score: -230, Testing if -395 > -230
-  Testing move at depth 2: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 1
-[Quiescence] Returned score: 615
-    [Depth 0] Quiescence returned: 615
-    -> Returned: 615 (alpha=-230, beta=inf)
-  [Depth 1, MIN] Testing: Queen to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=615, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 1
-[Quiescence] Returned score: 830
-    [Depth 0] Quiescence returned: 830
-    -> Returned: 830 (alpha=-230, beta=615)
-  [Depth 1, MIN] Testing: Pawn to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=615, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -15
-    [Depth 0] Quiescence returned: -15
-    -> Returned: -15 (alpha=-230, beta=615)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -10
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 500
-    [Depth 0] Quiescence returned: 500
-    -> Returned: 500 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-    [Depth 0] Quiescence returned: -10
-    -> Returned: -10 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 240
-    [Depth 0] Quiescence returned: 240
-    -> Returned: 240 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Queen to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 800
-    [Depth 0] Quiescence returned: 800
-    -> Returned: 800 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Queen to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=-15, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 825
-    [Depth 0] Quiescence returned: 825
-    -> Returned: 825 (alpha=-230, beta=-15)
-  [Depth 1, MIN] Testing: Queen to (3,1)
-    -> Returned: -1009999 (alpha=-230, beta=-15)
-    -> PRUNED! (beta=-1009999 <= alpha=-230)
-    -> Minimax returned score: -1009999 for black
-    -> Current best score: -230, Testing if -1009999 > -230
-    *** OPPONENT CHECKMATE: Pruning this root move - opponent has forced mate ***
-Depth 2 FULLY COMPLETED (8/8 moves) - Updated best move
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 288 in 18.698s (15 nodes/sec)
-  Total nodes: 337
-  Moves evaluated: 8/8
-  Best move at depth 2: Knight to (1,2) with score -230
-============================================================
+0 r q . n b 
+1 p P k p p 
+2 N . p . . 
+3 . P P P P 
+4 B . K Q R 
 
 
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Knight from (0,0) to (1,2)
-Score: -230
-Total search time: 22.02s
-Total nodes explored: 337
-Average nodes/second: 15
-Quiescence search: ENABLED
-############################################################
-
-
-*** FINAL DECISION: Playing Knight from (0,0) to (1,2) ***
-
-*** MOVE EXECUTED: Knight from (0,0) to (1,2) ***
+*** MOVE EXECUTED: King from (2,1) to (1,1) ***
+*** CAPTURES at: (1,1) ***
 
 
 Board State After Move 5:
   0 1 2 3 4
-0 . q k b r 
-1 p . p . p 
-2 . n P . . 
-3 P . . . P 
-4 R B K Q N 
+0 r q . n b 
+1 p k . p p 
+2 N . p . . 
+3 . P P P P 
+4 B . K Q R 
 
 
 ============================================================
@@ -1047,1145 +861,78 @@ MOVE 6 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . q k b r 
-1 p . p . p 
-2 . n P . . 
-3 P . . . P 
-4 R B K Q N 
+0 r q . n b 
+1 p k . p p 
+2 N . p . . 
+3 . P P P P 
+4 B . K Q R 
 
-
-*** MOVE EXECUTED: Pawn from (0,3) to (1,2) ***
-*** CAPTURES at: (1,2) ***
-
-
-Board State After Move 6:
-  0 1 2 3 4
-0 . q k b r 
-1 p . p . p 
-2 . P P . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-============================================================
-MOVE 7 - BLACK's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b r 
-1 p . p . p 
-2 . P P . . 
-3 . . . . P 
-4 R B K Q N 
-
-  Testing move at depth 1: Pawn from (0,1) to (1,2)
+  Testing move at depth 1: Knight from (0,2) to (1,0)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -230
-  [Depth 0] Quiescence returned: -230
-    -> Minimax returned score: -230 for black
-    -> Current best score: -inf, Testing if -230 > -inf
-    -> New best move! Score: -230 (player: black, piece: Pawn, move: (1,2))
-  Testing move at depth 1: Pawn from (2,1) to (1,2)
+  [TT HIT] Depth 0, Hash=17644128624791248837, Score=580
+    -> Minimax returned score: 580 for white
+    -> Current best score: -inf, Testing if 580 > -inf
+    -> New best move! Score: 580 (player: white, piece: Knight, move: (1,0))
+  Testing move at depth 1: Pawn from (1,3) to (2,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -230
-  [Depth 0] Quiescence returned: -230
-    -> Minimax returned score: -230 for black
-    -> Current best score: -230, Testing if -230 > -230
-  Testing move at depth 1: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -635
-  [Depth 0] Quiescence returned: -635
-    -> Minimax returned score: -635 for black
-    -> Current best score: -230, Testing if -635 > -230
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -335
-  [Depth 0] Quiescence returned: -335
-    -> Minimax returned score: -335 for black
-    -> Current best score: -230, Testing if -335 > -230
-  Testing move at depth 1: Pawn from (0,1) to (0,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -335
-  [Depth 0] Quiescence returned: -335
-    -> Minimax returned score: -335 for black
-    -> Current best score: -230, Testing if -335 > -230
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -1150
-  [Depth 0] Quiescence returned: -1150
-    -> Minimax returned score: -1150 for black
-    -> Current best score: -230, Testing if -1150 > -230
-  Testing move at depth 1: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -830
-  [Depth 0] Quiescence returned: -830
-    -> Minimax returned score: -830 for black
-    -> Current best score: -230, Testing if -830 > -230
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -340
-  [Depth 0] Quiescence returned: -340
-    -> Minimax returned score: -340 for black
-    -> Current best score: -230, Testing if -340 > -230
-  Testing move at depth 1: Queen from (1,0) to (0,0)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-230, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -350
-  [Depth 0] Quiescence returned: -350
-    -> Minimax returned score: -350 for black
-    -> Current best score: -230, Testing if -350 > -230
-Depth 1 FULLY COMPLETED (9/9 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 108 in 7.994s (14 nodes/sec)
-  Total nodes: 108
-  Moves evaluated: 9/9
-  Best move at depth 1: Pawn to (1,2) with score -230
-============================================================
-
-  Testing move at depth 2: Pawn from (0,1) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 390
-    [Depth 0] Quiescence returned: 390
-    -> Returned: 390 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=390, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 20
-    [Depth 0] Quiescence returned: 20
-    -> Returned: 20 (alpha=-inf, beta=390)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 170
-    [Depth 0] Quiescence returned: 170
-    -> Returned: 170 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 605
-    [Depth 0] Quiescence returned: 605
-    -> Returned: 605 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-    [Depth 0] Quiescence returned: -235
-    -> Returned: -235 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Right to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Right to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-    [Depth 0] Quiescence returned: -235
-    -> Returned: -235 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Right to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 115
-    [Depth 0] Quiescence returned: 115
-    -> Returned: 115 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 125
-    [Depth 0] Quiescence returned: 125
-    -> Returned: 125 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Queen to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-    [Depth 0] Quiescence returned: -235
-    -> Returned: -235 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Queen to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 710
-    [Depth 0] Quiescence returned: 710
-    -> Returned: 710 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Queen to (3,1)
-    -> Returned: -1009999 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Queen to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 590
-    [Depth 0] Quiescence returned: 590
-    -> Returned: 590 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: Knight to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 105
-    [Depth 0] Quiescence returned: 105
-    -> Returned: 105 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 95
-    [Depth 0] Quiescence returned: 95
-    -> Returned: 95 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: Right to (0,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 260
-    [Depth 0] Quiescence returned: 260
-    -> Returned: 260 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: Bishop to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 115
-    [Depth 0] Quiescence returned: 115
-    -> Returned: 115 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: King to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-    [Depth 0] Quiescence returned: -220
-    -> Returned: -220 (alpha=-inf, beta=-1009999)
-  [Depth 1, MIN] Testing: King to (1,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-1009999, is_max_turn=True)
-    [Depth 0] Quiescence returned: -220
-    -> Returned: -220 (alpha=-inf, beta=-1009999)
-    -> Minimax returned score: -1009999 for black
-    -> Current best score: -inf, Testing if -1009999 > -inf
-    *** OPPONENT CHECKMATE: Pruning this root move - opponent has forced mate ***
-  Testing move at depth 2: Pawn from (2,1) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 390
-    [Depth 0] Quiescence returned: 390
-    -> Returned: 390 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=390, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 20
-    [Depth 0] Quiescence returned: 20
-    -> Returned: 20 (alpha=-inf, beta=390)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 170
-    [Depth 0] Quiescence returned: 170
-    -> Returned: 170 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Right to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 140
-    [Depth 0] Quiescence returned: 140
-    -> Returned: 140 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 605
-    [Depth 0] Quiescence returned: 605
-    -> Returned: 605 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=20, is_max_turn=True)
-    [Depth 0] Quiescence returned: -235
-    -> Returned: -235 (alpha=-inf, beta=20)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Right to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Right to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -235
-    [Depth 0] Quiescence returned: -235
-    -> Returned: -235 (alpha=-inf, beta=-235)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-235, is_max_turn=True)
+  [TT MISS] Depth 0, Hash=6424757840523430704, Player=black
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
 [Quiescence] Maximum Q-depth reached: 3
 [Quiescence] Returned score: 115
-    [Depth 0] Quiescence returned: 115
-    -> Returned: 115 (alpha=-inf, beta=-235)
-    -> Minimax returned score: -235 for black
-    -> Current best score: -inf, Testing if -235 > -inf
-    -> New best move! Score: -235 (player: black, piece: Pawn, move: (1,2))
-Depth 2 PARTIAL - Updated best move (searched 2/9 moves, threshold: 2)
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 291 in 21.971s (13 nodes/sec)
-  Total nodes: 399
-  Moves evaluated: 2/9
-  Best move at depth 2: Pawn to (1,2) with score -235
-============================================================
-
-Time limit reached after depth 2
-
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Pawn from (2,1) to (1,2)
-Score: -235
-Total search time: 30.04s
-Total nodes explored: 399
-Average nodes/second: 13
-Quiescence search: ENABLED
-############################################################
-
-
-*** FINAL DECISION: Playing Pawn from (2,1) to (1,2) ***
-
-*** MOVE EXECUTED: Pawn from (2,1) to (1,2) ***
-*** CAPTURES at: (1,2) ***
-
-
-Board State After Move 7:
-  0 1 2 3 4
-0 . q k b r 
-1 p . . . p 
-2 . p P . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-============================================================
-MOVE 8 - WHITE's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b r 
-1 p . . . p 
-2 . p P . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-*** MOVE EXECUTED: Pawn from (2,2) to (2,1) ***
-
-
-Board State After Move 8:
-  0 1 2 3 4
-0 . q k b r 
-1 p . P . p 
-2 . p . . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-============================================================
-MOVE 9 - BLACK's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b r 
-1 p . P . p 
-2 . p . . . 
-3 . . . . P 
-4 R B K Q N 
-
-  Testing move at depth 1: Bishop from (3,0) to (2,1)
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 580, Testing if 115 > 580
+  Testing move at depth 1: Pawn from (3,3) to (2,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -120
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: -inf, Testing if -120 > -inf
-    -> New best move! Score: -120 (player: black, piece: Bishop, move: (2,1))
-  Testing move at depth 1: Right from (4,0) to (2,1)
+  [TT MISS] Depth 0, Hash=10340771138123845410, Player=black
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 115
+  [Depth 0] Quiescence returned: 115
+    -> Minimax returned score: 115 for white
+    -> Current best score: 580, Testing if 115 > 580
+  Testing move at depth 1: Knight from (0,2) to (2,1)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: -120, Testing if -120 > -120
-  Testing move at depth 1: Queen from (1,0) to (2,1)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: -320
+  [Depth 0] Quiescence returned: -320
+    -> Minimax returned score: -320 for white
+    -> Current best score: 580, Testing if -320 > 580
+  Testing move at depth 1: Right from (4,4) to (3,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: -120, Testing if -120 > -120
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
+[Quiescence] Maximum Q-depth reached: 5
+[Quiescence] Returned score: 15
+  [Depth 0] Quiescence returned: 15
+    -> Minimax returned score: 15 for white
+    -> Current best score: 580, Testing if 15 > 580
+  Testing move at depth 1: Knight from (0,2) to (1,4)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -1115
-  [Depth 0] Quiescence returned: -1115
-    -> Minimax returned score: -1115 for black
-    -> Current best score: -120, Testing if -1115 > -120
-  Testing move at depth 1: Pawn from (0,1) to (0,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -1115
-  [Depth 0] Quiescence returned: -1115
-    -> Minimax returned score: -1115 for black
-    -> Current best score: -120, Testing if -1115 > -120
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -430
-  [Depth 0] Quiescence returned: -430
-    -> Minimax returned score: -430 for black
-    -> Current best score: -120, Testing if -430 > -120
-  Testing move at depth 1: Right from (4,0) to (3,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -730
-  [Depth 0] Quiescence returned: -730
-    -> Minimax returned score: -730 for black
-    -> Current best score: -120, Testing if -730 > -120
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -1050
-  [Depth 0] Quiescence returned: -1050
-    -> Minimax returned score: -1050 for black
-    -> Current best score: -120, Testing if -1050 > -120
-  Testing move at depth 1: Pawn from (1,2) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-  [Depth 0] Quiescence returned: -230
-    -> Minimax returned score: -230 for black
-    -> Current best score: -120, Testing if -230 > -120
-  Testing move at depth 1: Queen from (1,0) to (0,0)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: -470
-  [Depth 0] Quiescence returned: -470
-    -> Minimax returned score: -470 for black
-    -> Current best score: -120, Testing if -470 > -120
-  Testing move at depth 1: King from (2,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -1055
-  [Depth 0] Quiescence returned: -1055
-    -> Minimax returned score: -1055 for black
-    -> Current best score: -120, Testing if -1055 > -120
-  Testing move at depth 1: King from (2,0) to (2,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-120, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -135
-  [Depth 0] Quiescence returned: -135
-    -> Minimax returned score: -135 for black
-    -> Current best score: -120, Testing if -135 > -120
-Depth 1 FULLY COMPLETED (12/12 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 113 in 8.844s (13 nodes/sec)
-  Total nodes: 113
-  Moves evaluated: 12/12
-  Best move at depth 1: Bishop to (2,1) with score -120
-============================================================
-
-  Testing move at depth 2: Bishop from (3,0) to (2,1)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Bishop to (4,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 130
-    [Depth 0] Quiescence returned: 130
-    -> Returned: 130 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=130, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 280
-    [Depth 0] Quiescence returned: 280
-    -> Returned: 280 (alpha=-inf, beta=130)
-  [Depth 1, MIN] Testing: Right to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=130, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 250
-    [Depth 0] Quiescence returned: 250
-    -> Returned: 250 (alpha=-inf, beta=130)
-  [Depth 1, MIN] Testing: Queen to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=130, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 715
-    [Depth 0] Quiescence returned: 715
-    -> Returned: 715 (alpha=-inf, beta=130)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=130, is_max_turn=True)
-    [Depth 0] Quiescence returned: -125
-    -> Returned: -125 (alpha=-inf, beta=130)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 335
-    [Depth 0] Quiescence returned: 335
-    -> Returned: 335 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Right to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 375
-    [Depth 0] Quiescence returned: 375
-    -> Returned: 375 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Right to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -125
-    [Depth 0] Quiescence returned: -125
-    -> Returned: -125 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 155
-    [Depth 0] Quiescence returned: 155
-    -> Returned: 155 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Bishop to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 230
-    [Depth 0] Quiescence returned: 230
-    -> Returned: 230 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Queen to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -60
-    [Depth 0] Quiescence returned: -60
-    -> Returned: -60 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Queen to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 815
-    [Depth 0] Quiescence returned: 815
-    -> Returned: 815 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Queen to (3,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 800
-    [Depth 0] Quiescence returned: 800
-    -> Returned: 800 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Queen to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 770
-    [Depth 0] Quiescence returned: 770
-    -> Returned: 770 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Knight to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 180
-    [Depth 0] Quiescence returned: 180
-    -> Returned: 180 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 165
-    [Depth 0] Quiescence returned: 165
-    -> Returned: 165 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Bishop to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 225
-    [Depth 0] Quiescence returned: 225
-    -> Returned: 225 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 805
-    [Depth 0] Quiescence returned: 805
-    -> Returned: 805 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: King to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
 [Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -110
-    [Depth 0] Quiescence returned: -110
-    -> Returned: -110 (alpha=-inf, beta=-125)
-  [Depth 1, MIN] Testing: King to (1,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=-125, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -45
-    [Depth 0] Quiescence returned: -45
-    -> Returned: -45 (alpha=-inf, beta=-125)
-    -> Minimax returned score: -125 for black
-    -> Current best score: -inf, Testing if -125 > -inf
-    -> New best move! Score: -125 (player: black, piece: Bishop, move: (2,1))
-  Testing move at depth 2: Right from (4,0) to (2,1)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-125, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: 265
-    [Depth 0] Quiescence returned: 265
-    -> Returned: 265 (alpha=-125, beta=inf)
-  [Depth 1, MIN] Testing: Bishop to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-125, beta=265, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 85
-    [Depth 0] Quiescence returned: 85
-    -> Returned: 85 (alpha=-125, beta=265)
-    -> Minimax returned score: 85 for black
-    -> Current best score: -125, Testing if 85 > -125
-    -> New best move! Score: 85 (player: black, piece: Right, move: (2,1))
-Depth 2 PARTIAL but IMPROVED - Updated best move (searched 2/12)
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 260 in 21.129s (12 nodes/sec)
-  Total nodes: 373
-  Moves evaluated: 2/12
-  Best move at depth 2: Right to (2,1) with score 85
-============================================================
-
-Time limit reached after depth 2
-
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Right from (4,0) to (2,1)
-Score: 85
-Total search time: 30.06s
-Total nodes explored: 373
-Average nodes/second: 12
-Quiescence search: ENABLED
-############################################################
-
-
-*** FINAL DECISION: Playing Right from (4,0) to (2,1) ***
-
-*** MOVE EXECUTED: Right from (4,0) to (2,1) ***
-*** CAPTURES at: (2,1) ***
-
-
-Board State After Move 9:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . p . . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-============================================================
-MOVE 10 - WHITE's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . p . . . 
-3 . . . . P 
-4 R B K Q N 
-
-
-*** MOVE EXECUTED: Bishop from (1,4) to (2,3) ***
-
-
-Board State After Move 10:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . p . . . 
-3 . . B . P 
-4 R . K Q N 
-
-
-============================================================
-MOVE 11 - BLACK's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . p . . . 
-3 . . B . P 
-4 R . K Q N 
-
-  Testing move at depth 1: Pawn from (1,2) to (2,3)
+[Quiescence] Returned score: 10
+  [Depth 0] Quiescence returned: 10
+    -> Minimax returned score: 10 for white
+    -> Current best score: 580, Testing if 10 > 580
+  Testing move at depth 1: Pawn from (1,3) to (1,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 85
-  [Depth 0] Quiescence returned: 85
-    -> Minimax returned score: 85 for black
-    -> Current best score: -inf, Testing if 85 > -inf
-    -> New best move! Score: 85 (player: black, piece: Pawn, move: (2,3))
-  Testing move at depth 1: Right from (2,1) to (2,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: 55
-  [Depth 0] Quiescence returned: 55
-    -> Minimax returned score: 55 for black
-    -> Current best score: 85, Testing if 55 > 85
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -115
-  [Depth 0] Quiescence returned: -115
-    -> Minimax returned score: -115 for black
-    -> Current best score: 85, Testing if -115 > 85
-  Testing move at depth 1: Pawn from (0,1) to (0,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -115
-  [Depth 0] Quiescence returned: -115
-    -> Minimax returned score: -115 for black
-    -> Current best score: 85, Testing if -115 > 85
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -120
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: 85, Testing if -120 > 85
-  Testing move at depth 1: Right from (2,1) to (3,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 9
-[Quiescence] Returned score: -280
-  [Depth 0] Quiescence returned: -280
-    -> Minimax returned score: -280 for black
-    -> Current best score: 85, Testing if -280 > 85
-  Testing move at depth 1: Right from (2,1) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -120
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: 85, Testing if -120 > 85
-  Testing move at depth 1: Pawn from (4,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -120
-  [Depth 0] Quiescence returned: -120
-    -> Minimax returned score: -120 for black
-    -> Current best score: 85, Testing if -120 > 85
-  Testing move at depth 1: Right from (2,1) to (4,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -125
-  [Depth 0] Quiescence returned: -125
-    -> Minimax returned score: -125 for black
-    -> Current best score: 85, Testing if -125 > 85
-  Testing move at depth 1: Right from (2,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
 [Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: -630
-  [Depth 0] Quiescence returned: -630
-    -> Minimax returned score: -630 for black
-    -> Current best score: 85, Testing if -630 > 85
-  Testing move at depth 1: Right from (2,1) to (3,1)
+[Quiescence] Returned score: 10
+  [Depth 0] Quiescence returned: 10
+    -> Minimax returned score: 10 for white
+    -> Current best score: 580, Testing if 10 > 580
+  Testing move at depth 1: Pawn from (3,3) to (3,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -125
-  [Depth 0] Quiescence returned: -125
-    -> Minimax returned score: -125 for black
-    -> Current best score: 85, Testing if -125 > 85
-  Testing move at depth 1: Right from (2,1) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -125
-  [Depth 0] Quiescence returned: -125
-    -> Minimax returned score: -125 for black
-    -> Current best score: 85, Testing if -125 > 85
-  Testing move at depth 1: Right from (2,1) to (2,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -125
-  [Depth 0] Quiescence returned: -125
-    -> Minimax returned score: -125 for black
-    -> Current best score: 85, Testing if -125 > 85
-  Testing move at depth 1: Pawn from (1,2) to (1,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-  [Depth 0] Quiescence returned: -125
-    -> Minimax returned score: -125 for black
-    -> Current best score: 85, Testing if -125 > 85
-  Testing move at depth 1: Queen from (1,0) to (0,0)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -130
-  [Depth 0] Quiescence returned: -130
-    -> Minimax returned score: -130 for black
-    -> Current best score: 85, Testing if -130 > 85
-  Testing move at depth 1: Right from (2,1) to (4,0)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -130
-  [Depth 0] Quiescence returned: -130
-    -> Minimax returned score: -130 for black
-    -> Current best score: 85, Testing if -130 > 85
-  Testing move at depth 1: Right from (2,1) to (0,0)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -130
-  [Depth 0] Quiescence returned: -130
-    -> Minimax returned score: -130 for black
-    -> Current best score: 85, Testing if -130 > 85
-  Testing move at depth 1: King from (2,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -135
-  [Depth 0] Quiescence returned: -135
-    -> Minimax returned score: -135 for black
-    -> Current best score: 85, Testing if -135 > 85
-Depth 1 FULLY COMPLETED (18/18 moves) - Updated best move
-
-============================================================
-DEPTH 1 SUMMARY:
-  Nodes explored: 161 in 13.040s (12 nodes/sec)
-  Total nodes: 161
-  Moves evaluated: 18/18
-  Best move at depth 1: Pawn to (2,3) with score 85
-============================================================
-
-  Testing move at depth 2: Pawn from (1,2) to (2,3)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 705
-    [Depth 0] Quiescence returned: 705
-    -> Returned: 705 (alpha=-inf, beta=inf)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=705, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 85
-    [Depth 0] Quiescence returned: 85
-    -> Returned: 85 (alpha=-inf, beta=705)
-  [Depth 1, MIN] Testing: Right to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 85
-    [Depth 0] Quiescence returned: 85
-    -> Returned: 85 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Right to (0,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
 [Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 630
-    [Depth 0] Quiescence returned: 630
-    -> Returned: 630 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Queen to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 520
-    [Depth 0] Quiescence returned: 520
-    -> Returned: 520 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 1130
-    [Depth 0] Quiescence returned: 1130
-    -> Returned: 1130 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 735
-    [Depth 0] Quiescence returned: 735
-    -> Returned: 735 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Right to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 1920
-    [Depth 0] Quiescence returned: 1920
-    -> Returned: 1920 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Right to (0,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 995
-    [Depth 0] Quiescence returned: 995
-    -> Returned: 995 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Right to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 1495
-    [Depth 0] Quiescence returned: 1495
-    -> Returned: 1495 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Queen to (3,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 1025
-    [Depth 0] Quiescence returned: 1025
-    -> Returned: 1025 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Queen to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: 1095
-    [Depth 0] Quiescence returned: 1095
-    -> Returned: 1095 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Queen to (3,1)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 1020
-    [Depth 0] Quiescence returned: 1020
-    -> Returned: 1020 (alpha=-inf, beta=85)
-  [Depth 1, MIN] Testing: Knight to (3,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=85, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 560
-    [Depth 0] Quiescence returned: 560
-    -> Returned: 560 (alpha=-inf, beta=85)
-    -> Minimax returned score: 85 for black
-    -> Current best score: -inf, Testing if 85 > -inf
-    -> New best move! Score: 85 (player: black, piece: Pawn, move: (2,3))
-  Testing move at depth 2: Right from (2,1) to (2,3)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Knight to (2,3)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 55
-    [Depth 0] Quiescence returned: 55
-    -> Returned: 55 (alpha=85, beta=inf)
-    -> PRUNED! (beta=55 <= alpha=85)
-    -> Minimax returned score: 55 for black
-    -> Current best score: 85, Testing if 55 > 85
-  Testing move at depth 2: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 5
-[Quiescence] Returned score: 500
-    [Depth 0] Quiescence returned: 500
-    -> Returned: 500 (alpha=85, beta=inf)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=500, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 280
-    [Depth 0] Quiescence returned: 280
-    -> Returned: 280 (alpha=85, beta=500)
-  [Depth 1, MIN] Testing: Right to (0,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=280, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 275
-    [Depth 0] Quiescence returned: 275
-    -> Returned: 275 (alpha=85, beta=280)
-  [Depth 1, MIN] Testing: Pawn to (4,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=275, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 8
-[Quiescence] Returned score: 90
-    [Depth 0] Quiescence returned: 90
-    -> Returned: 90 (alpha=85, beta=275)
-  [Depth 1, MIN] Testing: Right to (1,4)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=90, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: -120
-    [Depth 0] Quiescence returned: -120
-    -> Returned: -120 (alpha=85, beta=90)
-    -> PRUNED! (beta=-120 <= alpha=85)
-    -> Minimax returned score: -120 for black
-    -> Current best score: 85, Testing if -120 > 85
-  Testing move at depth 2: Pawn from (0,1) to (0,3)
-  >> Starting minimax search for opponent's reply (depth=1)
-  [Depth 1, MIN] Testing: Queen to (3,0)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=inf, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: 500
-    [Depth 0] Quiescence returned: 500
-    -> Returned: 500 (alpha=85, beta=inf)
-  [Depth 1, MIN] Testing: Right to (1,2)
-    [Depth 0] Entering QUIESCENCE SEARCH (alpha=85, beta=500, is_max_turn=True)
-[Quiescence] Maximum Q-depth reached: 2
-[Quiescence] Returned score: -35
-    [Depth 0] Quiescence returned: -35
-    -> Returned: -35 (alpha=85, beta=500)
-    -> PRUNED! (beta=-35 <= alpha=85)
-    -> Minimax returned score: -35 for black
-    -> Current best score: 85, Testing if -35 > 85
-Depth 2 PARTIAL - Updated best move (searched 4/18 moves, threshold: 2)
-
-============================================================
-DEPTH 2 SUMMARY:
-  Nodes explored: 216 in 16.865s (13 nodes/sec)
-  Total nodes: 377
-  Moves evaluated: 4/18
-  Best move at depth 2: Pawn to (2,3) with score 85
-============================================================
-
-Time limit reached after depth 2
-
-############################################################
-### FINAL MOVE SELECTION ###
-############################################################
-Move: Pawn from (1,2) to (2,3)
-Score: 85
-Total search time: 30.00s
-Total nodes explored: 377
-Average nodes/second: 13
-Quiescence search: ENABLED
-############################################################
-
-
-*** FINAL DECISION: Playing Pawn from (1,2) to (2,3) ***
-
-*** MOVE EXECUTED: Pawn from (1,2) to (2,3) ***
-*** CAPTURES at: (2,3) ***
-
-
-Board State After Move 11:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . . . . . 
-3 . . p . P 
-4 R . K Q N 
-
-
-============================================================
-MOVE 12 - WHITE's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . . . . . 
-3 . . p . P 
-4 R . K Q N 
-
-
-*** MOVE EXECUTED: Knight from (4,4) to (2,3) ***
-*** CAPTURES at: (2,3) ***
-
-
-Board State After Move 12:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . . . . . 
-3 . . N . P 
-4 R . K Q . 
-
-
-============================================================
-MOVE 13 - BLACK's turn
-============================================================
-
-Current Board State:
-  0 1 2 3 4
-0 . q k b . 
-1 p . r . p 
-2 . . . . . 
-3 . . N . P 
-4 R . K Q . 
-
-  Testing move at depth 1: Right from (2,1) to (2,3)
+[Quiescence] Returned score: 10
+  [Depth 0] Quiescence returned: 10
+    -> Minimax returned score: 10 for white
+    -> Current best score: 580, Testing if 10 > 580
+  Testing move at depth 1: Pawn from (4,3) to (4,2)
   >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-inf, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 3
-[Quiescence] Returned score: -85
-  [Depth 0] Quiescence returned: -85
-    -> Minimax returned score: -85 for black
-    -> Current best score: -inf, Testing if -85 > -inf
-    -> New best move! Score: -85 (player: black, piece: Right, move: (2,3))
-  Testing move at depth 1: Pawn from (0,1) to (0,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=-85, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 6
-[Quiescence] Returned score: 30
-  [Depth 0] Quiescence returned: 30
-    -> Minimax returned score: 30 for black
-    -> Current best score: -85, Testing if 30 > -85
-    -> New best move! Score: 30 (player: black, piece: Pawn, move: (0,2))
-  Testing move at depth 1: Pawn from (0,1) to (0,3)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=30, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 7
-[Quiescence] Returned score: -15
-  [Depth 0] Quiescence returned: -15
-    -> Minimax returned score: -15 for black
-    -> Current best score: 30, Testing if -15 > 30
-  Testing move at depth 1: Queen from (1,0) to (1,1)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=30, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: 90
-  [Depth 0] Quiescence returned: 90
-    -> Minimax returned score: 90 for black
-    -> Current best score: 30, Testing if 90 > 30
-    -> New best move! Score: 90 (player: black, piece: Queen, move: (1,1))
-  Testing move at depth 1: Queen from (1,0) to (1,2)
-  >> Starting minimax search for opponent's reply (depth=0)
-  [Depth 0] Entering QUIESCENCE SEARCH (alpha=90, beta=inf, is_max_turn=False)
-[Quiescence] Maximum Q-depth reached: 4
-[Quiescence] Returned score: -305
-  [Depth 0] Quiescence returned: -305
-    -> Minimax returned score: -305 for black
-    -> Current best score: 90, Testing if -305 > 90
-  Testing move at depth 1: Queen from (1,0) to (1,3)
-  *** CHECKMATE FOUND: Queen to (1,3) - Instant win! ***
+  [Depth 0] Entering QUIESCENCE SEARCH (alpha=580, beta=inf, is_max_turn=False)
 
-*** FINAL DECISION: Playing Queen from (1,0) to (1,3) ***
-
-*** MOVE EXECUTED: Queen from (1,0) to (1,3) ***
-
-
-Board State After Move 13:
-  0 1 2 3 4
-0 . . k b . 
-1 p . r . p 
-2 . . . . . 
-3 . q N . P 
-4 R . K Q . 
-
-
-============================================================
-=== GAME ENDED: Checkmate - white loses ===
-============================================================
-
-Final Board State:
-  0 1 2 3 4
-0 . . k b . 
-1 p . r . p 
-2 . . . . . 
-3 . q N . P 
-4 R . K Q . 
-
+=== Game ended by keyboard interruption ===
