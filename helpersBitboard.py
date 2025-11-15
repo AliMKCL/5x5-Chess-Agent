@@ -24,6 +24,60 @@ PIECE TYPES (indexed 0-5):
 
 COLOR:
 0 = White, 1 = Black
+
+BITBOARDS USED IN THIS MODULE:
+
+1. PIECE POSITION BITBOARDS (12 total):
+   - WP: White pawn positions
+   - WN: White knight positions
+   - WB: White bishop positions
+   - WQ: White queen positions
+   - WK: White king position
+   - WR: White Right piece positions
+   - BP: Black pawn positions
+   - BN: Black knight positions
+   - BB: Black bishop positions
+   - BQ: Black queen positions
+   - BK: Black king position
+   - BR: Black Right piece positions
+
+2. OCCUPANCY BITBOARDS (3 total):
+   - occ_white: All white piece positions (WP | WN | WB | WQ | WK | WR)
+   - occ_black: All black piece positions (BP | BN | BB | BQ | BK | BR)
+   - occ_all: All occupied squares (occ_white | occ_black)
+
+3. PRECOMPUTED ATTACK BITBOARDS (50 total):
+   - KNIGHT_ATTACKS[25]: Knight attack patterns from each square (ignores occupancy)
+   - KING_ATTACKS[25]: King attack patterns from each square (ignores occupancy)
+
+4. DYNAMICALLY GENERATED ATTACK BITBOARDS:
+   - bishop_attacks: Bishop attack bitboard (considering occupancy via ray-casting)
+   - queen_attacks: Queen attack bitboard (rook + bishop moves, considering occupancy)
+   - right_attacks: Right piece attack bitboard (rook + knight, considering occupancy)
+
+5. MOVE GENERATION HELPER BITBOARDS:
+   - own_occ: Current player's piece occupancy
+   - opp_occ: Opponent's piece occupancy
+   - attacks: Bitboard of valid destination squares for a piece (after filtering own pieces)
+
+Bitboards represent everything in bits (1-0s). For example, a bb for white cells:
+1 0 1 0 1
+0 1 0 1 0
+1 0 1 0 1
+0 1 0 1 0
+1 0 1 0 1
+
+Since only 1 and 0s, we need different contexts of bitboard. 
+For example, 1 with pawn locations, 1 with knight locations...
+
+How utilized?
+- For move generation:
+    - Precomputed attack tables for all pieces, where at the start of the program 25 long 
+      list of Bitboards are created, showing the possible movements of those pieces at each square.
+    - Therefore move generation is a very fast lookup. Legality of the moves are handled later.
+
+To analyze squares and captures etc. you can use bitwise operations accross Bitboards. 
+For example if white bishops ^ black knight moves = 1 --> There is a capture.
 """
 
 from dataclasses import dataclass
@@ -63,6 +117,7 @@ def square_index(x: int, y: int) -> Square:
 
     Returns:
         Square index [0-24] using row-major ordering (y*5 + x)
+        where (0, 0) is top-left and (4, 4) is bottom right.
 
     Example:
         square_index(2, 3) → 3*5 + 2 = 17
@@ -165,8 +220,8 @@ class BitboardState:
     Occupancy masks are derived from piece bitboards for fast lookups.
 
     Attributes:
-        WP, WN, WB, WQ, WK, WRi: White pieces (Pawn, Knight, Bishop, Queen, King, Right)
-        BP, BN, BB, BQ, BK, BRi: Black pieces
+        WP, WN, WB, WQ, WK, WR: White pieces (Pawn, Knight, Bishop, Queen, King, Right)
+        BP, BN, BB, BQ, BK, BR: Black pieces
         occ_white: Bitboard of all white pieces (WP | WN | WB | ...)
         occ_black: Bitboard of all black pieces (BP | BN | BB | ...)
         occ_all: Bitboard of all pieces (occ_white | occ_black)
@@ -179,7 +234,7 @@ class BitboardState:
     WB: Bitboard  # White bishops
     WQ: Bitboard  # White queens
     WK: Bitboard  # White king
-    WRi: Bitboard # White Rights (custom piece)
+    WR: Bitboard # White Rights (custom piece)
 
     # Black pieces
     BP: Bitboard  # Black pawns
@@ -187,7 +242,7 @@ class BitboardState:
     BB: Bitboard  # Black bishops
     BQ: Bitboard  # Black queens
     BK: Bitboard  # Black king
-    BRi: Bitboard # Black Rights (custom piece)
+    BR: Bitboard # Black Rights (custom piece)
 
     # Derived occupancy masks
     occ_white: Bitboard  # All white pieces
@@ -275,14 +330,61 @@ KNIGHT_ATTACKS = _generate_knight_attacks()
 KING_ATTACKS = _generate_king_attacks()
 
 
-# --- Sliding Piece Attacks (Bishop, Queen) ---
+# --- Sliding Piece Attacks (Rook, Bishop, Queen, Right) ---
+# NOTE: There is no ROOK piece in this variant, but _get_rook_attacks() is a
+#       helper function used to generate horizontal/vertical moves for Queen and Right
+
+def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
+    """
+    Generate rook attack bitboard from square sq considering occupancy.
+
+    A rook attacks along ranks (rows) and files (columns) until blocked.
+    This function uses a simple ray-casting approach.
+
+    NOTE: This is a helper function - there is no rook piece in this variant.
+          Used by Queen (rook+bishop) and Right (rook+knight) pieces.
+
+    Args:
+        sq: Source square
+        occupancy: Bitboard of all occupied squares (blocks rays)
+
+    Returns:
+        Bitboard of all squares the rook can attack
+
+    Algorithm:
+        1. Cast rays in 4 directions (up, down, left, right)
+        2. Stop at first occupied square (include it if capturable)
+        3. Combine all rays with OR
+    """
+    x, y = index_to_xy(sq)
+    attacks = 0
+
+    # Direction vectors: (dx, dy)
+    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # up, down, right, left
+
+    for dx, dy in directions:
+        # Cast ray in this direction
+        nx, ny = x + dx, y + dy
+        while 0 <= nx < 5 and 0 <= ny < 5:
+            dest_sq = square_index(nx, ny)
+            attacks = set_bit(attacks, dest_sq)
+
+            # Stop if we hit an occupied square (include the blocker)
+            if test_bit(occupancy, dest_sq):
+                break
+
+            nx += dx
+            ny += dy
+
+    return attacks
+
 
 def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
     Generate bishop attack bitboard from square sq considering occupancy.
 
     A bishop attacks along diagonals until blocked.
-    Uses simple ray-casting approach.
+    Uses ray-casting similar to rook.
 
     Args:
         sq: Source square
@@ -316,19 +418,21 @@ def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
 
 def _get_queen_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
-    Generate queen attack bitboard (bishop attacks only).
+    Generate queen attack bitboard (combines rook + bishop attacks).
+
+    Queen moves in all 8 directions: horizontal, vertical, and diagonal.
     """
-    return _get_bishop_attacks(sq, occupancy)
+    return _get_rook_attacks(sq, occupancy) | _get_bishop_attacks(sq, occupancy)
 
 
 def _get_right_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
-    Generate Right piece attack bitboard (combines bishop + knight attacks).
+    Generate Right piece attack bitboard (combines rook + knight attacks).
 
-    The "Right" piece is a custom piece that moves like a bishop OR knight.
-    It can both slide like a bishop AND jump like a knight.
+    The "Right" piece is a custom piece that moves like a rook OR knight.
+    It can both slide like a rook (horizontal/vertical) AND jump like a knight.
     """
-    return _get_bishop_attacks(sq, occupancy) | KNIGHT_ATTACKS[sq]
+    return _get_rook_attacks(sq, occupancy) | KNIGHT_ATTACKS[sq]
 
 
 # ============================================================================
@@ -389,9 +493,9 @@ class ZobristHasher:
         # Get list of all piece bitboards in order
         piece_bitboards = [
             (bb_state.WP, PAWN, 0),   (bb_state.WN, KNIGHT, 0), (bb_state.WB, BISHOP, 0),
-            (bb_state.WQ, QUEEN, 0),  (bb_state.WK, KING, 0),   (bb_state.WRi, RIGHT, 0),
+            (bb_state.WQ, QUEEN, 0),  (bb_state.WK, KING, 0),   (bb_state.WR, RIGHT, 0),
             (bb_state.BP, PAWN, 1),   (bb_state.BN, KNIGHT, 1), (bb_state.BB, BISHOP, 1),
-            (bb_state.BQ, QUEEN, 1),  (bb_state.BK, KING, 1),   (bb_state.BRi, RIGHT, 1)
+            (bb_state.BQ, QUEEN, 1),  (bb_state.BK, KING, 1),   (bb_state.BR, RIGHT, 1)
         ]
 
         # XOR in key for each piece
@@ -432,10 +536,11 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
 
     Algorithm:
         1. Find king position
-        2. Generate knight attacks from king → check if opponent knights there
-        3. Generate bishop attacks from king → check if opponent bishops/queens/rights there
-        4. Check pawn attacks (special case - asymmetric)
-        5. Check king adjacency (kings can't be adjacent)
+        2. Generate knight attacks from king → check if opponent knights/rights there
+        3. Check king adjacency (kings can't be adjacent)
+        4. Generate rook attacks from king → check if opponent queens/rights there
+        5. Generate bishop attacks from king → check if opponent bishops/queens there
+        6. Check pawn attacks (special case - asymmetric)
     """
     occ = bb_state.occ_all
 
@@ -445,7 +550,7 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
         opp_knights = bb_state.BN
         opp_bishops = bb_state.BB
         opp_queens = bb_state.BQ
-        opp_rights = bb_state.BRi
+        opp_rights = bb_state.BR
         opp_king = bb_state.BK
         opp_pawns = bb_state.BP
         king_is_white = True
@@ -455,7 +560,7 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
         opp_knights = bb_state.WN
         opp_bishops = bb_state.WB
         opp_queens = bb_state.WQ
-        opp_rights = bb_state.WRi
+        opp_rights = bb_state.WR
         opp_king = bb_state.WK
         opp_pawns = bb_state.WP
         king_is_white = False
@@ -475,9 +580,14 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
     if KING_ATTACKS[king_sq] & opp_king:
         return True
 
-    # 3. Check for bishop/queen/Right attacks (sliding)
+    # 3. Check for rook/queen/Right attacks (sliding horizontal/vertical)
+    rook_attacks = _get_rook_attacks(king_sq, occ)
+    if rook_attacks & (opp_queens | opp_rights):
+        return True
+
+    # 4. Check for bishop/queen attacks (sliding diagonal)
     bishop_attacks = _get_bishop_attacks(king_sq, occ)
-    if bishop_attacks & (opp_bishops | opp_queens | opp_rights):
+    if bishop_attacks & (opp_bishops | opp_queens):
         return True
 
     # 5. Check for pawn attacks (SPECIAL CASE - asymmetric)
@@ -501,6 +611,230 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
                     return True
 
     return False
+
+
+def is_square_attacked(bb_state: BitboardState, sq: Square, by_white: bool) -> bool:
+    """
+    Determine if a square is attacked by the specified side.
+
+    Similar to is_in_check but checks any square, not just king position.
+    Uses reverse attack generation for efficiency.
+
+    Args:
+        bb_state: Current board state
+        sq: Square index to check
+        by_white: True if checking for white attacks, False for black
+
+    Returns:
+        True if the square is attacked by the specified side
+    """
+    occ = bb_state.occ_all
+
+    if by_white:
+        # Check if white attacks this square
+        atk_knights = bb_state.WN
+        atk_bishops = bb_state.WB
+        atk_queens = bb_state.WQ
+        atk_rights = bb_state.WR
+        atk_king = bb_state.WK
+        atk_pawns = bb_state.WP
+        attacker_is_white = True
+    else:
+        # Check if black attacks this square
+        atk_knights = bb_state.BN
+        atk_bishops = bb_state.BB
+        atk_queens = bb_state.BQ
+        atk_rights = bb_state.BR
+        atk_king = bb_state.BK
+        atk_pawns = bb_state.BP
+        attacker_is_white = False
+
+    # 1. Check for knight/Right attacks
+    if KNIGHT_ATTACKS[sq] & (atk_knights | atk_rights):
+        return True
+
+    # 2. Check for king attacks
+    if KING_ATTACKS[sq] & atk_king:
+        return True
+
+    # 3. Check for rook/queen/Right attacks (sliding horizontal/vertical)
+    rook_attacks = _get_rook_attacks(sq, occ)
+    if rook_attacks & (atk_queens | atk_rights):
+        return True
+
+    # 4. Check for bishop/queen attacks (sliding diagonal)
+    bishop_attacks = _get_bishop_attacks(sq, occ)
+    if bishop_attacks & (atk_bishops | atk_queens):
+        return True
+
+    # 5. Check for pawn attacks (SPECIAL CASE - asymmetric)
+    x, y = index_to_xy(sq)
+
+    if attacker_is_white:
+        # White pawns attack diagonally upward (from white's perspective)
+        # White pawn at (x±1, y+1) would attack square at (x, y)
+        pawn_y = y + 1
+    else:
+        # Black pawns attack diagonally downward (from white's perspective)
+        # Black pawn at (x±1, y-1) would attack square at (x, y)
+        pawn_y = y - 1
+
+    if 0 <= pawn_y < 5:
+        for pawn_x in [x - 1, x + 1]:
+            if 0 <= pawn_x < 5:
+                pawn_sq = square_index(pawn_x, pawn_y)
+                if test_bit(atk_pawns, pawn_sq):
+                    return True
+
+    return False
+
+
+def static_exchange_eval(bb_state: BitboardState, move: 'BBMove') -> int:
+    """
+    Static Exchange Evaluation (SEE) for a capture move.
+
+    Estimates the material outcome of a capture sequence on the target square.
+    Used for move ordering to prioritize safe/profitable captures.
+
+    Args:
+        bb_state: Current board state
+        move: The capture move to evaluate (must be a capture, move.captured_type != -1)
+
+    Returns:
+        Net material outcome in centipawns (positive = good, negative = bad)
+
+    Algorithm:
+        1. Find all pieces attacking the target square for both sides
+        2. Simulate exchange sequence using cheapest pieces first
+        3. Return net material gain/loss
+
+    Example:
+        Pawn captures Queen defended by Pawn:
+        1. We capture Queen: +900
+        2. They recapture with Pawn: -100
+        Net: +800 (excellent trade!)
+    """
+    to_sq = move.to_sq
+    attacker_is_white = (bb_state.side_to_move == 0)
+
+    # Get occupancy for attack generation
+    occ = bb_state.occ_all
+
+    # Collect attackers for both sides (by piece type and value)
+    # We'll track lists of (piece_type, value) sorted by value
+    white_attackers = []
+    black_attackers = []
+
+    # Helper to add attackers of a specific type
+    def add_attackers_of_type(piece_bb, piece_type, is_white, attack_bb):
+        """Add all pieces of given type that attack to_sq"""
+        for sq in iter_bits(piece_bb & attack_bb):
+            if is_white:
+                white_attackers.append((piece_type, PIECE_VALUES[piece_type], sq))
+            else:
+                black_attackers.append((piece_type, PIECE_VALUES[piece_type], sq))
+
+    # 1. Find all knight attackers
+    knight_attacks_to = KNIGHT_ATTACKS[to_sq]
+    add_attackers_of_type(bb_state.WN, KNIGHT, True, knight_attacks_to)
+    add_attackers_of_type(bb_state.BN, KNIGHT, False, knight_attacks_to)
+    # Rights also attack like knights
+    add_attackers_of_type(bb_state.WR, RIGHT, True, knight_attacks_to)
+    add_attackers_of_type(bb_state.BR, RIGHT, False, knight_attacks_to)
+
+    # 2. Find all king attackers
+    king_attacks_to = KING_ATTACKS[to_sq]
+    add_attackers_of_type(bb_state.WK, KING, True, king_attacks_to)
+    add_attackers_of_type(bb_state.BK, KING, False, king_attacks_to)
+
+    # 3. Find all sliding piece attackers (bishop, rook, queen, right)
+    rook_attacks_to = _get_rook_attacks(to_sq, occ)
+    bishop_attacks_to = _get_bishop_attacks(to_sq, occ)
+
+    # Bishops attack diagonally
+    add_attackers_of_type(bb_state.WB, BISHOP, True, bishop_attacks_to)
+    add_attackers_of_type(bb_state.BB, BISHOP, False, bishop_attacks_to)
+
+    # Queens attack both ways
+    queen_attacks_to = rook_attacks_to | bishop_attacks_to
+    add_attackers_of_type(bb_state.WQ, QUEEN, True, queen_attacks_to)
+    add_attackers_of_type(bb_state.BQ, QUEEN, False, queen_attacks_to)
+
+    # Rights attack rook-ways (already added knight-ways above)
+    add_attackers_of_type(bb_state.WR, RIGHT, True, rook_attacks_to)
+    add_attackers_of_type(bb_state.BR, RIGHT, False, rook_attacks_to)
+
+    # 4. Find pawn attackers (special case - asymmetric)
+    tx, ty = index_to_xy(to_sq)
+
+    # White pawns attack from below (y+1)
+    if ty + 1 < 5:
+        for px in [tx - 1, tx + 1]:
+            if 0 <= px < 5:
+                pawn_sq = square_index(px, ty + 1)
+                if test_bit(bb_state.WP, pawn_sq):
+                    white_attackers.append((PAWN, PIECE_VALUES[PAWN], pawn_sq))
+
+    # Black pawns attack from above (y-1)
+    if ty - 1 >= 0:
+        for px in [tx - 1, tx + 1]:
+            if 0 <= px < 5:
+                pawn_sq = square_index(px, ty - 1)
+                if test_bit(bb_state.BP, pawn_sq):
+                    black_attackers.append((PAWN, PIECE_VALUES[PAWN], pawn_sq))
+
+    # Sort by value (cheapest first for optimal exchange sequence)
+    white_attackers.sort(key=lambda x: x[1])
+    black_attackers.sort(key=lambda x: x[1])
+
+    # Remove the initial attacker (move.from_sq) from appropriate list
+    # since it's already making the first capture
+    from_sq = move.from_sq
+    if attacker_is_white:
+        white_attackers = [(pt, pv, sq) for pt, pv, sq in white_attackers if sq != from_sq]
+    else:
+        black_attackers = [(pt, pv, sq) for pt, pv, sq in black_attackers if sq != from_sq]
+
+    # Simulate exchange sequence
+    gain = [PIECE_VALUES[move.captured_type]]  # Initial capture value
+    current_attacker_value = PIECE_VALUES[move.piece_type]  # Value of piece making initial capture
+
+    # Alternate between sides, using cheapest piece each time
+    white_turn = not attacker_is_white  # After our move, opponent responds
+
+    while True:
+        if white_turn:
+            if not white_attackers:
+                break  # No more white attackers
+            piece_type, piece_value, sq = white_attackers.pop(0)  # Use cheapest
+            gain.append(current_attacker_value)  # Capture previous attacker
+            current_attacker_value = piece_value
+            white_turn = False
+        else:
+            if not black_attackers:
+                break  # No more black attackers
+            piece_type, piece_value, sq = black_attackers.pop(0)  # Use cheapest
+            gain.append(current_attacker_value)  # Capture previous attacker
+            current_attacker_value = piece_value
+            white_turn = True
+
+    # Now compute final score using minimax on gain array
+    # gain[0] = initial capture, gain[1] = first recapture, etc.
+    # We want to maximize: gain[0] - gain[1] + gain[2] - gain[3] + ...
+
+    # Work backwards through gain array
+    score = 0
+    for i in range(len(gain) - 1, -1, -1):
+        if i % 2 == 0:  # Even index = our gain
+            score = max(score, gain[i] - score)
+        else:  # Odd index = opponent's gain
+            score = min(score, gain[i] - score)
+
+    # Return from current side's perspective
+    if not attacker_is_white:
+        score = -score
+
+    return score
 
 
 # ============================================================================
@@ -551,14 +885,14 @@ def generate_legal_moves(bb_state: BitboardState, captures_only: bool = False) -
     if stm_white:
         own_pieces = [
             (bb_state.WP, PAWN), (bb_state.WN, KNIGHT), (bb_state.WB, BISHOP),
-            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WRi, RIGHT)
+            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, RIGHT)
         ]
         own_occ = bb_state.occ_white
         opp_occ = bb_state.occ_black
     else:
         own_pieces = [
             (bb_state.BP, PAWN), (bb_state.BN, KNIGHT), (bb_state.BB, BISHOP),
-            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BRi, RIGHT)
+            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, RIGHT)
         ]
         own_occ = bb_state.occ_black
         opp_occ = bb_state.occ_white
@@ -736,12 +1070,12 @@ def _get_captured_piece_type(bb_state: BitboardState, sq: Square, is_white: bool
     if is_white:
         pieces = [
             (bb_state.WP, PAWN), (bb_state.WN, KNIGHT), (bb_state.WB, BISHOP),
-            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WRi, RIGHT)
+            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, RIGHT)
         ]
     else:
         pieces = [
             (bb_state.BP, PAWN), (bb_state.BN, KNIGHT), (bb_state.BB, BISHOP),
-            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BRi, RIGHT)
+            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, RIGHT)
         ]
 
     for piece_bb, piece_type in pieces:
@@ -777,8 +1111,8 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
     """
     # Copy piece bitboards to list for modification
     pieces = [
-        bb_state.WP, bb_state.WN, bb_state.WB, bb_state.WQ, bb_state.WK, bb_state.WRi,
-        bb_state.BP, bb_state.BN, bb_state.BB, bb_state.BQ, bb_state.BK, bb_state.BRi
+        bb_state.WP, bb_state.WN, bb_state.WB, bb_state.WQ, bb_state.WK, bb_state.WR,
+        bb_state.BP, bb_state.BN, bb_state.BB, bb_state.BQ, bb_state.BK, bb_state.BR
     ]
 
     stm_white = (bb_state.side_to_move == 0)
@@ -832,8 +1166,8 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
 
     # 6. Create new state
     return BitboardState(
-        WP=pieces[0], WN=pieces[1], WB=pieces[2], WQ=pieces[3], WK=pieces[4], WRi=pieces[5],
-        BP=pieces[6], BN=pieces[7], BB=pieces[8], BQ=pieces[9], BK=pieces[10], BRi=pieces[11],
+        WP=pieces[0], WN=pieces[1], WB=pieces[2], WQ=pieces[3], WK=pieces[4], WR=pieces[5],
+        BP=pieces[6], BN=pieces[7], BB=pieces[8], BQ=pieces[9], BK=pieces[10], BR=pieces[11],
         occ_white=new_occ_white,
         occ_black=new_occ_black,
         occ_all=new_occ_all,
@@ -862,8 +1196,8 @@ def board_to_bitboard(board, player) -> BitboardState:
     """
     # Initialize all bitboards to 0
     piece_bitboards = {
-        'WP': 0, 'WN': 0, 'WB': 0, 'WQ': 0, 'WK': 0, 'WRi': 0,
-        'BP': 0, 'BN': 0, 'BB': 0, 'BQ': 0, 'BK': 0, 'BRi': 0
+        'WP': 0, 'WN': 0, 'WB': 0, 'WQ': 0, 'WK': 0, 'WR': 0,
+        'BP': 0, 'BN': 0, 'BB': 0, 'BQ': 0, 'BK': 0, 'BR': 0
     }
 
     # Iterate all pieces on board
@@ -883,7 +1217,7 @@ def board_to_bitboard(board, player) -> BitboardState:
         elif piece_name == 'king':
             key = color_prefix + 'K'
         elif piece_name == 'right':
-            key = color_prefix + 'Ri'
+            key = color_prefix + 'R'
         else:
             continue  # Unknown piece type
 
@@ -893,9 +1227,9 @@ def board_to_bitboard(board, player) -> BitboardState:
 
     # Build occupancy masks
     occ_white = (piece_bitboards['WP'] | piece_bitboards['WN'] | piece_bitboards['WB'] |
-                 piece_bitboards['WQ'] | piece_bitboards['WK'] | piece_bitboards['WRi'])
+                 piece_bitboards['WQ'] | piece_bitboards['WK'] | piece_bitboards['WR'])
     occ_black = (piece_bitboards['BP'] | piece_bitboards['BN'] | piece_bitboards['BB'] |
-                 piece_bitboards['BQ'] | piece_bitboards['BK'] | piece_bitboards['BRi'])
+                 piece_bitboards['BQ'] | piece_bitboards['BK'] | piece_bitboards['BR'])
     occ_all = occ_white | occ_black
 
     # Determine side to move
@@ -904,9 +1238,9 @@ def board_to_bitboard(board, player) -> BitboardState:
     # Create state
     bb_state = BitboardState(
         WP=piece_bitboards['WP'], WN=piece_bitboards['WN'], WB=piece_bitboards['WB'],
-        WQ=piece_bitboards['WQ'], WK=piece_bitboards['WK'], WRi=piece_bitboards['WRi'],
+        WQ=piece_bitboards['WQ'], WK=piece_bitboards['WK'], WR=piece_bitboards['WR'],
         BP=piece_bitboards['BP'], BN=piece_bitboards['BN'], BB=piece_bitboards['BB'],
-        BQ=piece_bitboards['BQ'], BK=piece_bitboards['BK'], BRi=piece_bitboards['BRi'],
+        BQ=piece_bitboards['BQ'], BK=piece_bitboards['BK'], BR=piece_bitboards['BR'],
         occ_white=occ_white,
         occ_black=occ_black,
         occ_all=occ_all,
@@ -917,9 +1251,9 @@ def board_to_bitboard(board, player) -> BitboardState:
     # Compute Zobrist hash
     bb_state = BitboardState(
         WP=bb_state.WP, WN=bb_state.WN, WB=bb_state.WB, WQ=bb_state.WQ,
-        WK=bb_state.WK, WRi=bb_state.WRi,
+        WK=bb_state.WK, WR=bb_state.WR,
         BP=bb_state.BP, BN=bb_state.BN, BB=bb_state.BB, BQ=bb_state.BQ,
-        BK=bb_state.BK, BRi=bb_state.BRi,
+        BK=bb_state.BK, BR=bb_state.BR,
         occ_white=bb_state.occ_white,
         occ_black=bb_state.occ_black,
         occ_all=bb_state.occ_all,
@@ -976,13 +1310,13 @@ def print_board_state(bb_state: BitboardState):
             elif test_bit(bb_state.WB, sq): piece_char = 'B'
             elif test_bit(bb_state.WQ, sq): piece_char = 'Q'
             elif test_bit(bb_state.WK, sq): piece_char = 'K'
-            elif test_bit(bb_state.WRi, sq): piece_char = 'I'  # I for rIght (custom piece)
+            elif test_bit(bb_state.WR, sq): piece_char = 'R'  # R for Right (custom piece)
             elif test_bit(bb_state.BP, sq): piece_char = 'p'
             elif test_bit(bb_state.BN, sq): piece_char = 'n'
             elif test_bit(bb_state.BB, sq): piece_char = 'b'
             elif test_bit(bb_state.BQ, sq): piece_char = 'q'
             elif test_bit(bb_state.BK, sq): piece_char = 'k'
-            elif test_bit(bb_state.BRi, sq): piece_char = 'i'
+            elif test_bit(bb_state.BR, sq): piece_char = 'r'
 
             print(f"{piece_char} ", end="")
         print()
@@ -1003,7 +1337,7 @@ PAWN_TABLE = [
     [10, 10, 10, 10, 10],   # Promotion rank (y=0 for white)
     [ 5,  5,  5,  5,  5],
     [ 5,  5,  5,  5,  5],
-    [-5,  5, -5,  5,  0],
+    [0, 0, 0,  0,  0],
     [ 0,  0,  0,  0,  0]    # Starting rank (y=4 for white)
 ]
 
@@ -1052,7 +1386,7 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
     """
     Evaluate board position from player's perspective.
 
-    Uses material count + piece-square tables for positional evaluation.
+    Uses material count + piece-square tables + king safety for positional evaluation.
     Positive score = good for player, negative = bad for player.
 
     Args:
@@ -1065,7 +1399,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
     Algorithm:
         1. Calculate material balance (sum of piece values)
         2. Add positional bonuses from piece-square tables
-        3. Return score from player's perspective
+        3. Add king safety evaluation (middlegame only)
+        4. Return score from player's perspective
     """
     score = 0
 
@@ -1076,7 +1411,7 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
         (bb_state.WB, BISHOP, BISHOP_TABLE),
         (bb_state.WQ, QUEEN, QUEEN_TABLE),
         (bb_state.WK, KING, KING_TABLE),
-        (bb_state.WRi, RIGHT, RIGHT_TABLE)
+        (bb_state.WR, RIGHT, RIGHT_TABLE)
     ]
 
     black_pieces = [
@@ -1085,8 +1420,12 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
         (bb_state.BB, BISHOP, BISHOP_TABLE),
         (bb_state.BQ, QUEEN, QUEEN_TABLE),
         (bb_state.BK, KING, KING_TABLE),
-        (bb_state.BRi, RIGHT, RIGHT_TABLE)
+        (bb_state.BR, RIGHT, RIGHT_TABLE)
     ]
+
+    # Track king positions for king safety evaluation
+    white_king_sq = -1
+    black_king_sq = -1
 
     # Evaluate white pieces
     for piece_bb, piece_type, pst in white_pieces:
@@ -1100,6 +1439,10 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
                 # Tables are from white's perspective (y=0 is promotion rank)
                 score += pst[y][x]
 
+            # Track king position
+            if piece_type == KING:
+                white_king_sq = sq
+
     # Evaluate black pieces
     for piece_bb, piece_type, pst in black_pieces:
         for sq in iter_bits(piece_bb):
@@ -1112,6 +1455,65 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
                 # Flip y coordinate: black's promotion rank is y=4 → index 0
                 flipped_y = 4 - y
                 score -= pst[flipped_y][x]
+
+            # Track king position
+            if piece_type == KING:
+                black_king_sq = sq
+
+    # --- KING SAFETY EVALUATION (Middlegame only) ---
+    # Count total pieces to determine if we're in middlegame
+    total_pieces = count_bits(bb_state.occ_all)
+
+    if total_pieces > 8:  # Middlegame
+        # Evaluate white king safety
+        if white_king_sq != -1:
+            kx, ky = index_to_xy(white_king_sq)
+            nearby_allies = 0
+
+            # Count white pieces within 1 square of white king
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue  # Skip king's own square
+                    nx, ny = kx + dx, ky + dy
+                    if 0 <= nx < 5 and 0 <= ny < 5:
+                        neighbor_sq = square_index(nx, ny)
+                        # Check if white piece on this square
+                        if test_bit(bb_state.occ_white, neighbor_sq):
+                            nearby_allies += 1
+
+            # Apply king safety bonus/penalty
+            if nearby_allies >= 2:
+                score += 50
+            elif nearby_allies == 1:
+                score += 20
+            else:
+                score -= 50  # Isolated king penalty
+
+        # Evaluate black king safety (subtract from score since it's opponent)
+        if black_king_sq != -1:
+            kx, ky = index_to_xy(black_king_sq)
+            nearby_allies = 0
+
+            # Count black pieces within 1 square of black king
+            for dx in [-1, 0, 1]:
+                for dy in [-1, 0, 1]:
+                    if dx == 0 and dy == 0:
+                        continue  # Skip king's own square
+                    nx, ny = kx + dx, ky + dy
+                    if 0 <= nx < 5 and 0 <= ny < 5:
+                        neighbor_sq = square_index(nx, ny)
+                        # Check if black piece on this square
+                        if test_bit(bb_state.occ_black, neighbor_sq):
+                            nearby_allies += 1
+
+            # Apply king safety bonus/penalty (inverted for black)
+            if nearby_allies >= 2:
+                score -= 50
+            elif nearby_allies == 1:
+                score -= 20
+            else:
+                score += 50  # Opponent's isolated king is good for us
 
     # Return from player's perspective
     if player_is_white:

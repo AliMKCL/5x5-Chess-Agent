@@ -26,7 +26,7 @@ import time
 from typing import List, Optional, Tuple
 from helpersBitboard import (
     board_to_bitboard, generate_legal_moves, apply_move, evaluate_bitboard,
-    is_in_check, BitboardState, BBMove, index_to_xy, square_index,
+    is_in_check, static_exchange_eval, BitboardState, BBMove, index_to_xy, square_index,
     PIECE_VALUES, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT
 )
 from helpersT import TranspositionTable
@@ -50,7 +50,8 @@ STALEMATE_SCORE = 0
 DRAW_SCORE = 0
 
 # Move ordering piece values (for MVV-LVA)
-MVV_LVA_VALUES = [100, 330, 320, 500, 900, 20000, 500]  # Matches PIECE_VALUES
+# Must match PIECE_VALUES from helpersBitboard.py exactly!
+MVV_LVA_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right (indices 0-5)
 
 # Statistics tracking
 stats = {
@@ -71,17 +72,18 @@ LOGGING_ENABLED = True
 # MOVE ORDERING
 # ============================================================================
 
-def score_move(move: BBMove, tt_best_move: Optional[Tuple] = None) -> int:
+def score_move(move: BBMove, bb_state: BitboardState, tt_best_move: Optional[Tuple] = None) -> int:
     """
     Score a move for ordering purposes (higher = better).
 
     Ordering priority:
     1. TT best move (from previous search)
-    2. Captures sorted by MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+    2. Captures sorted by MVV-LVA + SEE (Static Exchange Evaluation)
     3. Non-captures (neutral score)
 
     Args:
         move: BBMove to score
+        bb_state: Current bitboard state (needed for SEE)
         tt_best_move: Optional best move from transposition table as (from_sq, to_sq) tuple
 
     Returns:
@@ -91,29 +93,44 @@ def score_move(move: BBMove, tt_best_move: Optional[Tuple] = None) -> int:
     if tt_best_move and (move.from_sq, move.to_sq) == tt_best_move:
         return 10_000_000
 
-    # Captures: MVV-LVA scoring
-    if move.captured_type is not None:
+    # Captures: MVV-LVA scoring + SEE bonus
+    if move.captured_type != -1:  # -1 means no capture (not None!)
         victim_value = MVV_LVA_VALUES[move.captured_type]
         attacker_value = MVV_LVA_VALUES[move.piece_type]
-        # Higher victim value + lower attacker value = better
-        return (victim_value * 10) - attacker_value
+
+        # Base MVV-LVA score: prefer high-value victims with low-value attackers
+        base_score = (victim_value * 10) - attacker_value
+
+        # Static Exchange Evaluation: analyze if this capture is safe/profitable
+        see_score = static_exchange_eval(bb_state, move)
+
+        # Scaled SEE bonus: if SEE > 0 (winning exchange), add SEE value + 500
+        # This matches agentT's philosophy: favorable exchanges get significant boost
+        if see_score > 0:
+            # Winning capture: big bonus (like agentT's +1000, but scaled by actual gain)
+            return base_score + see_score + 500
+        else:
+            # Losing/equal capture: just use MVV-LVA
+            # Still might be worth it tactically, so don't penalize heavily
+            return base_score
 
     # Non-captures get neutral score
     return 0
 
 
-def order_moves(moves: List[BBMove], tt_best_move: Optional[Tuple] = None) -> List[BBMove]:
+def order_moves(moves: List[BBMove], bb_state: BitboardState, tt_best_move: Optional[Tuple] = None) -> List[BBMove]:
     """
     Order moves for optimal alpha-beta pruning.
 
     Args:
         moves: List of BBMove objects to order
+        bb_state: Current bitboard state (needed for SEE in capture scoring)
         tt_best_move: Optional (from_sq, to_sq) tuple from TT
 
     Returns:
         Sorted list of moves (best moves first)
     """
-    return sorted(moves, key=lambda m: score_move(m, tt_best_move), reverse=True)
+    return sorted(moves, key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
 
 
 # ============================================================================
@@ -121,9 +138,15 @@ def order_moves(moves: List[BBMove], tt_best_move: Optional[Tuple] = None) -> Li
 # ============================================================================
 
 def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
-                     depth: int, max_depth: int, start_time: float) -> int:
+                     depth: int, max_depth: int, start_time: float,
+                     is_maximizing: bool, player_is_white: bool) -> int:
     """
     Quiescence search to resolve tactical sequences (captures only).
+
+    STANDARD MINIMAX VERSION (not negamax):
+    - is_maximizing=True: Maximizing player tries to maximize score
+    - is_maximizing=False: Minimizing player tries to minimize score
+    - Evaluation always from player_is_white's perspective
 
     This prevents the horizon effect where the engine misses tactical blows
     just beyond the search depth. We search capture sequences until reaching
@@ -136,6 +159,8 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
         depth: Current quiescence depth (starts at 0, increments each ply)
         max_depth: Maximum quiescence depth allowed
         start_time: Search start time for timeout checking
+        is_maximizing: True if maximizing player's turn, False for minimizing
+        player_is_white: True if evaluating from white's perspective (constant throughout search)
 
     Returns:
         Static evaluation or best capture sequence score
@@ -145,18 +170,26 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
 
     # Timeout check
     if time.time() - start_time > TIME_LIMIT:
-        return evaluate_bitboard(bb_state, bb_state.side_to_move == 0)
+        return evaluate_bitboard(bb_state, player_is_white)
 
-    # Stand-pat score: current position evaluation
-    stand_pat = evaluate_bitboard(bb_state, bb_state.side_to_move == 0)
+    # Stand-pat score: current position evaluation (always from player's perspective)
+    stand_pat = evaluate_bitboard(bb_state, player_is_white)
 
-    # Beta cutoff: position is already too good for opponent
-    if stand_pat >= beta:
-        return beta
-
-    # Update alpha with stand-pat (we can always choose to not capture)
-    if stand_pat > alpha:
-        alpha = stand_pat
+    # Standard minimax cutoff logic (not negamax)
+    if is_maximizing:
+        # Maximizing player: if stand-pat already >= beta, opponent won't allow this
+        if stand_pat >= beta:
+            return beta
+        # Update alpha
+        if stand_pat > alpha:
+            alpha = stand_pat
+    else:
+        # Minimizing player: if stand-pat already <= alpha, we won't allow this
+        if stand_pat <= alpha:
+            return alpha
+        # Update beta
+        if stand_pat < beta:
+            beta = stand_pat
 
     # Max depth reached: return static evaluation
     if depth >= max_depth:
@@ -169,21 +202,37 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
     if not captures:
         return stand_pat
 
-    # Order captures by MVV-LVA
-    captures = order_moves(captures)
+    # Order captures by MVV-LVA + SEE
+    captures = order_moves(captures, bb_state)
 
-    # Search captures
+    # Initialize best score based on whose turn it is
+    best_score = stand_pat
+
+    # Search captures (STANDARD MINIMAX - no negation)
     for move in captures:
         new_state = apply_move(bb_state, move)
-        score = -quiescence_search(new_state, -beta, -alpha, depth + 1, max_depth, start_time)
 
-        if score >= beta:
-            return beta  # Beta cutoff
+        # Recursive call with flipped is_maximizing (no negation!)
+        score = quiescence_search(new_state, alpha, beta, depth + 1, max_depth,
+                                 start_time, not is_maximizing, player_is_white)
 
-        if score > alpha:
-            alpha = score
+        # Standard minimax update
+        if is_maximizing:
+            # Maximizing player
+            best_score = max(best_score, score)
+            if score > alpha:
+                alpha = score
+            if beta <= alpha:
+                return beta  # Beta cutoff
+        else:
+            # Minimizing player
+            best_score = min(best_score, score)
+            if score < beta:
+                beta = score
+            if beta <= alpha:
+                return alpha  # Alpha cutoff
 
-    return alpha
+    return best_score
 
 
 # ============================================================================
@@ -191,9 +240,16 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
 # ============================================================================
 
 def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
-           is_maximizing: bool, start_time: float, root_depth: int) -> int:
+           is_maximizing: bool, start_time: float, root_depth: int,
+           player_is_white: bool) -> int:
     """
     Minimax search with alpha-beta pruning and transposition table.
+
+    STANDARD MINIMAX VERSION (not negamax):
+    - is_maximizing=True: Maximizing player tries to maximize score
+    - is_maximizing=False: Minimizing player tries to minimize score
+    - Evaluation always from player_is_white's perspective
+    - NO negation of scores or alpha/beta bounds
 
     This is the core search algorithm that explores the game tree to find
     the best move. Alpha-beta pruning eliminates branches that cannot
@@ -207,6 +263,7 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
         is_maximizing: True if maximizing player's turn
         start_time: Search start time for timeout checking
         root_depth: Initial depth (for mate bonus calculation)
+        player_is_white: True if evaluating from white's perspective (constant throughout search)
 
     Returns:
         Best evaluation score from this position
@@ -216,7 +273,7 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
 
     # Timeout check
     if time.time() - start_time > TIME_LIMIT:
-        return evaluate_bitboard(bb_state, bb_state.side_to_move == 0)
+        return evaluate_bitboard(bb_state, player_is_white)
 
     # Probe transposition table
     tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
@@ -226,18 +283,35 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
 
     # Terminal depth: enter quiescence search
     if depth <= 0:
-        return quiescence_search(bb_state, alpha, beta, 0, QUIESCENCE_MAX_DEPTH, start_time)
+        return quiescence_search(bb_state, alpha, beta, 0, QUIESCENCE_MAX_DEPTH,
+                                start_time, is_maximizing, player_is_white)
 
     # Generate all legal moves
     moves = generate_legal_moves(bb_state)
 
     # Terminal node: checkmate or stalemate
     if not moves:
-        in_check = is_in_check(bb_state, bb_state.side_to_move)
+        in_check = is_in_check(bb_state, bb_state.side_to_move == 0)
         if in_check:
-            # Checkmate: penalize with mate bonus (prefer faster mates)
+            # Checkmate: the current side_to_move is checkmated
+            # Determine if that's good or bad for player_is_white
             mate_bonus = (root_depth - depth) * 1000
-            return -CHECKMATE_SCORE + mate_bonus if is_maximizing else CHECKMATE_SCORE - mate_bonus
+
+            # If white is in checkmate
+            if bb_state.side_to_move == 0:  # white to move but checkmated
+                if player_is_white:
+                    # Bad for white (we lose)
+                    return -CHECKMATE_SCORE - mate_bonus
+                else:
+                    # Good for black (we win)
+                    return CHECKMATE_SCORE + mate_bonus
+            else:  # black to move but checkmated
+                if player_is_white:
+                    # Good for white (we win)
+                    return CHECKMATE_SCORE + mate_bonus
+                else:
+                    # Bad for black (we lose)
+                    return -CHECKMATE_SCORE - mate_bonus
         else:
             # Stalemate
             return STALEMATE_SCORE
@@ -254,24 +328,28 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
                 tt_best_move_tuple = (from_sq, to_sq)
 
     # Order moves
-    moves = order_moves(moves, tt_best_move_tuple)
+    moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
     best_score = -float('inf') if is_maximizing else float('inf')
     best_move = None
 
+    # STANDARD MINIMAX: No negation of scores or bounds
     for move in moves:
         new_state = apply_move(bb_state, move)
 
-        # Recursive minimax with negamax convention
-        score = -minimax(new_state, depth - 1, -beta, -alpha, not is_maximizing, start_time, root_depth)
+        # Recursive call with flipped is_maximizing (NO negation!)
+        score = minimax(new_state, depth - 1, alpha, beta, not is_maximizing,
+                       start_time, root_depth, player_is_white)
 
-        # Update best score
+        # Update best score based on whose turn it is
         if is_maximizing:
+            # Maximizing player
             if score > best_score:
                 best_score = score
                 best_move = move
             alpha = max(alpha, score)
         else:
+            # Minimizing player
             if score < best_score:
                 best_score = score
                 best_move = move
@@ -298,9 +376,14 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
 # ITERATIVE DEEPENING
 # ============================================================================
 
-def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float) -> Optional[BBMove]:
+def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
+                  player_is_white: bool) -> Optional[BBMove]:
     """
     Find the best move using iterative deepening.
+
+    STANDARD MINIMAX VERSION:
+    - Root node is always maximizing player
+    - player_is_white determines evaluation perspective
 
     Iterative deepening searches progressively deeper (depth 1, 2, 3, ...)
     until time runs out. This provides:
@@ -312,6 +395,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float) -
         bb_state: Current bitboard position
         max_depth: Maximum depth to search
         time_limit: Time limit in seconds
+        player_is_white: True if evaluating from white's perspective
 
     Returns:
         Best BBMove found, or None if no legal moves
@@ -340,7 +424,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float) -
         depth_nodes_before = stats['nodes_searched']
         depth_best_move = None
         depth_best_score = -float('inf')
-        
+
         # Removed verbose depth start logging - only show completion
         if LOGGING_ENABLED:
             log_message(f"\n=== Depth {depth} (Quiescence ON) ===")
@@ -357,15 +441,20 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float) -
                     tt_best_move_tuple = (from_sq, to_sq)
 
         # Order moves for this depth
-        ordered_moves = order_moves(moves, tt_best_move_tuple)
+        ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
         # Search all moves at current depth
+        # Root is always maximizing (we're finding our best move)
         alpha = -float('inf')
         beta = float('inf')
 
         for move in ordered_moves:
             new_state = apply_move(bb_state, move)
-            score = -minimax(new_state, depth - 1, -beta, -alpha, False, start_time, depth)
+
+            # After our move, opponent plays (is_maximizing=False)
+            # NO negation in standard minimax!
+            score = minimax(new_state, depth - 1, alpha, beta, False,
+                          start_time, depth, player_is_white)
 
             if score > depth_best_score:
                 depth_best_score = score
@@ -385,7 +474,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float) -
 
         depth_time = time.time() - depth_start_time
         depth_nodes = stats['nodes_searched'] - depth_nodes_before
-        
+
         # Simple depth completion logging
         print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
         if LOGGING_ENABLED:
@@ -525,7 +614,7 @@ def agent(board, player, var):
         log_message(f"Initial evaluation: {initial_eval}")
 
     # Find best move using iterative deepening
-    best_move = find_best_move(bb_state, MAX_DEPTH, TIME_LIMIT)
+    best_move = find_best_move(bb_state, MAX_DEPTH, TIME_LIMIT, player_is_white)
 
     if not best_move:
         # No legal moves available (should not happen in normal play)

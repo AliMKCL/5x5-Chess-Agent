@@ -201,11 +201,6 @@ def agent(board, player, time_remaining):
 - **Compact state**: 14 integers = 112 bytes (cache-friendly)
 - **O(1) operations**: Check detection, hash updates, bit tests
 
-### 📚 Learning from agentD_new.py:
-- **Concepts adopted**: Bitboard representation, attack generation, move structure
-- **NOT copied**: All code is original, cleaner, better commented
-- **Improvements made**: Simpler ray-casting, clearer naming, better documentation
-
 ---
 
 ## Estimated Remaining Effort:
