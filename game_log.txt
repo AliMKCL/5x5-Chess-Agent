@@ -6,11 +6,11 @@ GAME START - Initial Position
 
 Initial Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 B N K Q R 
+4 R B K Q N 
 
 
 ============================================================
@@ -19,23 +19,23 @@ MOVE 0 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 B N K Q R 
+4 R B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (3,3) to (3,2) ***
+*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
 
 
 Board State After Move 0:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
-2 . . . P . 
-3 P P P . P 
-4 B N K Q R 
+2 P . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
 ============================================================
@@ -44,40 +44,23 @@ MOVE 1 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
-2 . . . P . 
-3 P P P . P 
-4 B N K Q R 
+2 P . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
-============================================================
-Move #1 (Ply 1)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=135, move=(2,1)->(3,2), time=0.004s, nodes=11, qnodes=9
-Depth 2: score=79, move=(4,1)->(3,2), time=0.047s, nodes=97, qnodes=121
-Depth 3: score=79, move=(4,1)->(3,2), time=0.044s, nodes=215, qnodes=217
-Depth 4: score=129, move=(3,0)->(4,2), time=0.288s, nodes=770, qnodes=895
-Depth 5: score=65, move=(3,0)->(4,2), time=0.997s, nodes=3161, qnodes=3044
-Depth 6: score=15, move=(3,0)->(4,2), time=1.488s, nodes=6722, qnodes=6052
-Depth 7: score=6, move=(3,0)->(4,2), time=4.805s, nodes=16837, qnodes=14307
-Depth 8: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(3,0,4,2), best_move_bb=BBMove(from_sq=3, to_sq=14, promo=0, piece_type=1, captured_type=-1)
-FINAL: Knight (3,0) -> (4,2), score=6, time=13.110s, nodes=27975, qnodes=23349
-============================================================
-
-
-*** MOVE EXECUTED: Knight from (3,0) to (4,2) ***
+*** MOVE EXECUTED: Pawn from (4,1) to (4,2) ***
 
 
 Board State After Move 1:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P . P 
-4 B N K Q R 
+0 n q k b r 
+1 p p p p . 
+2 P . . . p 
+3 . P P P P 
+4 R B K Q N 
 
 
 ============================================================
@@ -86,23 +69,23 @@ MOVE 2 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P . P 
-4 B N K Q R 
+0 n q k b r 
+1 p p p p . 
+2 P . . . p 
+3 . P P P P 
+4 R B K Q N 
 
 
-*** MOVE EXECUTED: Queen from (3,4) to (3,3) ***
+*** MOVE EXECUTED: Right from (0,4) to (0,3) ***
 
 
 Board State After Move 2:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p p p p . 
+2 P . . . p 
+3 R P P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -111,41 +94,24 @@ MOVE 3 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p p p p . 
+2 P . . . p 
+3 R P P P P 
+4 . B K Q N 
 
 
-============================================================
-Move #2 (Ply 3)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=5, move=None, time=0.000s, nodes=1, qnodes=0
-Depth 2: score=5, move=None, time=0.000s, nodes=2, qnodes=0
-Depth 3: score=5, move=None, time=0.000s, nodes=3, qnodes=0
-Depth 4: score=5, move=None, time=0.000s, nodes=4, qnodes=0
-Depth 5: score=5, move=None, time=0.000s, nodes=5, qnodes=0
-Depth 6: score=5, move=None, time=0.000s, nodes=6, qnodes=0
-Depth 7: score=-0, move=(4,1)->(3,2), time=4.161s, nodes=9483, qnodes=6733
-Depth 8: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(4,1,3,2), best_move_bb=BBMove(from_sq=9, to_sq=13, promo=0, piece_type=0, captured_type=0)
-FINAL: Pawn (4,1) -> (3,2), score=-0, time=13.110s, nodes=26493, qnodes=19871
-============================================================
-
-
-*** MOVE EXECUTED: Pawn from (4,1) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: Pawn from (4,2) to (3,3) ***
+*** CAPTURES at: (3,3) ***
 
 
 Board State After Move 3:
   0 1 2 3 4
-0 r q k . b 
+0 n q k b r 
 1 p p p p . 
-2 . . . p n 
-3 P P P Q P 
-4 B N K . R 
+2 P . . . . 
+3 R P P p P 
+4 . B K Q N 
 
 
 ============================================================
@@ -154,24 +120,24 @@ MOVE 4 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
+0 n q k b r 
 1 p p p p . 
-2 . . . p n 
-3 P P P Q P 
-4 B N K . R 
+2 P . . . . 
+3 R P P p P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (4,3) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: Queen from (3,4) to (3,3) ***
+*** CAPTURES at: (3,3) ***
 
 
 Board State After Move 4:
   0 1 2 3 4
-0 r q k . b 
+0 n q k b r 
 1 p p p p . 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+2 P . . . . 
+3 R P P Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -180,40 +146,24 @@ MOVE 5 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
+0 n q k b r 
 1 p p p p . 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+2 P . . . . 
+3 R P P Q P 
+4 . B K . N 
 
 
-============================================================
-Move #3 (Ply 5)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-0, move=None, time=0.000s, nodes=1, qnodes=0
-Depth 2: score=-0, move=None, time=0.000s, nodes=2, qnodes=0
-Depth 3: score=-0, move=None, time=0.000s, nodes=3, qnodes=0
-Depth 4: score=-0, move=None, time=0.000s, nodes=4, qnodes=0
-Depth 5: score=-0, move=None, time=0.000s, nodes=5, qnodes=0
-Depth 6: score=-0, move=None, time=0.000s, nodes=6, qnodes=0
-Depth 7: score=-2, move=(2,0)->(3,0), time=8.309s, nodes=16408, qnodes=12198
-Depth 8: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(2,0,3,0), best_move_bb=BBMove(from_sq=2, to_sq=3, promo=0, piece_type=5, captured_type=-1)
-FINAL: King (2,0) -> (3,0), score=-2, time=13.110s, nodes=27918, qnodes=19987
-============================================================
-
-
-*** MOVE EXECUTED: King from (2,0) to (3,0) ***
+*** MOVE EXECUTED: Pawn from (1,1) to (0,2) ***
+*** CAPTURES at: (0,2) ***
 
 
 Board State After Move 5:
   0 1 2 3 4
-0 r q . k b 
-1 p p p p . 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 p . . . . 
+3 R P P Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -222,23 +172,24 @@ MOVE 6 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q . k b 
-1 p p p p . 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 p . . . . 
+3 R P P Q P 
+4 . B K . N 
 
 
-*** MOVE EXECUTED: Pawn from (2,3) to (2,2) ***
+*** MOVE EXECUTED: Right from (0,3) to (0,2) ***
+*** CAPTURES at: (0,2) ***
 
 
 Board State After Move 6:
   0 1 2 3 4
-0 r q . k b 
-1 p p p p . 
-2 . . P P n 
-3 P P . Q . 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 R . . . . 
+3 . P P Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -247,39 +198,23 @@ MOVE 7 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q . k b 
-1 p p p p . 
-2 . . P P n 
-3 P P . Q . 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 R . . . . 
+3 . P P Q P 
+4 . B K . N 
 
 
-============================================================
-Move #4 (Ply 7)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=159, move=(1,1)->(2,2), time=0.006s, nodes=12, qnodes=12
-Depth 2: score=134, move=(1,1)->(2,2), time=0.042s, nodes=80, qnodes=103
-Depth 3: score=34, move=(2,1)->(3,2), time=0.225s, nodes=485, qnodes=594
-Depth 4: score=-1, move=(2,1)->(3,2), time=0.374s, nodes=1189, qnodes=1438
-Depth 5: score=-0, move=(3,0)->(2,0), time=1.646s, nodes=4494, qnodes=4786
-Depth 6: score=-0, move=(1,0)->(2,0), time=4.525s, nodes=13846, qnodes=12966
-Depth 7: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(1,0,2,0), best_move_bb=BBMove(from_sq=1, to_sq=2, promo=0, piece_type=4, captured_type=-1)
-FINAL: Queen (1,0) -> (2,0), score=-0, time=13.111s, nodes=27598, qnodes=23407
-============================================================
-
-
-*** MOVE EXECUTED: Queen from (1,0) to (2,0) ***
+*** MOVE EXECUTED: Knight from (0,0) to (1,2) ***
 
 
 Board State After Move 7:
   0 1 2 3 4
-0 r . q k b 
-1 p p p p . 
-2 . . P P n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 p . p p . 
+2 R n . . . 
+3 . P P Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -288,24 +223,24 @@ MOVE 8 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . q k b 
-1 p p p p . 
-2 . . P P n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 p . p p . 
+2 R n . . . 
+3 . P P Q P 
+4 . B K . N 
 
 
-*** MOVE EXECUTED: Pawn from (2,2) to (1,1) ***
-*** CAPTURES at: (1,1) ***
+*** MOVE EXECUTED: Pawn from (2,3) to (1,2) ***
+*** CAPTURES at: (1,2) ***
 
 
 Board State After Move 8:
   0 1 2 3 4
-0 r . q k b 
-1 p P p p . 
-2 . . . P n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 p . p p . 
+2 R P . . . 
+3 . P . Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -314,40 +249,24 @@ MOVE 9 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . q k b 
-1 p P p p . 
-2 . . . P n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 p . p p . 
+2 R P . . . 
+3 . P . Q P 
+4 . B K . N 
 
 
-============================================================
-Move #5 (Ply 9)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-703, move=(2,1)->(3,2), time=0.022s, nodes=22, qnodes=61
-Depth 2: score=-625, move=(2,0)->(1,0), time=0.042s, nodes=111, qnodes=176
-Depth 3: score=-406, move=(2,1)->(3,2), time=0.300s, nodes=809, qnodes=885
-Depth 4: score=-406, move=(2,1)->(3,2), time=0.365s, nodes=1931, qnodes=1681
-Depth 5: score=-606, move=(2,1)->(3,2), time=0.497s, nodes=3444, qnodes=2701
-Depth 6: score=-807, move=(2,1)->(3,2), time=1.999s, nodes=9420, qnodes=6568
-Depth 7: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(2,1,3,2), best_move_bb=BBMove(from_sq=7, to_sq=13, promo=0, piece_type=0, captured_type=0)
-FINAL: Pawn (2,1) -> (3,2), score=-807, time=13.110s, nodes=30902, qnodes=21034
-============================================================
-
-
-*** MOVE EXECUTED: Pawn from (2,1) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: Pawn from (0,1) to (1,2) ***
+*** CAPTURES at: (1,2) ***
 
 
 Board State After Move 9:
   0 1 2 3 4
-0 r . q k b 
-1 p P . p . 
-2 . . . p n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 . . p p . 
+2 R p . . . 
+3 . P . Q P 
+4 . B K . N 
 
 
 ============================================================
@@ -356,23 +275,23 @@ MOVE 10 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . q k b 
-1 p P . p . 
-2 . . . p n 
-3 P P . Q . 
-4 B N K . R 
+0 . q k b r 
+1 . . p p . 
+2 R p . . . 
+3 . P . Q P 
+4 . B K . N 
 
 
-*** MOVE EXECUTED: Knight from (1,4) to (2,2) ***
+*** MOVE EXECUTED: Right from (0,2) to (0,4) ***
 
 
 Board State After Move 10:
   0 1 2 3 4
-0 r . q k b 
-1 p P . p . 
-2 . . N p n 
-3 P P . Q . 
-4 B . K . R 
+0 . q k b r 
+1 . . p p . 
+2 . p . . . 
+3 . P . Q P 
+4 R B K . N 
 
 
 ============================================================
@@ -381,39 +300,23 @@ MOVE 11 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . q k b 
-1 p P . p . 
-2 . . N p n 
-3 P P . Q . 
-4 B . K . R 
+0 . q k b r 
+1 . . p p . 
+2 . p . . . 
+3 . P . Q P 
+4 R B K . N 
 
 
-============================================================
-Move #6 (Ply 11)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-913, move=None, time=0.000s, nodes=1, qnodes=0
-Depth 2: score=-913, move=None, time=0.000s, nodes=2, qnodes=0
-Depth 3: score=-913, move=None, time=0.000s, nodes=3, qnodes=0
-Depth 4: score=-913, move=None, time=0.000s, nodes=4, qnodes=0
-Depth 5: score=-913, move=None, time=0.000s, nodes=5, qnodes=0
-Depth 6: score=-913, move=None, time=0.000s, nodes=6, qnodes=0
-Depth 7: TIMEOUT
-FALLBACK (deterministic): Queen (2,0) -> (2,2), time=12.500s
-============================================================
-
-
-*** MOVE EXECUTED: Queen from (2,0) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Bishop from (3,0) to (4,1) ***
 
 
 Board State After Move 11:
   0 1 2 3 4
-0 r . . k b 
-1 p P . p . 
-2 . . q p n 
-3 P P . Q . 
-4 B . K . R 
+0 . q k . r 
+1 . . p p b 
+2 . p . . . 
+3 . P . Q P 
+4 R B K . N 
 
 
 ============================================================
@@ -422,24 +325,23 @@ MOVE 12 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . . k b 
-1 p P . p . 
-2 . . q p n 
-3 P P . Q . 
-4 B . K . R 
+0 . q k . r 
+1 . . p p b 
+2 . p . . . 
+3 . P . Q P 
+4 R B K . N 
 
 
-*** MOVE EXECUTED: Pawn from (1,3) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Queen from (3,3) to (0,0) ***
 
 
 Board State After Move 12:
   0 1 2 3 4
-0 r . . k b 
-1 p P . p . 
-2 . . P p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 . . p p b 
+2 . p . . . 
+3 . P . . P 
+4 R B K . N 
 
 
 ============================================================
@@ -448,47 +350,23 @@ MOVE 13 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . . k b 
-1 p P . p . 
-2 . . P p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 . . p p b 
+2 . p . . . 
+3 . P . . P 
+4 R B K . N 
 
 
-============================================================
-Move #7 (Ply 13)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-963, move=(0,0)->(2,1), time=0.002s, nodes=2, qnodes=1
-Depth 2: score=-963, move=(0,0)->(1,0), time=0.015s, nodes=64, qnodes=41
-Depth 3: score=-963, move=(0,0)->(2,1), time=0.136s, nodes=362, qnodes=331
-Depth 4: score=-963, move=(3,1)->(2,2), time=0.206s, nodes=1081, qnodes=764
-Depth 5: score=-1163, move=(3,1)->(2,2), time=0.248s, nodes=1765, qnodes=1175
-Depth 6: score=-1363, move=(0,0)->(2,1), time=0.414s, nodes=3110, qnodes=1951
-Depth 7: score=-1563, move=(3,1)->(2,2), time=0.587s, nodes=5037, qnodes=2829
-Depth 8: score=-1763, move=(0,0)->(2,1), time=0.867s, nodes=8004, qnodes=4016
-Depth 9: score=-1963, move=(3,1)->(2,2), time=1.206s, nodes=12237, qnodes=5589
-Depth 10: score=-2163, move=(0,0)->(2,1), time=1.565s, nodes=17960, qnodes=7527
-Depth 11: score=-2363, move=(3,1)->(2,2), time=2.079s, nodes=25591, qnodes=10428
-Depth 12: score=-2563, move=(0,0)->(2,1), time=1.698s, nodes=32045, qnodes=12058
-Depth 13: score=-2763, move=(3,1)->(2,2), time=1.504s, nodes=38008, qnodes=13124
-Depth 14: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(3,1,2,2), best_move_bb=BBMove(from_sq=8, to_sq=12, promo=0, piece_type=0, captured_type=0)
-FINAL: Pawn (3,1) -> (2,2), score=-2763, time=13.110s, nodes=45794, qnodes=16677
-============================================================
-
-
-*** MOVE EXECUTED: Pawn from (3,1) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Pawn from (3,1) to (3,2) ***
 
 
 Board State After Move 13:
   0 1 2 3 4
-0 r . . k b 
-1 p P . . . 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 . . p . b 
+2 . p . p . 
+3 . P . . P 
+4 R B K . N 
 
 
 ============================================================
@@ -497,24 +375,23 @@ MOVE 14 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . . k b 
-1 p P . . . 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 . . p . b 
+2 . p . p . 
+3 . P . . P 
+4 R B K . N 
 
 
-*** MOVE EXECUTED: Pawn from (1,1) to (0,0) ***
-*** CAPTURES at: (0,0) ***
+*** MOVE EXECUTED: Right from (0,4) to (0,1) ***
 
 
 Board State After Move 14:
   0 1 2 3 4
-0 Q . . k b 
-1 p . . . . 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 R . p . b 
+2 . p . p . 
+3 . P . . P 
+4 . B K . N 
 
 
 ============================================================
@@ -523,37 +400,23 @@ MOVE 15 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 Q . . k b 
-1 p . . . . 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q k . r 
+1 R . p . b 
+2 . p . p . 
+3 . P . . P 
+4 . B K . N 
 
 
-============================================================
-Move #8 (Ply 15)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-999995, move=(3,0)->(4,1), time=0.004s, nodes=5, qnodes=8
-Depth 2: score=-999998, move=(3,0)->(2,1), time=0.011s, nodes=45, qnodes=31
-Depth 3: score=-999998, move=(3,0)->(2,1), time=0.071s, nodes=320, qnodes=215
-Depth 4: score=-999995, move=(3,0)->(4,1), time=0.628s, nodes=2699, qnodes=1702
-Depth 5: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(3,0,4,1), best_move_bb=BBMove(from_sq=3, to_sq=9, promo=0, piece_type=5, captured_type=-1)
-FINAL: King (3,0) -> (4,1), score=-999995, time=3.002s, nodes=9974, qnodes=6399
-============================================================
-
-
-*** MOVE EXECUTED: King from (3,0) to (4,1) ***
+*** MOVE EXECUTED: King from (2,0) to (3,1) ***
 
 
 Board State After Move 15:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . . k 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q . . r 
+1 R . p k b 
+2 . p . p . 
+3 . P . . P 
+4 . B K . N 
 
 
 ============================================================
@@ -562,24 +425,23 @@ MOVE 16 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . . k 
-2 . . p p n 
-3 P . . Q . 
-4 B . K . R 
+0 Q q . . r 
+1 R . p k b 
+2 . p . p . 
+3 . P . . P 
+4 . B K . N 
 
 
-*** MOVE EXECUTED: Right from (4,4) to (4,2) ***
-*** CAPTURES at: (4,2) ***
+*** MOVE EXECUTED: Queen from (0,0) to (2,2) ***
 
 
 Board State After Move 16:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . . k 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . q . . r 
+1 R . p k b 
+2 . p Q p . 
+3 . P . . P 
+4 . B K . N 
 
 
 ============================================================
@@ -588,37 +450,23 @@ MOVE 17 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . . k 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . q . . r 
+1 R . p k b 
+2 . p Q p . 
+3 . P . . P 
+4 . B K . N 
 
 
-============================================================
-Move #9 (Ply 17)
-============================================================
-Time budget: soft=12.50s, hard=13.80s
-Depth 1: score=-999997, move=(4,1)->(3,1), time=0.001s, nodes=2, qnodes=1
-Depth 2: score=-999998, move=(4,1)->(3,1), time=0.009s, nodes=41, qnodes=23
-Depth 3: score=-999999, move=(4,1)->(3,1), time=0.082s, nodes=387, qnodes=238
-Depth 4: score=-999999, move=(4,1)->(3,1), time=0.519s, nodes=2437, qnodes=1558
-Depth 5: TIMEOUT
-Mapping root move via precomputed table: move_tuple=(4,1,3,1), best_move_bb=BBMove(from_sq=9, to_sq=8, promo=0, piece_type=5, captured_type=-1)
-FINAL: King (4,1) -> (3,1), score=-999999, time=3.002s, nodes=10265, qnodes=6405
-============================================================
-
-
-*** MOVE EXECUTED: King from (4,1) to (3,1) ***
+*** MOVE EXECUTED: King from (3,1) to (4,2) ***
 
 
 Board State After Move 17:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . k . 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . q . . r 
+1 R . p . b 
+2 . p Q p k 
+3 . P . . P 
+4 . B K . N 
 
 
 ============================================================
@@ -627,24 +475,224 @@ MOVE 18 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 Q . . . b 
-1 p . . k . 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . q . . r 
+1 R . p . b 
+2 . p Q p k 
+3 . P . . P 
+4 . B K . N 
 
 
-*** MOVE EXECUTED: Queen from (0,0) to (4,0) ***
-*** CAPTURES at: (4,0) ***
+*** MOVE EXECUTED: Queen from (2,2) to (3,3) ***
 
 
 Board State After Move 18:
   0 1 2 3 4
-0 . . . . Q 
-1 p . . k . 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . q . . r 
+1 R . p . b 
+2 . p . p k 
+3 . P . Q P 
+4 . B K . N 
+
+
+============================================================
+MOVE 19 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . q . . r 
+1 R . p . b 
+2 . p . p k 
+3 . P . Q P 
+4 . B K . N 
+
+
+*** MOVE EXECUTED: King from (4,2) to (3,1) ***
+
+
+Board State After Move 19:
+  0 1 2 3 4
+0 . q . . r 
+1 R . p k b 
+2 . p . p . 
+3 . P . Q P 
+4 . B K . N 
+
+
+============================================================
+MOVE 20 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . q . . r 
+1 R . p k b 
+2 . p . p . 
+3 . P . Q P 
+4 . B K . N 
+
+
+*** MOVE EXECUTED: Pawn from (4,3) to (4,2) ***
+
+
+Board State After Move 20:
+  0 1 2 3 4
+0 . q . . r 
+1 R . p k b 
+2 . p . p P 
+3 . P . Q . 
+4 . B K . N 
+
+
+============================================================
+MOVE 21 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . q . . r 
+1 R . p k b 
+2 . p . p P 
+3 . P . Q . 
+4 . B K . N 
+
+
+*** MOVE EXECUTED: King from (3,1) to (3,0) ***
+
+
+Board State After Move 21:
+  0 1 2 3 4
+0 . q . k r 
+1 R . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B K . N 
+
+
+============================================================
+MOVE 22 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . q . k r 
+1 R . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B K . N 
+
+
+*** MOVE EXECUTED: King from (2,4) to (3,4) ***
+
+
+Board State After Move 22:
+  0 1 2 3 4
+0 . q . k r 
+1 R . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B . K N 
+
+
+============================================================
+MOVE 23 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . q . k r 
+1 R . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B . K N 
+
+
+*** MOVE EXECUTED: Queen from (1,0) to (0,1) ***
+*** CAPTURES at: (0,1) ***
+
+
+Board State After Move 23:
+  0 1 2 3 4
+0 . . . k r 
+1 q . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B . K N 
+
+
+============================================================
+MOVE 24 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k r 
+1 q . p . b 
+2 . p . p P 
+3 . P . Q . 
+4 . B . K N 
+
+
+*** MOVE EXECUTED: Queen from (3,3) to (2,2) ***
+
+
+Board State After Move 24:
+  0 1 2 3 4
+0 . . . k r 
+1 q . p . b 
+2 . p Q p P 
+3 . P . . . 
+4 . B . K N 
+
+
+============================================================
+MOVE 25 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k r 
+1 q . p . b 
+2 . p Q p P 
+3 . P . . . 
+4 . B . K N 
+
+
+*** MOVE EXECUTED: Queen from (0,1) to (0,2) ***
+
+
+Board State After Move 25:
+  0 1 2 3 4
+0 . . . k r 
+1 . . p . b 
+2 q p Q p P 
+3 . P . . . 
+4 . B . K N 
+
+
+============================================================
+MOVE 26 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k r 
+1 . . p . b 
+2 q p Q p P 
+3 . P . . . 
+4 . B . K N 
+
+
+*** MOVE EXECUTED: Queen from (2,2) to (3,1) ***
+
+
+Board State After Move 26:
+  0 1 2 3 4
+0 . . . k r 
+1 . . p Q b 
+2 q p . p P 
+3 . P . . . 
+4 . B . K N 
 
 
 ============================================================
@@ -653,9 +701,9 @@ Board State After Move 18:
 
 Final Board State:
   0 1 2 3 4
-0 . . . . Q 
-1 p . . k . 
-2 . . p p R 
-3 P . . Q . 
-4 B . K . . 
+0 . . . k r 
+1 . . p Q b 
+2 q p . p P 
+3 . P . . . 
+4 . B . K N 
 

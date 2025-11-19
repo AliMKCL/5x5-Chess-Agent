@@ -1,47 +1,40 @@
-# agent.py
 import random
 import math
 import time
-import sys
+import struct
 from typing import Dict, Tuple, Optional, List, Any, NamedTuple
-from dataclasses import dataclass
-from chessmaker.chess.base import Square, Position
-from extension.board_utils import list_legal_moves_for, copy_piece_move
+from dataclasses import dataclass, field
+from extension.board_utils import list_legal_moves_for
+
 # Logging/diagnostics flags
 DEBUG = False
 ENABLE_TREE_LOGGING = False
-DEBUG_LEGAL = True
+DEBUG_LEGAL = False
 
 # =====================================================================
 # === Logging Infrastructure
 # =====================================================================
 
-LOG_FILE = None
-MOVE_COUNTER = 0
-
-def init_log_file():
-    """Initialize the log file for this game session."""
-    global LOG_FILE, MOVE_COUNTER
-    LOG_FILE = open("agent_log.txt", "a")
-    LOG_FILE.write("=== GAME LOG (agent.py) ===\n\n")
-    MOVE_COUNTER = 0
-
-def close_log_file():
-    """Close the log file."""
-    global LOG_FILE
-    if LOG_FILE:
-        LOG_FILE.close()
-        LOG_FILE = None
-
-def log_message(message):
-    """Write a message to the log file."""
-    global LOG_FILE
-    if LOG_FILE:
-        LOG_FILE.write(message + "\n")
-        LOG_FILE.flush()
 
 def log_move_str(piece, move_opt):
-    """Convert move to string format for logging."""
+    """
+    Converts a chess move to a human-readable string format for logging purposes.
+    
+    Args:
+        piece: The chess piece object making the move. Must have a `.name` attribute
+            and a `.position` attribute with `.x` and `.y` coordinates.
+        move_opt: The move option object representing the destination. Must have a
+            `.position` attribute with `.x` and `.y` coordinates.
+    
+    Returns:
+        A string in the format "PieceName (sx,sy) -> (dx,dy)" where sx,sy are the
+        source coordinates and dx,dy are the destination coordinates. Returns "None"
+        if either piece or move_opt is missing or lacks the required attributes.
+    
+    Example:
+        >>> log_move_str(piece, move)
+        "Knight (1,2) -> (2,4)"
+    """
     if piece and move_opt and hasattr(move_opt, 'position'):
         return f"{piece.name} ({piece.position.x},{piece.position.y}) -> ({move_opt.position.x},{move_opt.position.y})"
     return "None"
@@ -88,6 +81,8 @@ RAZOR_MARGIN = {1: 150, 2: 225}
 FUTILITY_MARGIN = {3: 200, 4: 300, 5: 400}
 # Continuation history bonus scaler
 CH_BONUS = 1
+# Reverse Futility Pruning margins (depth -> margin)
+RFP_MARGIN = {1: 120, 2: 160, 3: 210, 4: 260, 5: 320}
 
 # Endgame drive weights (5x5 tuned, modest to avoid overpowering MG)
 EVAL_EG_OPP_KING_TO_EDGE_R = 14  # KRK: drive to edge
@@ -123,6 +118,12 @@ EVAL_KING_ATTACK_SCALE = 2
 EVAL_KING_FILE_PRESSURE = 2
 EVAL_OPEN_FILE_TO_KING = 18
 EVAL_SEMIOPEN_FILE_TO_KING = 10
+
+IDX_TO_SQ_TABLE = [(i % 5, i // 5) for i in range(25)]
+# SQ_TO_IDX_TABLE: 2D lookup table mapping [y][x] -> index. Some code
+# historically treated this as a 2D table, so provide the 2D shape to
+# remain compatible with older callers.
+SQ_TO_IDX_TABLE = [[y * 5 + x for x in range(5)] for y in range(5)]
 
 # Mobility by attacked squares (very fast proxy, avoids full legal move gen)
 EVAL_MOBILITY_MG = 1
@@ -336,29 +337,37 @@ _PERSISTENT_VAR: Dict[str, Any] = {}
 # =====================================================================
 
 def get_legal_moves_cached(board, player, var, board_hash):
+    """
+    Retrieves legal moves from cache or computes them if not cached.
+    
+    This function implements a caching mechanism for legal move generation to
+    avoid redundant computations. It uses a combination of board hash and player
+    name as the cache key, storing results in the provided variable dictionary.
+    
+    Args:
+        board: The current board state (used for move generation if cache miss).
+        player: The player whose legal moves are being requested. Must have a
+            `.name` attribute ("white" or "black").
+        var: A mutable dictionary used to store the cache. The cache is stored
+            under the key '_legal_moves_cache' as a dictionary mapping
+            (board_hash, player_name) tuples to lists of legal moves.
+        board_hash: A hash value representing the current board state. Used as
+            part of the cache key along with player name.
+    
+    Returns:
+        A list of legal moves for the specified player. Each move is represented
+        as a tuple (piece, move_option) as returned by list_legal_moves_for().
+    
+    Notes:
+        - Cache is stored in var['_legal_moves_cache'] as a dictionary
+        - Cache key is (board_hash, player.name) tuple
+        - On cache miss, calls list_legal_moves_for() and stores the result
+        - Helps reduce redundant move generation during search
+    """
     cache_key = (board_hash, player.name)
     if cache_key not in var.setdefault('_legal_moves_cache', {}):
         var['_legal_moves_cache'][cache_key] = list_legal_moves_for(board, player)
     return var['_legal_moves_cache'][cache_key]
-
-
-
-def _json_safe_number(x: Any):
-    try:
-        if x is None:
-            return None
-        if isinstance(x, (int, float)):
-            if math.isinf(x):
-                return "inf" if x > 0 else "-inf"
-            if math.isnan(x):
-                return "nan"
-            return float(x)
-        return x
-    except Exception:
-        return x
-
-
-
 
 # =====================================================================
 # === Bitboard Utilities (Replaces bitboard_utils import)
@@ -395,6 +404,8 @@ def square_index(x: int, y: int) -> int:
     Returns:
         The linear index y * 5 + x in the range [0, 24].
     """
+    # SQ_TO_IDX_TABLE is a flat list of length 25 (y * 5 + x).
+    # Compute the index directly to avoid indexing a 1D list as 2D.
     return y * 5 + x
 
 
@@ -408,7 +419,7 @@ def index_to_sq(idx: int) -> Tuple[int, int]:
     Returns:
         A tuple (x, y) with x,y in [0, 4].
     """
-    return (idx % 5, idx // 5)
+    return IDX_TO_SQ_TABLE[idx]
 
 
 # --- 5x5 board constants and masks ---
@@ -428,6 +439,24 @@ NOT_FILE_4: int = ALL25 ^ FILE_4_MASK
 
 # --- BETWEEN_RAYS table: squares strictly between two collinear squares (0 if not collinear) ---
 def _gen_between_rays() -> list[list[int]]:
+    """
+    Precomputes a lookup table of squares strictly between two collinear squares.
+    
+    For a 5x5 board, this generates a 25x25 table where table[a][b] contains a
+    bitboard mask of all squares that lie strictly between square indices a and b
+    along the same line (rank, file, or diagonal). If squares a and b are not
+    collinear, the entry is 0.
+    
+    Returns:
+        A 25x25 list of lists, where each entry is an integer bitboard mask.
+        The mask has bits set for squares between the two given squares (exclusive
+        of the endpoints) along the connecting ray.
+    
+    Notes:
+        - Uses 8 directions: 4 orthogonals (N, S, E, W) and 4 diagonals (NE, NW, SE, SW)
+        - Only includes squares strictly between a and b (not including a or b)
+        - Returns 0 if squares are not collinear or are adjacent
+    """
     table: list[list[int]] = [[0 for _ in range(25)] for __ in range(25)]
     # Directions: 8 rays (orthogonals + diagonals)
     directions = [
@@ -567,6 +596,42 @@ def _gen_king_moves() -> list[int]:
 _KNIGHT_MOVES = _gen_knight_moves()
 _KING_MOVES = _gen_king_moves()
 
+FILE_MASKS = [sum(1 << square_index(f, y) for y in range(5)) for f in range(5)]
+RANK_MASKS = [sum(1 << square_index(x, r) for x in range(5)) for r in range(5)]
+CENTER_MASK = sum(1 << square_index(x, y) for (x, y) in CENTER_SQUARES)
+
+RING1_MASKS = [0] * 25
+for sq in range(25):
+    kx, ky = index_to_sq(sq)
+    m = 0
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dx == 0 and dy == 0:
+                continue
+            tx, ty = kx + dx, ky + dy
+            if 0 <= tx < 5 and 0 <= ty < 5:
+                m |= 1 << square_index(tx, ty)
+    RING1_MASKS[sq] = m
+
+LIGHT_MASK = sum(1 << square_index(x, y) for y in range(5) for x in range(5) if ((x + y) & 1) == 0)
+DARK_MASK = ALL25 ^ LIGHT_MASK
+
+WHITE_PAWN_ATTACKS = [0]*25
+BLACK_PAWN_ATTACKS = [0]*25
+for sq in range(25):
+    x, y = index_to_sq(sq)
+    m = 0
+    ny = y - 1
+    if ny >= 0:
+        if x - 1 >= 0: m |= 1 << square_index(x - 1, ny)
+        if x + 1 < 5:  m |= 1 << square_index(x + 1, ny)
+    WHITE_PAWN_ATTACKS[sq] = m
+    m = 0
+    ny = y + 1
+    if ny < 5:
+        if x - 1 >= 0: m |= 1 << square_index(x - 1, ny)
+        if x + 1 < 5:  m |= 1 << square_index(x + 1, ny)
+    BLACK_PAWN_ATTACKS[sq] = m
 
 # =====================================================================
 # === Precomputed Line Definitions and Ray Attack Tables (5x5)
@@ -668,8 +733,24 @@ _RAY_TABLES_READY = True
 
 def _line_occ_from_global(occ: int, line: list[int]) -> int:
     """
-    Extracts a compact occupancy mask for a line from the global 25-bit occ.
-    Bit i in the returned mask corresponds to line[i].
+    Extracts a compact occupancy mask for a specific line from the global occupancy bitboard.
+    
+    This function maps the global 25-bit occupancy bitboard to a smaller bitmask
+    representing only the squares that belong to a specific line (rank, file, or diagonal).
+    The resulting mask uses a compact representation where bit i corresponds to line[i].
+    
+    Args:
+        occ: Global 25-bit occupancy bitboard where bit i (0-24) represents square i.
+        line: List of square indices (0-24) that form a line (rank, file, or diagonal).
+            The order of indices in the list determines the bit positions in the result.
+    
+    Returns:
+        An integer bitmask where bit i is set if and only if the square at line[i]
+        is occupied in the global occupancy bitboard. The mask length equals len(line).
+    
+    Example:
+        For a rank line [10, 11, 12, 13, 14] and occ having bits set at 10 and 13,
+        returns a 5-bit mask with bits 0 and 3 set.
     """
     mask = 0
     for i, sq in enumerate(line):
@@ -680,8 +761,25 @@ def _line_occ_from_global(occ: int, line: list[int]) -> int:
 
 def _get_rook_attacks(sq: int, occ: int) -> int:
     """
-    Constant-time rook attacks via precomputed rank/file tables.
-    Falls back to scan if tables are unavailable.
+    Computes rook attack bitboard from a square using precomputed lookup tables.
+    
+    This function provides constant-time rook attack generation by using precomputed
+    rank and file attack tables. The attacks include all squares a rook can reach
+    from the given square, stopping at the first blocker in each direction.
+    
+    Args:
+        sq: Source square index in the range [0, 24] (5x5 board).
+        occ: Occupancy bitboard representing all pieces on the board. Rays stop
+            at the first occupied square in each direction, including that blocker.
+    
+    Returns:
+        A 25-bit bitboard where each set bit represents a square attacked by a rook
+        from sq. Includes squares along ranks and files, stopping at blockers.
+    
+    Notes:
+        - Uses precomputed RANK_ATTACKS and FILE_ATTACKS tables for efficiency
+        - Falls back to scanning method if tables are unavailable
+        - Includes the first blocker square in each direction
     """
     if not _RAY_TABLES_READY:
         return _get_rook_attacks_scan(sq, occ)
@@ -700,8 +798,25 @@ def _get_rook_attacks(sq: int, occ: int) -> int:
 
 def _get_bishop_attacks(sq: int, occ: int) -> int:
     """
-    Constant-time bishop attacks via precomputed diagonal tables.
-    Falls back to scan if tables are unavailable.
+    Computes bishop attack bitboard from a square using precomputed lookup tables.
+    
+    This function provides constant-time bishop attack generation by using precomputed
+    diagonal attack tables. The attacks include all squares a bishop can reach
+    from the given square along both diagonals, stopping at the first blocker.
+    
+    Args:
+        sq: Source square index in the range [0, 24] (5x5 board).
+        occ: Occupancy bitboard representing all pieces on the board. Rays stop
+            at the first occupied square in each diagonal direction, including that blocker.
+    
+    Returns:
+        A 25-bit bitboard where each set bit represents a square attacked by a bishop
+        from sq. Includes squares along both diagonals (NW-SE and NE-SW), stopping at blockers.
+    
+    Notes:
+        - Uses precomputed DIAG_A_ATTACKS and DIAG_B_ATTACKS tables for efficiency
+        - Falls back to scanning method if tables are unavailable
+        - Includes the first blocker square in each direction
     """
     if not _RAY_TABLES_READY:
         return _get_bishop_attacks_scan(sq, occ)
@@ -779,6 +894,7 @@ def _get_bishop_attacks_scan(sq: int, occ: int) -> int:
 class BBPos(NamedTuple):
     """Holds all bitboards for a position. (UPDATED FOR 'Right' PIECE)"""
 
+
     WP: int
     WN: int
     WB: int
@@ -814,7 +930,7 @@ _COLOR_OFFSET = {"white": 0, "black": 7}
 
  
  
-@dataclass
+@dataclass(slots=True)
 class BitboardState:
     """
     Compact internal engine state made of per-piece bitboards, aggregate occupancy,
@@ -839,11 +955,41 @@ class BitboardState:
     occ_all: int
     side_to_move: int  # 0 = white, 1 = black
     zkey: int
+    mg_mat_pst: int
+    eg_mat_pst: int
 
 
 def convert_board_to_bb_state(board, player, zobrist: "Zobrist") -> BitboardState:
     """
-    One-time bridge from chessmaker board to the internal BitboardState.
+    Converts a ChessMaker board representation to the internal BitboardState format.
+    
+    This function serves as a bridge between the external ChessMaker board API
+    and the internal bitboard-based engine representation. It extracts all
+    piece positions, computes occupancy masks, determines side-to-move, and
+    generates a Zobrist hash for the position.
+    
+    Args:
+        board: A ChessMaker-compatible board object that supports iteration over
+            pieces via `board.get_pieces()`. Each piece must have `.name`,
+            `.position` (with `.x` and `.y`), and `.player.name` attributes.
+        player: The player object whose turn it is. Must have a `.name` attribute
+            that is either "white" or "black".
+        zobrist: A Zobrist hashing instance used to compute the position hash key.
+            Must implement `compute_full_hash(board, player_name)` method.
+    
+    Returns:
+        A BitboardState dataclass containing:
+        - Individual piece bitboards for all 7 piece types and 2 colors (14 bitboards)
+        - Aggregate occupancy masks (occ_white, occ_black, occ_all)
+        - side_to_move: 0 for white, 1 for black
+        - zkey: 64-bit Zobrist hash of the position
+    
+    Raises:
+        Exception: If Zobrist hash computation fails, zkey defaults to 0.
+    
+    Notes:
+        - This is a one-time conversion; subsequent moves use incremental updates
+        - Handles the custom "Right" piece type (rook|knight combination)
     """
     bbpos = bb_from_board(board)
     stm = 0 if getattr(player, "name", "white") == "white" else 1
@@ -851,6 +997,50 @@ def convert_board_to_bb_state(board, player, zobrist: "Zobrist") -> BitboardStat
         zkey = zobrist.compute_full_hash(board, player.name)
     except Exception:
         zkey = 0
+    # Compute initial Material+PST differential (MG/EG) from bb position
+    def _compute_mat_pst_from_bbpos(bbpos: BBPos) -> tuple[int, int]:
+        mg = 0
+        eg = 0
+        # White pieces
+        white_list = [
+            ("Pawn", bbpos.WP),
+            ("Knight", bbpos.WN),
+            ("Bishop", bbpos.WB),
+            ("Rook", bbpos.WR),
+            ("Right", bbpos.WRi),
+            ("Queen", bbpos.WQ),
+            ("King", bbpos.WK),
+        ]
+        for name, bbmask in white_list:
+            val_mg = 0 if name == "King" else PIECE_VALUES_MG.get(name, 0)
+            val_eg = 0 if name == "King" else PIECE_VALUES_EG.get(name, 0)
+            pst_mg = PSTS_MG["white"][name]
+            pst_eg = PSTS_EG["white"][name]
+            for sq in _iter_set_bits(bbmask):
+                x, y = index_to_sq(sq)
+                mg += val_mg + pst_mg[y][x]
+                eg += val_eg + pst_eg[y][x]
+        # Black pieces (subtract)
+        black_list = [
+            ("Pawn", bbpos.BP),
+            ("Knight", bbpos.BN),
+            ("Bishop", bbpos.BB),
+            ("Rook", bbpos.BR),
+            ("Right", bbpos.BRi),
+            ("Queen", bbpos.BQ),
+            ("King", bbpos.BK),
+        ]
+        for name, bbmask in black_list:
+            val_mg = 0 if name == "King" else PIECE_VALUES_MG.get(name, 0)
+            val_eg = 0 if name == "King" else PIECE_VALUES_EG.get(name, 0)
+            pst_mg = PSTS_MG["black"][name]
+            pst_eg = PSTS_EG["black"][name]
+            for sq in _iter_set_bits(bbmask):
+                x, y = index_to_sq(sq)
+                mg -= (val_mg + pst_mg[y][x])
+                eg -= (val_eg + pst_eg[y][x])
+        return int(mg), int(eg)
+    mg0, eg0 = _compute_mat_pst_from_bbpos(bbpos)
     return BitboardState(
         WP=bbpos.WP,
         WN=bbpos.WN,
@@ -871,10 +1061,12 @@ def convert_board_to_bb_state(board, player, zobrist: "Zobrist") -> BitboardStat
         occ_all=bbpos.occ_all,
         side_to_move=stm,
         zkey=zkey,
+        mg_mat_pst=mg0,
+        eg_mat_pst=eg0,
     )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BBMove:
     """
     Internal compact move:
@@ -890,17 +1082,94 @@ class BBMove:
     captured_type: int
 
 
+def pack_move(from_sq: int, to_sq: int, piece_type: int, captured_type: int, promo: int) -> int:
+    """
+    Packs a move into a 17-bit integer:
+      bits 0..4  : from_sq (0-24)
+      bits 5..9  : to_sq   (0-24)
+      bits 10..12: piece_type (0-6)
+      bits 13..15: captured_type+1 (0=None, 1..7 piece)
+      bit  16    : promo flag (1 if promo==4 else 0)
+    """
+    cap_val = (captured_type + 1) & 7
+    promo_val = 1 if promo == 4 else 0
+    return (from_sq & 31) | ((to_sq & 31) << 5) | ((piece_type & 7) << 10) | (cap_val << 13) | (promo_val << 16)
+
+
+def unpack_move(move_int: int) -> tuple[int, int, int, int, int]:
+    """
+    Unpacks a 17-bit packed move integer into (from_sq, to_sq, piece_type, captured_type, promo).
+    """
+    from_sq = move_int & 31
+    to_sq = (move_int >> 5) & 31
+    piece_type = (move_int >> 10) & 7
+    captured_type = ((move_int >> 13) & 7) - 1
+    promo = 4 if ((move_int >> 16) & 1) else 0
+    return from_sq, to_sq, piece_type, captured_type, promo
+
+
 def bbmove_to_tuple_xy(m: "BBMove") -> Tuple[int, int, int, int]:
     """
-    Converts BBMove to (sx, sy, dx, dy) tuple for compatibility with find_move_from_tuple.
+    Converts an internal BBMove object to a coordinate tuple representation.
+    
+    This function extracts the source and destination coordinates from a BBMove
+    and converts them from linear square indices to (x, y) coordinate pairs.
+    The resulting tuple is compatible with external move matching functions.
+    
+    Args:
+        m: A BBMove dataclass containing:
+            - from_sq: Source square index [0, 24]
+            - to_sq: Destination square index [0, 24]
+            - Other fields (promo, piece_type, captured_type) are ignored
+    
+    Returns:
+        A tuple (sx, sy, dx, dy) where:
+        - sx, sy: Source square coordinates (x, y) in [0, 4]
+        - dx, dy: Destination square coordinates (x, y) in [0, 4]
+    
+    Example:
+        >>> m = BBMove(from_sq=6, to_sq=11, ...)
+        >>> bbmove_to_tuple_xy(m)
+        (1, 1, 1, 2)  # Square 6 = (1,1), Square 11 = (1,2)
     """
-    sx, sy = index_to_sq(m.from_sq)
-    dx, dy = index_to_sq(m.to_sq)
+    # Accept both packed-int moves and BBMove dataclass for compatibility
+    if isinstance(m, int):
+        from_sq, to_sq, _pt, _ct, _pr = unpack_move(m)
+        sx, sy = index_to_sq(from_sq)
+        dx, dy = index_to_sq(to_sq)
+    else:
+        sx, sy = index_to_sq(m.from_sq)
+        dx, dy = index_to_sq(m.to_sq)
     return sx, sy, dx, dy
 
 
 # --- Helpers for bit iteration and capture typing ---
 def _iter_set_bits(bb: int):
+    """
+    Iterates over all set bits in a bitboard, yielding their square indices.
+    
+    This generator function efficiently extracts all set bits from a bitboard
+    using bit manipulation tricks. It uses the identity `x & -x` to isolate the
+    least significant bit, then clears it before finding the next one.
+    
+    Args:
+        bb: An integer bitboard where bit i represents square i. Can be any
+            non-negative integer representing a 25-bit (or larger) bitboard.
+    
+    Yields:
+        Integer square indices (0-24 for 5x5 board) corresponding to each
+        set bit in the bitboard, in order from least to most significant bit.
+    
+    Example:
+        >>> bb = 0b10110  # Bits 1, 2, and 4 are set
+        >>> list(_iter_set_bits(bb))
+        [1, 2, 4]
+    
+    Notes:
+        - Uses bit_length() to find the index of the LSB
+        - Clears each bit after yielding to avoid infinite loops
+        - Order is from LSB to MSB (not necessarily board order)
+    """
     while bb:
         lsb = bb & -bb
         idx = lsb.bit_length() - 1
@@ -910,7 +1179,32 @@ def _iter_set_bits(bb: int):
 
 def _get_piece_type_at_square(bb: "BitboardState", color_white: bool, sq: int) -> int:
     """
-    Returns piece type index 0..6 for piece of given color at sq, or -1 if empty.
+    Identifies the piece type at a specific square for a given color.
+    
+    This function checks all piece bitboards for the specified color to determine
+    which piece (if any) occupies the given square. The piece type is returned as
+    an integer index matching the internal piece type encoding.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards and occupancy information.
+        color_white: True to check white pieces, False to check black pieces.
+        sq: Square index in the range [0, 24] to check for a piece.
+    
+    Returns:
+        An integer piece type index:
+        - 0: Pawn
+        - 1: Knight
+        - 2: Bishop
+        - 3: Rook
+        - 4: Queen
+        - 5: King
+        - 6: Right (custom piece)
+        - -1: No piece of the specified color at this square
+    
+    Notes:
+        - Only checks pieces of the specified color
+        - Returns -1 if the square is empty or occupied by the opposite color
+        - Checks piece bitboards in order: Pawn, Knight, Bishop, Rook, Queen, King, Right
     """
     mask = 1 << sq
     if color_white:
@@ -1095,16 +1389,65 @@ def format_legality_debug(bb: "BitboardState", stm_white: bool) -> Dict[str, Any
 
 def _update_occ_from_parts(bbvals: List[int]) -> Tuple[int, int, int]:
     """
-    Given full list [WP,WN,WB,WR,WQ,WK,WRi,BP,BN,BB,BR,BQ,BK,BRi] returns (occ_white, occ_black, occ_all).
+    Computes aggregate occupancy bitboards from individual piece bitboards.
+    
+    This helper function combines individual piece bitboards into aggregate
+    occupancy masks. It separates white and black pieces, then combines them
+    into a total occupancy mask.
+    
+    Args:
+        bbvals: A list of exactly 14 integers representing piece bitboards in order:
+            [WP, WN, WB, WR, WQ, WK, WRi, BP, BN, BB, BR, BQ, BK, BRi]
+            where indices 0-6 are white pieces and 7-13 are black pieces.
+    
+    Returns:
+        A tuple (occ_white, occ_black, occ_all) where:
+        - occ_white: Bitboard with all white pieces (OR of indices 0-6)
+        - occ_black: Bitboard with all black pieces (OR of indices 7-13)
+        - occ_all: Combined occupancy of both colors (occ_white | occ_black)
+    
+    Notes:
+        - Assumes the input list has exactly 14 elements
+        - Used internally during move application to update occupancy after piece moves
     """
     occ_white = bbvals[0] | bbvals[1] | bbvals[2] | bbvals[3] | bbvals[4] | bbvals[5] | bbvals[6]
     occ_black = bbvals[7] | bbvals[8] | bbvals[9] | bbvals[10] | bbvals[11] | bbvals[12] | bbvals[13]
     return occ_white, occ_black, (occ_white | occ_black)
 
 
-def apply_bb_move(bb: "BitboardState", m: "BBMove", zobrist: Optional["Zobrist"]) -> "BitboardState":
+def apply_bb_move(bb: "BitboardState", m, zobrist: Optional["Zobrist"]) -> "BitboardState":
     """
-    Applies a move to produce a new BitboardState. Uses incremental Zobrist updates when available.
+    Applies a move to the current position, producing a new BitboardState.
+    
+    This function performs all necessary updates to apply a move: removing the
+    moving piece from its source square, placing it (or a promoted piece) on the
+    destination, removing any captured piece, updating occupancy masks, flipping
+    side-to-move, and incrementally updating the Zobrist hash.
+    
+    Args:
+        bb: The current BitboardState before the move is applied.
+        m: A BBMove object describing the move:
+            - from_sq: Source square index [0, 24]
+            - to_sq: Destination square index [0, 24]
+            - piece_type: Type of moving piece (0-6)
+            - captured_type: Type of captured piece (-1 if none, 0-6 if capture)
+            - promo: Promotion type (0 if none, 4 for queen promotion)
+        zobrist: Optional Zobrist hasher for incremental hash updates. If None,
+            hash updates are skipped and zkey remains unchanged.
+    
+    Returns:
+        A new BitboardState representing the position after the move:
+        - All piece bitboards updated (source cleared, destination set)
+        - Captured piece removed if applicable
+        - Promotion handled (pawn replaced with promoted piece)
+        - Occupancy masks recalculated
+        - side_to_move flipped (0 <-> 1)
+        - zkey updated incrementally if zobrist is provided
+    
+    Notes:
+        - Does not modify the input BitboardState (creates a new one)
+        - Handles pawn promotion by replacing pawn with queen at destination
+        - Incremental Zobrist updates toggle pieces at source/destination and side-to-move
     """
     stm_white = (bb.side_to_move == 0)
     # Copy all piece bitboards into list for easier updates
@@ -1112,38 +1455,75 @@ def apply_bb_move(bb: "BitboardState", m: "BBMove", zobrist: Optional["Zobrist"]
         bb.WP, bb.WN, bb.WB, bb.WR, bb.WQ, bb.WK, bb.WRi,
         bb.BP, bb.BN, bb.BB, bb.BR, bb.BQ, bb.BK, bb.BRi,
     ]
-    from_mask = 1 << m.from_sq
-    to_mask = 1 << m.to_sq
+    if isinstance(m, int):
+        from_sq, to_sq, piece_type, captured_type, promo = unpack_move(m)
+    else:
+        from_sq, to_sq = m.from_sq, m.to_sq
+        piece_type, captured_type, promo = m.piece_type, m.captured_type, m.promo
+    from_mask = 1 << from_sq
+    to_mask = 1 << to_sq
     color_idx = 0 if stm_white else 1
     zkey = bb.zkey
+    # Incremental Material+PST delta
+    mg_delta = 0
+    eg_delta = 0
+    mover_color = "white" if stm_white else "black"
+    opp_color = "black" if stm_white else "white"
+    s = 1 if stm_white else -1
+    mover_name = _IDX_TO_NAME.get(piece_type, "Pawn")
+    def _pst_mg(name: str, sq: int, color: str) -> int:
+        x, y = index_to_sq(sq)
+        return PSTS_MG[color][name][y][x]
+    def _pst_eg(name: str, sq: int, color: str) -> int:
+        x, y = index_to_sq(sq)
+        return PSTS_EG[color][name][y][x]
 
     # Remove captured piece if any
-    if m.captured_type >= 0:
+    if captured_type >= 0:
         opp_offset = 7 if stm_white else 0
-        cap_idx = opp_offset + m.captured_type
+        cap_idx = opp_offset + captured_type
         if parts[cap_idx] & to_mask:
             parts[cap_idx] ^= to_mask
             if zobrist:
-                zkey = zobrist.toggle_by_indices(zkey, m.captured_type, 1 - color_idx, m.to_sq)
+                zkey = zobrist.toggle_by_indices(zkey, captured_type, 1 - color_idx, to_sq)
+            cap_name = _IDX_TO_NAME.get(captured_type, "Pawn")
+            cap_sign = 1 if stm_white else -1
+            mg_delta += cap_sign * (PIECE_VALUES_MG.get(cap_name, 0) + _pst_mg(cap_name, to_sq, opp_color))
+            eg_delta += cap_sign * (PIECE_VALUES_EG.get(cap_name, 0) + _pst_eg(cap_name, to_sq, opp_color))
 
     # Move the piece (and handle promotion replacement)
     my_offset = 0 if stm_white else 7
-    src_idx = my_offset + m.piece_type
+    src_idx = my_offset + piece_type
     # Remove from source
     parts[src_idx] ^= from_mask
     if zobrist:
-        zkey = zobrist.toggle_by_indices(zkey, m.piece_type, color_idx, m.from_sq)
+        zkey = zobrist.toggle_by_indices(zkey, piece_type, color_idx, from_sq)
+    # Eval: remove mover from source
+    if mover_name != "King":
+        mg_delta -= s * PIECE_VALUES_MG.get(mover_name, 0)
+        eg_delta -= s * PIECE_VALUES_EG.get(mover_name, 0)
+    mg_delta -= s * _pst_mg(mover_name, from_sq, mover_color)
+    eg_delta -= s * _pst_eg(mover_name, from_sq, mover_color)
     # Destination: either same piece or promotion replacement
-    if m.promo == 4 and m.piece_type == 0:
+    if promo == 4 and piece_type == 0:
         # Promotion to Queen replaces pawn with queen at destination
         dst_idx = my_offset + 4
         parts[dst_idx] |= to_mask
         if zobrist:
-            zkey = zobrist.toggle_by_indices(zkey, 4, color_idx, m.to_sq)
+            zkey = zobrist.toggle_by_indices(zkey, 4, color_idx, to_sq)
+        # Eval: add promoted queen at destination
+        mg_delta += s * (PIECE_VALUES_MG["Queen"] + _pst_mg("Queen", to_sq, mover_color))
+        eg_delta += s * (PIECE_VALUES_EG["Queen"] + _pst_eg("Queen", to_sq, mover_color))
     else:
         parts[src_idx] |= to_mask
         if zobrist:
-            zkey = zobrist.toggle_by_indices(zkey, m.piece_type, color_idx, m.to_sq)
+            zkey = zobrist.toggle_by_indices(zkey, piece_type, color_idx, to_sq)
+        # Eval: add moved piece at destination
+        if mover_name != "King":
+            mg_delta += s * PIECE_VALUES_MG.get(mover_name, 0)
+            eg_delta += s * PIECE_VALUES_EG.get(mover_name, 0)
+        mg_delta += s * _pst_mg(mover_name, to_sq, mover_color)
+        eg_delta += s * _pst_eg(mover_name, to_sq, mover_color)
 
     occ_w, occ_b, occ_all = _update_occ_from_parts(parts)
     # Flip side-to-move
@@ -1156,17 +1536,209 @@ def apply_bb_move(bb: "BitboardState", m: "BBMove", zobrist: Optional["Zobrist"]
         occ_white=occ_w, occ_black=occ_b, occ_all=occ_all,
         side_to_move=(1 if stm_white else 0),
         zkey=zkey,
+        mg_mat_pst=bb.mg_mat_pst + mg_delta,
+        eg_mat_pst=bb.eg_mat_pst + eg_delta,
     )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
+class UndoInfoInplace:
+    """
+    Minimal undo payload for in-place make/unmake.
+    Restores occupancy, pieces, side-to-move and zobrist hash.
+    """
+    from_mask: int
+    to_mask: int
+    moved_type: int
+    captured_type: int  # -1 if none
+    promo: int          # 0 or 4 (queen)
+    prev_side_to_move: int
+    prev_zkey: int
+    prev_mg_mat_pst: int
+    prev_eg_mat_pst: int
+
+
+_PIECE_FIELDS_WHITE = ("WP", "WN", "WB", "WR", "WQ", "WK", "WRi")
+_PIECE_FIELDS_BLACK = ("BP", "BN", "BB", "BR", "BQ", "BK", "BRi")
+
+
+def make_move_inplace(bb: "BitboardState", m, zobrist: Optional["Zobrist"]) -> "UndoInfoInplace":
+    """
+    Applies a move by mutating bb in-place. Returns an undo object to restore state.
+    Mirrors apply_bb_move semantics but without allocations.
+    """
+    stm_white = (bb.side_to_move == 0)
+    if isinstance(m, int):
+        from_sq, to_sq, piece_type, captured_type, promo = unpack_move(m)
+    else:
+        from_sq, to_sq = m.from_sq, m.to_sq
+        piece_type, captured_type, promo = m.piece_type, m.captured_type, m.promo
+    from_mask = 1 << from_sq
+    to_mask = 1 << to_sq
+    color_idx = 0 if stm_white else 1
+    prev_side = bb.side_to_move
+    prev_zkey = bb.zkey
+    prev_mg = bb.mg_mat_pst
+    prev_eg = bb.eg_mat_pst
+    # Eval delta
+    mg_delta = 0
+    eg_delta = 0
+    mover_color = "white" if stm_white else "black"
+    opp_color = "black" if stm_white else "white"
+    s = 1 if stm_white else -1
+    mover_name = _IDX_TO_NAME.get(piece_type, "Pawn")
+    def _pst_mg(name: str, sq: int, color: str) -> int:
+        x, y = index_to_sq(sq)
+        return PSTS_MG[color][name][y][x]
+    def _pst_eg(name: str, sq: int, color: str) -> int:
+        x, y = index_to_sq(sq)
+        return PSTS_EG[color][name][y][x]
+
+    # Remove captured piece (if any)
+    if captured_type >= 0:
+        opp_field = _PIECE_FIELDS_BLACK[captured_type] if stm_white else _PIECE_FIELDS_WHITE[captured_type]
+        setattr(bb, opp_field, getattr(bb, opp_field) ^ to_mask)
+        if stm_white:
+            bb.occ_black ^= to_mask
+        else:
+            bb.occ_white ^= to_mask
+        if zobrist:
+            bb.zkey = zobrist.toggle_by_indices(bb.zkey, captured_type, 1 - color_idx, to_sq)
+        cap_name = _IDX_TO_NAME.get(captured_type, "Pawn")
+        cap_sign = 1 if stm_white else -1
+        mg_delta += cap_sign * (PIECE_VALUES_MG.get(cap_name, 0) + _pst_mg(cap_name, to_sq, opp_color))
+        eg_delta += cap_sign * (PIECE_VALUES_EG.get(cap_name, 0) + _pst_eg(cap_name, to_sq, opp_color))
+
+    # Move the piece
+    mover_field = _PIECE_FIELDS_WHITE[piece_type] if stm_white else _PIECE_FIELDS_BLACK[piece_type]
+    # Remove from source
+    setattr(bb, mover_field, getattr(bb, mover_field) ^ from_mask)
+    if zobrist:
+        bb.zkey = zobrist.toggle_by_indices(bb.zkey, piece_type, color_idx, from_sq)
+    # Eval removal from source
+    if mover_name != "King":
+        mg_delta -= s * PIECE_VALUES_MG.get(mover_name, 0)
+        eg_delta -= s * PIECE_VALUES_EG.get(mover_name, 0)
+    mg_delta -= s * _pst_mg(mover_name, from_sq, mover_color)
+    eg_delta -= s * _pst_eg(mover_name, from_sq, mover_color)
+    # Place at destination (promotion replaces pawn with queen at destination)
+    if promo == 4 and piece_type == 0:
+        dst_field = _PIECE_FIELDS_WHITE[4] if stm_white else _PIECE_FIELDS_BLACK[4]
+        setattr(bb, dst_field, getattr(bb, dst_field) | to_mask)
+        if zobrist:
+            bb.zkey = zobrist.toggle_by_indices(bb.zkey, 4, color_idx, to_sq)
+        mg_delta += s * (PIECE_VALUES_MG["Queen"] + _pst_mg("Queen", to_sq, mover_color))
+        eg_delta += s * (PIECE_VALUES_EG["Queen"] + _pst_eg("Queen", to_sq, mover_color))
+    else:
+        setattr(bb, mover_field, getattr(bb, mover_field) | to_mask)
+        if zobrist:
+            bb.zkey = zobrist.toggle_by_indices(bb.zkey, piece_type, color_idx, to_sq)
+        if mover_name != "King":
+            mg_delta += s * PIECE_VALUES_MG.get(mover_name, 0)
+            eg_delta += s * PIECE_VALUES_EG.get(mover_name, 0)
+        mg_delta += s * _pst_mg(mover_name, to_sq, mover_color)
+        eg_delta += s * _pst_eg(mover_name, to_sq, mover_color)
+
+    # Update occupancy
+    if stm_white:
+        bb.occ_white ^= from_mask
+        bb.occ_white |= to_mask
+    else:
+        bb.occ_black ^= from_mask
+        bb.occ_black |= to_mask
+    bb.occ_all = bb.occ_white | bb.occ_black
+    # Update incremental eval
+    bb.mg_mat_pst = prev_mg + mg_delta
+    bb.eg_mat_pst = prev_eg + eg_delta
+
+    # Flip side to move
+    bb.side_to_move = 1 if stm_white else 0
+    if zobrist:
+        bb.zkey = zobrist.toggle_black_to_move(bb.zkey)
+
+    return UndoInfoInplace(
+        from_mask=from_mask,
+        to_mask=to_mask,
+        moved_type=piece_type,
+        captured_type=captured_type,
+        promo=promo,
+        prev_side_to_move=prev_side,
+        prev_zkey=prev_zkey,
+        prev_mg_mat_pst=prev_mg,
+        prev_eg_mat_pst=prev_eg,
+    )
+
+
+def unmake_move_inplace(bb: "BitboardState", undo: "UndoInfoInplace", zobrist: Optional["Zobrist"]) -> None:
+    """
+    Restores bb to the exact state before the corresponding make_move_inplace call.
+    """
+    # Restore side and hash first (hash covers all piece toggles)
+    bb.side_to_move = undo.prev_side_to_move
+    bb.zkey = undo.prev_zkey
+    # Restore eval
+    bb.mg_mat_pst = undo.prev_mg_mat_pst
+    bb.eg_mat_pst = undo.prev_eg_mat_pst
+
+    stm_white_prev = (undo.prev_side_to_move == 0)
+    # Restore mover piece
+    if undo.promo == 4 and undo.moved_type == 0:
+        # Remove promoted queen from destination; restore pawn at source
+        q_field = _PIECE_FIELDS_WHITE[4] if stm_white_prev else _PIECE_FIELDS_BLACK[4]
+        setattr(bb, q_field, getattr(bb, q_field) ^ undo.to_mask)
+        pawn_field = _PIECE_FIELDS_WHITE[0] if stm_white_prev else _PIECE_FIELDS_BLACK[0]
+        setattr(bb, pawn_field, getattr(bb, pawn_field) | undo.from_mask)
+    else:
+        mover_field = _PIECE_FIELDS_WHITE[undo.moved_type] if stm_white_prev else _PIECE_FIELDS_BLACK[undo.moved_type]
+        setattr(bb, mover_field, getattr(bb, mover_field) ^ undo.to_mask)
+        setattr(bb, mover_field, getattr(bb, mover_field) | undo.from_mask)
+
+    # Restore captured piece (if any)
+    if undo.captured_type >= 0:
+        opp_field = _PIECE_FIELDS_BLACK[undo.captured_type] if stm_white_prev else _PIECE_FIELDS_WHITE[undo.captured_type]
+        setattr(bb, opp_field, getattr(bb, opp_field) | undo.to_mask)
+
+    # Restore occupancy
+    if stm_white_prev:
+        bb.occ_white ^= undo.to_mask
+        bb.occ_white |= undo.from_mask
+        if undo.captured_type >= 0:
+            bb.occ_black |= undo.to_mask
+    else:
+        bb.occ_black ^= undo.to_mask
+        bb.occ_black |= undo.from_mask
+        if undo.captured_type >= 0:
+            bb.occ_white |= undo.to_mask
+    bb.occ_all = bb.occ_white | bb.occ_black
+
+
+@dataclass(frozen=True, slots=True)
 class UndoInfo:
     parent: BitboardState
 
 
 def make_move(bb: "BitboardState", m: "BBMove", zobrist: Optional["Zobrist"]) -> Tuple["BitboardState", "UndoInfo"]:
     """
-    Creates a child state and returns it with an undo token for fast restoration.
+    Applies a move and returns the new state with undo information for restoration.
+    
+    This function is the main entry point for making moves in the search tree.
+    It applies the move to create a child node and stores the parent state in
+    an UndoInfo object, allowing fast restoration via unmake_move().
+    
+    Args:
+        bb: The current BitboardState before the move.
+        m: The BBMove to apply.
+        zobrist: Optional Zobrist hasher for hash updates.
+    
+    Returns:
+        A tuple (child_state, undo_info) where:
+        - child_state: New BitboardState after applying the move
+        - undo_info: UndoInfo object containing the parent state for restoration
+    
+    Notes:
+        - Used during search tree traversal
+        - The undo mechanism allows efficient move unmaking without copying entire state
+        - Parent state is stored in UndoInfo for O(1) restoration
     """
     child = apply_bb_move(bb, m, zobrist)
     return child, UndoInfo(parent=bb)
@@ -1174,15 +1746,52 @@ def make_move(bb: "BitboardState", m: "BBMove", zobrist: Optional["Zobrist"]) ->
 
 def unmake_move(_child: "BitboardState", undo: "UndoInfo") -> "BitboardState":
     """
-    Restores the previous state using the undo token.
+    Restores the parent state from before a move was applied.
+    
+    This function implements the undo mechanism for search tree traversal.
+    It returns the parent state that was stored when the move was made,
+    effectively "unmaking" the move without needing to reverse all bitboard operations.
+    
+    Args:
+        _child: The current BitboardState after the move (unused, kept for API consistency).
+        undo: UndoInfo object containing the parent state stored during make_move().
+    
+    Returns:
+        The BitboardState from before the move was applied (the parent state).
+    
+    Notes:
+        - O(1) operation - just returns the stored parent state
+        - Used during alpha-beta search to restore position after exploring a move
+        - The _child parameter is unused but kept for API consistency
     """
     return undo.parent
 
 
 def _gen_sliding_moves(from_sq: int, occ_all: int, own_occ: int, attack_fn) -> Tuple[int, int]:
     """
-    Returns (quiet_mask, capture_mask) for a sliding piece from 'from_sq'.
-    attack_fn should be one of _get_rook_attacks or _get_bishop_attacks.
+    Generates quiet and capture move masks for a sliding piece (rook or bishop).
+    
+    This helper function computes the legal moves for a sliding piece by first
+    getting all attacked squares, then filtering out squares occupied by friendly
+    pieces, and finally separating quiet moves (empty squares) from captures
+    (opponent-occupied squares).
+    
+    Args:
+        from_sq: Source square index [0, 24] where the sliding piece is located.
+        occ_all: Bitboard of all occupied squares (both colors).
+        own_occ: Bitboard of squares occupied by friendly pieces (to exclude).
+        attack_fn: Function to compute attacks, either _get_rook_attacks or
+            _get_bishop_attacks. Must accept (sq, occ) and return attack bitboard.
+    
+    Returns:
+        A tuple (quiet_mask, capture_mask) where:
+        - quiet_mask: Bitboard of empty squares the piece can move to
+        - capture_mask: Bitboard of opponent-occupied squares the piece can capture
+    
+    Notes:
+        - Attacks are computed with respect to occ_all (includes blockers)
+        - Friendly squares are excluded from both masks
+        - Used internally by generate_legal_moves() for rooks, bishops, and queens
     """
     attacks = attack_fn(from_sq, occ_all)
     legal = attacks & (~own_occ)
@@ -1192,12 +1801,35 @@ def _gen_sliding_moves(from_sq: int, occ_all: int, own_occ: int, attack_fn) -> T
     return quiet, captures
 
 
-def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> List["BBMove"]:
+def generate_legal_moves(bb: "BitboardState", captures_only: bool = False, legality_info: Optional[Tuple] = None) -> List[int]:
     """
-    Pure-legal move generator using one-time legality masks (checkers and pins).
-    Supports captures-only mode for quiescence.
+    Generates all legal moves for the side-to-move in the current position.
+    
+    This is the main move generation function that produces a complete list of
+    legal moves, respecting check, pins, and other legality constraints. It uses
+    efficient bitboard operations and precomputed legality masks to filter moves.
+    
+    Args:
+        bb: The current BitboardState representing the position.
+        captures_only: If True, only generates capture moves (used for quiescence
+            search). If False, generates all legal moves including quiet moves.
+        legality_info: Optional tuple (checkers_bb, pin_mask, pin_ray_map) from
+            calculate_legality_masks. If provided, skips recalculating legality.
+    
+    Returns:
+        A list of packed-int moves. Each move packs:
+        - from_sq, to_sq, piece_type, captured_type, promo(0 or 4)
+    
+    Notes:
+        - Handles check by restricting moves to those that escape or block check
+        - Handles double-check by only allowing king moves
+        - Respects pins by restricting pinned pieces to move along the pin ray
+        - Generates moves for all piece types: pawns, knights, bishops, rooks,
+          queens, kings, and the custom "Right" piece
+        - Uses bitboard operations for efficient move generation
+        - King moves are validated to ensure they don't move into check
     """
-    moves: List[BBMove] = []
+    moves: List[int] = []
     stm_white = (bb.side_to_move == 0)
     own_occ = bb.occ_white if stm_white else bb.occ_black
     opp_occ = bb.occ_black if stm_white else bb.occ_white
@@ -1208,7 +1840,12 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         return moves
     ksq = _pop_lsb_njit(kbb)
 
-    checkers_bb, pin_mask, pin_ray_map = calculate_legality_masks(bb, ksq, stm_white)
+    if legality_info:
+        checkers_bb, pin_mask, pin_ray_map = legality_info
+    elif ksq >= 0:
+        checkers_bb, pin_mask, pin_ray_map = calculate_legality_masks(bb, ksq, stm_white)
+    else:
+        checkers_bb, pin_mask, pin_ray_map = 0, 0, {}  # Should not happen if kbb != 0
     is_in_check = (checkers_bb != 0)
     is_double_check = (_count_bits(checkers_bb) > 1)
 
@@ -1247,10 +1884,17 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         if captures_only and not (opp_occ & to_mask):
             continue
         cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & to_mask) else -1
-        moves.append(BBMove(ksq, to_sq, 0, 5, cap_type))
+        moves.append(pack_move(ksq, to_sq, 5, cap_type, 0))
 
     if is_double_check:
         return moves
+
+    # Pre-fetch opponent piece list for fast capture-typing
+    opp_bbs = (
+        (bb.BP, bb.BN, bb.BB, bb.BR, bb.BQ, bb.BK, bb.BRi)
+        if stm_white
+        else (bb.WP, bb.WN, bb.WB, bb.WR, bb.WQ, bb.WK, bb.WRi)
+    )
 
     # Non-king moves
     # Pawns using bit-shifts
@@ -1279,7 +1923,7 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         if (pin_mask & (1 << from_sq)) and not (pin_ray_map.get(from_sq, 0) & (1 << to_sq)):
             continue
         promo = 4 if ((RANK_0_MASK & (1 << to_sq)) if stm_white else (RANK_4_MASK & (1 << to_sq))) else 0
-        moves.append(BBMove(from_sq, to_sq, promo, 0, -1))
+        moves.append(pack_move(from_sq, to_sq, 0, -1, promo))
 
     # Pawn captures (left)
     cl = capL
@@ -1291,7 +1935,7 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
             continue
         promo = 4 if ((RANK_0_MASK & (1 << to_sq)) if stm_white else (RANK_4_MASK & (1 << to_sq))) else 0
         cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq)
-        moves.append(BBMove(from_sq, to_sq, promo, 0, cap_type))
+        moves.append(pack_move(from_sq, to_sq, 0, cap_type, promo))
 
     # Pawn captures (right)
     cr = capR
@@ -1303,7 +1947,7 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
             continue
         promo = 4 if ((RANK_0_MASK & (1 << to_sq)) if stm_white else (RANK_4_MASK & (1 << to_sq))) else 0
         cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq)
-        moves.append(BBMove(from_sq, to_sq, promo, 0, cap_type))
+        moves.append(pack_move(from_sq, to_sq, 0, cap_type, promo))
 
     # Knights
     N = bb.WN if stm_white else bb.BN
@@ -1311,11 +1955,16 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         targets = _KNIGHT_MOVES[from_sq] & (~own_occ) & target_mask
         if pin_mask & (1 << from_sq):
             targets &= pin_ray_map.get(from_sq, 0)
-        if captures_only:
-            targets &= opp_occ
-        for to_sq in _iter_set_bits(targets):
-            cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & (1 << to_sq)) else -1
-            moves.append(BBMove(from_sq, to_sq, 0, 1, cap_type))
+        # Generate captures first
+        for cap_type, opp_bb in enumerate(opp_bbs):
+            cap_mask = targets & opp_bb
+            for to_sq in _iter_set_bits(cap_mask):
+                moves.append(pack_move(from_sq, to_sq, 1, cap_type, 0))
+        # Generate quiet moves
+        if not captures_only:
+            quiet_mask = targets & (~occ_all)
+            for to_sq in _iter_set_bits(quiet_mask):
+                moves.append(pack_move(from_sq, to_sq, 1, -1, 0))
 
     # Bishops
     B = bb.WB if stm_white else bb.BB
@@ -1323,11 +1972,16 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         targets = _get_bishop_attacks(from_sq, occ_all) & (~own_occ) & target_mask
         if pin_mask & (1 << from_sq):
             targets &= pin_ray_map.get(from_sq, 0)
-        if captures_only:
-            targets &= opp_occ
-        for to_sq in _iter_set_bits(targets):
-            cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & (1 << to_sq)) else -1
-            moves.append(BBMove(from_sq, to_sq, 0, 2, cap_type))
+        # Generate captures first
+        for cap_type, opp_bb in enumerate(opp_bbs):
+            cap_mask = targets & opp_bb
+            for to_sq in _iter_set_bits(cap_mask):
+                moves.append(pack_move(from_sq, to_sq, 2, cap_type, 0))
+        # Generate quiet moves
+        if not captures_only:
+            quiet_mask = targets & (~occ_all)
+            for to_sq in _iter_set_bits(quiet_mask):
+                moves.append(pack_move(from_sq, to_sq, 2, -1, 0))
 
     # Rooks
     R = bb.WR if stm_white else bb.BR
@@ -1335,11 +1989,16 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         targets = _get_rook_attacks(from_sq, occ_all) & (~own_occ) & target_mask
         if pin_mask & (1 << from_sq):
             targets &= pin_ray_map.get(from_sq, 0)
-        if captures_only:
-            targets &= opp_occ
-        for to_sq in _iter_set_bits(targets):
-            cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & (1 << to_sq)) else -1
-            moves.append(BBMove(from_sq, to_sq, 0, 3, cap_type))
+        # Generate captures first
+        for cap_type, opp_bb in enumerate(opp_bbs):
+            cap_mask = targets & opp_bb
+            for to_sq in _iter_set_bits(cap_mask):
+                moves.append(pack_move(from_sq, to_sq, 3, cap_type, 0))
+        # Generate quiet moves
+        if not captures_only:
+            quiet_mask = targets & (~occ_all)
+            for to_sq in _iter_set_bits(quiet_mask):
+                moves.append(pack_move(from_sq, to_sq, 3, -1, 0))
 
     # Queens
     Q = bb.WQ if stm_white else bb.BQ
@@ -1347,11 +2006,16 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         targets = (_get_rook_attacks(from_sq, occ_all) | _get_bishop_attacks(from_sq, occ_all)) & (~own_occ) & target_mask
         if pin_mask & (1 << from_sq):
             targets &= pin_ray_map.get(from_sq, 0)
-        if captures_only:
-            targets &= opp_occ
-        for to_sq in _iter_set_bits(targets):
-            cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & (1 << to_sq)) else -1
-            moves.append(BBMove(from_sq, to_sq, 0, 4, cap_type))
+        # Generate captures first
+        for cap_type, opp_bb in enumerate(opp_bbs):
+            cap_mask = targets & opp_bb
+            for to_sq in _iter_set_bits(cap_mask):
+                moves.append(pack_move(from_sq, to_sq, 4, cap_type, 0))
+        # Generate quiet moves
+        if not captures_only:
+            quiet_mask = targets & (~occ_all)
+            for to_sq in _iter_set_bits(quiet_mask):
+                moves.append(pack_move(from_sq, to_sq, 4, -1, 0))
 
     # Right (rook | knight)
     Ri = bb.WRi if stm_white else bb.BRi
@@ -1361,11 +2025,16 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
         targets = (r_att | n_att) & (~own_occ) & target_mask
         if pin_mask & (1 << from_sq):
             targets &= pin_ray_map.get(from_sq, 0)
-        if captures_only:
-            targets &= opp_occ
-        for to_sq in _iter_set_bits(targets):
-            cap_type = _get_piece_type_at_square(bb, not stm_white, to_sq) if (opp_occ & (1 << to_sq)) else -1
-            moves.append(BBMove(from_sq, to_sq, 0, 6, cap_type))
+        # Generate captures first
+        for cap_type, opp_bb in enumerate(opp_bbs):
+            cap_mask = targets & opp_bb
+            for to_sq in _iter_set_bits(cap_mask):
+                moves.append(pack_move(from_sq, to_sq, 6, cap_type, 0))
+        # Generate quiet moves
+        if not captures_only:
+            quiet_mask = targets & (~occ_all)
+            for to_sq in _iter_set_bits(quiet_mask):
+                moves.append(pack_move(from_sq, to_sq, 6, -1, 0))
 
     return moves
 
@@ -1373,12 +2042,52 @@ def generate_legal_moves(bb: "BitboardState", captures_only: bool = False) -> Li
 
 
 def _count_bits(x: int) -> int:
+    """
+    Counts the number of set bits (population count) in an integer bitboard.
+    
+    This function uses Python's built-in bit_count() method to efficiently
+    count the number of 1-bits in a bitboard, which corresponds to counting
+    the number of pieces or squares represented by the bitboard.
+    
+    Args:
+        x: An integer bitboard where each set bit represents a piece or square.
+    
+    Returns:
+        The number of set bits in x (population count). For a 5x5 board bitboard,
+        this ranges from 0 to 25.
+    
+    Example:
+        >>> _count_bits(0b10110)
+        3  # Three bits are set
+    
+    Notes:
+        - Uses Python 3.10+ bit_count() method for optimal performance
+        - Equivalent to counting pieces on a bitboard or squares in a mask
+    """
     return int(x.bit_count())
 
 
 def _piece_on_square_color(bb: "BitboardState", sq: int) -> int:
     """
-    Returns 1 if white piece, -1 if black piece, 0 if empty on square sq.
+    Determines the color of the piece (if any) occupying a specific square.
+    
+    This function checks both white and black occupancy bitboards to determine
+    which color (if any) has a piece on the given square. It returns a simple
+    integer code indicating the result.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards and occupancy information.
+        sq: Square index in the range [0, 24] to check.
+    
+    Returns:
+        An integer code:
+        - 1: Square is occupied by a white piece
+        - -1: Square is occupied by a black piece
+        - 0: Square is empty (no piece of either color)
+    
+    Notes:
+        - Checks occ_white and occ_black bitboards for efficiency
+        - Used in evaluation functions to determine piece colors on squares
     """
     mask = 1 << sq
     if bb.occ_white & mask:
@@ -1389,139 +2098,296 @@ def _piece_on_square_color(bb: "BitboardState", sq: int) -> int:
 
 
 def _phase_from_bb(bb: "BitboardState") -> int:
+    """
+    Calculates the game phase value based on remaining pieces on the board.
+    
+    The game phase is a measure of how far the game has progressed from opening
+    to endgame. It's computed by summing phase values for all non-king pieces.
+    Higher phase values indicate more pieces (middlegame), lower values indicate
+    fewer pieces (endgame). This is used to interpolate between middlegame and
+    endgame evaluation terms.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards.
+    
+    Returns:
+        An integer phase value in the range [1, MAX_PHASE] (typically 1-16).
+        - Higher values (closer to MAX_PHASE): More pieces, middlegame phase
+        - Lower values (closer to 1): Fewer pieces, endgame phase
+    
+    Notes:
+        - Phase values per piece: Pawn=0, Knight=1, Bishop=1, Rook=2, Right=2, Queen=4, King=0
+        - Clamped to [1, MAX_PHASE] to avoid division by zero and overflow
+        - Used to blend middlegame and endgame evaluation scores
+    """
     total = 0
     # White
-    total += PHASE_VALUES["Pawn"] * _count_bits(bb.WP)
-    total += PHASE_VALUES["Knight"] * _count_bits(bb.WN)
-    total += PHASE_VALUES["Bishop"] * _count_bits(bb.WB)
-    total += PHASE_VALUES["Rook"] * _count_bits(bb.WR)
-    total += PHASE_VALUES["Right"] * _count_bits(bb.WRi)
-    total += PHASE_VALUES["Queen"] * _count_bits(bb.WQ)
+    total += PHASE_VALUES["Pawn"] * bb.WP.bit_count()
+    total += PHASE_VALUES["Knight"] * bb.WN.bit_count()
+    total += PHASE_VALUES["Bishop"] * bb.WB.bit_count()
+    total += PHASE_VALUES["Rook"] * bb.WR.bit_count()
+    total += PHASE_VALUES["Right"] * bb.WRi.bit_count()
+    total += PHASE_VALUES["Queen"] * bb.WQ.bit_count()
     # Black
-    total += PHASE_VALUES["Pawn"] * _count_bits(bb.BP)
-    total += PHASE_VALUES["Knight"] * _count_bits(bb.BN)
-    total += PHASE_VALUES["Bishop"] * _count_bits(bb.BB)
-    total += PHASE_VALUES["Rook"] * _count_bits(bb.BR)
-    total += PHASE_VALUES["Right"] * _count_bits(bb.BRi)
-    total += PHASE_VALUES["Queen"] * _count_bits(bb.BQ)
+    total += PHASE_VALUES["Pawn"] * bb.BP.bit_count()
+    total += PHASE_VALUES["Knight"] * bb.BN.bit_count()
+    total += PHASE_VALUES["Bishop"] * bb.BB.bit_count()
+    total += PHASE_VALUES["Rook"] * bb.BR.bit_count()
+    total += PHASE_VALUES["Right"] * bb.BRi.bit_count()
+    total += PHASE_VALUES["Queen"] * bb.BQ.bit_count()
     return max(1, min(total, MAX_PHASE))
 
+def _pawn_attacks_mask(is_white: bool, pawns_bb: int) -> int:
+    """
+    Computes a bitboard of all squares attacked by pawns of a given color.
+    
+    This function generates the attack mask for all pawns of the specified color.
+    White pawns attack diagonally forward (up-left and up-right), while black
+    pawns attack diagonally backward (down-left and down-right).
+    
+    Args:
+        is_white: True for white pawns, False for black pawns.
+        pawns_bb: Bitboard where each set bit represents a pawn of the specified color.
+            Square indices are in the range [0, 24] for a 5x5 board.
+    
+    Returns:
+        A 25-bit bitboard where each set bit represents a square attacked by
+        at least one pawn of the specified color. The mask includes all squares
+        that are diagonally adjacent to any pawn in the forward direction.
+    
+    Notes:
+        - White pawns at (x, y) attack (x-1, y-1) and (x+1, y-1) if in bounds
+        - Black pawns at (x, y) attack (x-1, y+1) and (x+1, y+1) if in bounds
+        - Used for mobility calculations and attack pattern evaluation
+    """
+    mask = 0
+    table = WHITE_PAWN_ATTACKS if is_white else BLACK_PAWN_ATTACKS
+    bb = pawns_bb
+    while bb:
+        lsb = bb & -bb
+        idx = lsb.bit_length() - 1
+        mask |= table[idx]
+        bb ^= lsb
+    return mask
 
 def evaluate_bb_state(bb: "BitboardState") -> float:
     """
-    Side-to-move centric evaluation (positive is good for bb.side_to_move).
+    Evaluates a chess position and returns a score from the side-to-move's perspective.
+    
+    This is the main evaluation function that computes a comprehensive score for a
+    position. It evaluates material, piece-square tables, mobility, pawn structure,
+    king safety, and various positional features. The score is returned from the
+    perspective of the side-to-move (positive favors side-to-move, negative favors opponent).
+    
+    Args:
+        bb: BitboardState representing the position to evaluate.
+    
+    Returns:
+        A float score in centipawns (1/100 of a pawn) from side-to-move's perspective:
+        - Positive values: Position favors the side-to-move
+        - Negative values: Position favors the opponent
+        - Large positive values (>900000): Mate in favor of side-to-move
+        - Large negative values (<-900000): Mate against side-to-move
+    
+    Notes:
+        Evaluation components (in order of computation):
+        1. Material: Piece values (MG and EG scales)
+        2. Piece-Square Tables: Positional bonuses based on square location
+        3. Mobility: Number of squares pieces can move to
+        4. Bishop pair: Bonus for having two bishops
+        5. Center control: Bonus for controlling central squares
+        6. Pawn structure: Doubled, isolated, passed, connected passers, backward pawns
+        7. Open/semi-open files: For rooks and right pieces
+        8. King safety: Attack patterns, pawn shield, open files to king
+        9. Endgame drives: King proximity, driving opponent king to edge/corner (KRK, KQK)
+        10. Rooks on 7th rank: Bonus for rooks on opponent's back rank
+        11. Knight outposts: Protected knights that can't be attacked by pawns
+        12. Bad bishops: Penalties for bishops blocked by own pawns
+        
+        The final score blends middlegame and endgame evaluations based on game phase.
+        Phase is calculated from remaining pieces (more pieces = middlegame, fewer = endgame).
     """
-    # Material
-    # (base material, no PST)
-    w_material_mg = (
-        PIECE_VALUES_MG["Pawn"] * _count_bits(bb.WP)
-        + PIECE_VALUES_MG["Knight"] * _count_bits(bb.WN)
-        + PIECE_VALUES_MG["Bishop"] * _count_bits(bb.WB)
-        + PIECE_VALUES_MG["Rook"] * _count_bits(bb.WR)
-        + PIECE_VALUES_MG["Right"] * _count_bits(bb.WRi)
-        + PIECE_VALUES_MG["Queen"] * _count_bits(bb.WQ)
-    )
-    b_material_mg = (
-        PIECE_VALUES_MG["Pawn"] * _count_bits(bb.BP)
-        + PIECE_VALUES_MG["Knight"] * _count_bits(bb.BN)
-        + PIECE_VALUES_MG["Bishop"] * _count_bits(bb.BB)
-        + PIECE_VALUES_MG["Rook"] * _count_bits(bb.BR)
-        + PIECE_VALUES_MG["Right"] * _count_bits(bb.BRi)
-        + PIECE_VALUES_MG["Queen"] * _count_bits(bb.BQ)
-    )
-    w_material_eg = (
-        PIECE_VALUES_EG["Pawn"] * _count_bits(bb.WP)
-        + PIECE_VALUES_EG["Knight"] * _count_bits(bb.WN)
-        + PIECE_VALUES_EG["Bishop"] * _count_bits(bb.WB)
-        + PIECE_VALUES_EG["Rook"] * _count_bits(bb.WR)
-        + PIECE_VALUES_EG["Right"] * _count_bits(bb.WRi)
-        + PIECE_VALUES_EG["Queen"] * _count_bits(bb.WQ)
-    )
-    b_material_eg = (
-        PIECE_VALUES_EG["Pawn"] * _count_bits(bb.BP)
-        + PIECE_VALUES_EG["Knight"] * _count_bits(bb.BN)
-        + PIECE_VALUES_EG["Bishop"] * _count_bits(bb.BB)
-        + PIECE_VALUES_EG["Rook"] * _count_bits(bb.BR)
-        + PIECE_VALUES_EG["Right"] * _count_bits(bb.BRi)
-        + PIECE_VALUES_EG["Queen"] * _count_bits(bb.BQ)
-    )
+    # --- Cache all BB attributes to local variables ---
+    WP, WN, WB, WR, WQ, WK, WRi = bb.WP, bb.WN, bb.WB, bb.WR, bb.WQ, bb.WK, bb.WRi
+    BP, BN, BB, BR, BQ, BK, BRi = bb.BP, bb.BN, bb.BB, bb.BR, bb.BQ, bb.BK, bb.BRi
+    occ_all = bb.occ_all
+    occ_white = bb.occ_white
+    occ_black = bb.occ_black
+    # --- End cache ---
+    
+    # === 1. Start with Incremental Material + PST scores ===
+    # These are already calculated and updated during make/unmake
+    mg = bb.mg_mat_pst
+    eg = bb.eg_mat_pst
+    
+    # === 2. Single Pass: Add Mobility & Other Features ===
+    # We still loop over pieces, but *only* for mobility,
+    # king safety features, etc. (NOT material or PSTs)
+    
+    # Piece counts (still needed for bishop pair, etc.)
+    wp_count = _count_bits(WP)
+    wn_count = _count_bits(WN)
+    wb_count = _count_bits(WB)
+    wr_count = _count_bits(WR)
+    wri_count = _count_bits(WRi)
+    wq_count = _count_bits(WQ)
+    
+    bp_count = _count_bits(BP)
+    bn_count = _count_bits(BN)
+    bb_count = _count_bits(BB)
+    br_count = _count_bits(BR)
+    bri_count = _count_bits(BRi)
+    bq_count = _count_bits(BQ)
+    
+    w_mob = 0
+    b_mob = 0
 
-    mg = w_material_mg - b_material_mg
-    eg = w_material_eg - b_material_eg
+    # Pre-calculate masks and shared data
+    occ = occ_all
+    center_set = set(CENTER_SQUARES)
+    w_seventh_mask = RANK_MASKS[1]
+    b_seventh_mask = RANK_MASKS[3]
+    
+    light_mask = 0
+    dark_mask = 0
+    for ry in range(5):
+        for rx in range(5):
+            sqi = square_index(rx, ry)
+            if ((rx + ry) & 1) == 0:
+                light_mask |= 1 << sqi
+            else:
+                dark_mask |= 1 << sqi
+    
+    # For "Bad Bishop" calculations
+    wp_light_count = _count_bits(WP & light_mask)
+    wp_dark_count = _count_bits(WP & dark_mask)
+    bp_light_count = _count_bits(BP & light_mask)
+    bp_dark_count = _count_bits(BP & dark_mask)
+    
+    w_bishops_light = 0
+    w_bishops_dark = 0
+    b_bishops_light = 0
+    b_bishops_dark = 0
+    
+    w_rooks_on_7th = 0
+    b_rooks_on_7th = 0
 
-    # PST contributions (white adds, black subtracts)
-    pst_mg = 0
-    pst_eg = 0
-    # White pieces
-    for sq in _iter_set_bits(bb.WP):
+    # --- White Pieces Single Pass ---
+    # (Pawns: no mobility loop needed, handled separately)
+    
+    for sq in _iter_set_bits(WN):
         x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Pawn"][y][x]
-        pst_eg += PSTS_EG["white"]["Pawn"][y][x]
-    for sq in _iter_set_bits(bb.WN):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Knight"][y][x]
-        pst_eg += PSTS_EG["white"]["Knight"][y][x]
-    for sq in _iter_set_bits(bb.WB):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Bishop"][y][x]
-        pst_eg += PSTS_EG["white"]["Bishop"][y][x]
-    for sq in _iter_set_bits(bb.WR):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Rook"][y][x]
-        pst_eg += PSTS_EG["white"]["Rook"][y][x]
-    for sq in _iter_set_bits(bb.WRi):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Right"][y][x]
-        pst_eg += PSTS_EG["white"]["Right"][y][x]
-    for sq in _iter_set_bits(bb.WQ):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["Queen"][y][x]
-        pst_eg += PSTS_EG["white"]["Queen"][y][x]
-    for sq in _iter_set_bits(bb.WK):
-        x, y = index_to_sq(sq)
-        pst_mg += PSTS_MG["white"]["King"][y][x]
-        pst_eg += PSTS_EG["white"]["King"][y][x]
-    # Black pieces
-    for sq in _iter_set_bits(bb.BP):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Pawn"][y][x]
-        pst_eg -= PSTS_EG["black"]["Pawn"][y][x]
-    for sq in _iter_set_bits(bb.BN):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Knight"][y][x]
-        pst_eg -= PSTS_EG["black"]["Knight"][y][x]
-    for sq in _iter_set_bits(bb.BB):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Bishop"][y][x]
-        pst_eg -= PSTS_EG["black"]["Bishop"][y][x]
-    for sq in _iter_set_bits(bb.BR):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Rook"][y][x]
-        pst_eg -= PSTS_EG["black"]["Rook"][y][x]
-    for sq in _iter_set_bits(bb.BRi):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Right"][y][x]
-        pst_eg -= PSTS_EG["black"]["Right"][y][x]
-    for sq in _iter_set_bits(bb.BQ):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["Queen"][y][x]
-        pst_eg -= PSTS_EG["black"]["Queen"][y][x]
-    for sq in _iter_set_bits(bb.BK):
-        x, y = index_to_sq(sq)
-        pst_mg -= PSTS_MG["black"]["King"][y][x]
-        pst_eg -= PSTS_EG["black"]["King"][y][x]
-    mg += pst_mg
-    eg += pst_eg
+        w_mob += MOBILITY_WEIGHTS["Knight"] * _count_bits(_KNIGHT_MOVES[sq] & ~occ_white)
+        # Knight Outpost
+        if is_white_knight_outpost(bb, sq):
+            bonus = EVAL_KNIGHT_OUTPOST
+            if (x, y) in center_set:
+                bonus += EVAL_KNIGHT_OUTPOST_CENTER_BONUS
+            mg += bonus
+            eg += bonus
 
-    # Bishop pair
-    if _count_bits(bb.WB) >= 2:
+    for sq in _iter_set_bits(WB):
+        x, y = index_to_sq(sq)
+        w_mob += MOBILITY_WEIGHTS["Bishop"] * _count_bits(_get_bishop_attacks(sq, occ) & ~occ_white)
+        # Bad Bishop tracker
+        if light_mask & (1 << sq):
+            w_bishops_light += 1
+        else:
+            w_bishops_dark += 1
+
+    for sq in _iter_set_bits(WR):
+        x, y = index_to_sq(sq)
+        w_mob += MOBILITY_WEIGHTS["Rook"] * _count_bits(_get_rook_attacks(sq, occ) & ~occ_white)
+        # Rook on 7th
+        if w_seventh_mask & (1 << sq):
+            w_rooks_on_7th += 1
+            
+    for sq in _iter_set_bits(WRi):
+        x, y = index_to_sq(sq)
+        right_att = _get_rook_attacks(sq, occ) | _KNIGHT_MOVES[sq]
+        w_mob += MOBILITY_WEIGHTS["Right"] * _count_bits(right_att & ~occ_white)
+        # Rook on 7th
+        if w_seventh_mask & (1 << sq):
+            w_rooks_on_7th += 1
+
+    for sq in _iter_set_bits(WQ):
+        x, y = index_to_sq(sq)
+        w_mob += MOBILITY_WEIGHTS["Queen"] * _count_bits(
+            (_get_bishop_attacks(sq, occ) | _get_rook_attacks(sq, occ)) & ~occ_white
+        )
+
+    for sq in _iter_set_bits(WK):
+        x, y = index_to_sq(sq)
+        w_mob += MOBILITY_WEIGHTS["King"] * _count_bits(_KING_MOVES[sq] & ~occ_white)
+
+    # --- Black Pieces Single Pass ---
+    # (Pawns: no mobility loop needed, handled separately)
+        
+    for sq in _iter_set_bits(BN):
+        x, y = index_to_sq(sq)
+        b_mob += MOBILITY_WEIGHTS["Knight"] * _count_bits(_KNIGHT_MOVES[sq] & ~occ_black)
+        # Knight Outpost
+        if is_black_knight_outpost(bb, sq):
+            bonus = EVAL_KNIGHT_OUTPOST
+            if (x, y) in center_set:
+                bonus += EVAL_KNIGHT_OUTPOST_CENTER_BONUS
+            mg -= bonus  # Subtract bonus for black
+            eg -= bonus
+            
+    for sq in _iter_set_bits(BB):
+        x, y = index_to_sq(sq)
+        b_mob += MOBILITY_WEIGHTS["Bishop"] * _count_bits(_get_bishop_attacks(sq, occ) & ~occ_black)
+        # Bad Bishop tracker
+        if light_mask & (1 << sq):
+            b_bishops_light += 1
+        else:
+            b_bishops_dark += 1
+
+    for sq in _iter_set_bits(BR):
+        x, y = index_to_sq(sq)
+        b_mob += MOBILITY_WEIGHTS["Rook"] * _count_bits(_get_rook_attacks(sq, occ) & ~occ_black)
+        # Rook on 7th
+        if b_seventh_mask & (1 << sq):
+            b_rooks_on_7th += 1
+            
+    for sq in _iter_set_bits(BRi):
+        x, y = index_to_sq(sq)
+        right_att = _get_rook_attacks(sq, occ) | _KNIGHT_MOVES[sq]
+        b_mob += MOBILITY_WEIGHTS["Right"] * _count_bits(right_att & ~occ_black)
+        # Rook on 7th
+        if b_seventh_mask & (1 << sq):
+            b_rooks_on_7th += 1
+
+    for sq in _iter_set_bits(BQ):
+        x, y = index_to_sq(sq)
+        b_mob += MOBILITY_WEIGHTS["Queen"] * _count_bits(
+            (_get_bishop_attacks(sq, occ) | _get_rook_attacks(sq, occ)) & ~occ_black
+        )
+
+    for sq in _iter_set_bits(BK):
+        x, y = index_to_sq(sq)
+        b_mob += MOBILITY_WEIGHTS["King"] * _count_bits(_KING_MOVES[sq] & ~occ_black)
+        
+    # --- Pawn Mobility (handled last) ---
+    w_mob += MOBILITY_WEIGHTS["Pawn"] * _count_bits(_pawn_attacks_mask(True, WP) & ~occ_white)
+    b_mob += MOBILITY_WEIGHTS["Pawn"] * _count_bits(_pawn_attacks_mask(False, BP) & ~occ_black)
+
+    # --- 3. Apply Accumulated Scores & Other Features ---
+    
+    # Add Mobility scores
+    mob_diff = w_mob - b_mob
+    mg += EVAL_MOBILITY_MG * mob_diff
+    eg += EVAL_MOBILITY_EG * mob_diff
+
+    # Bishop pair (uses pre-calculated counts)
+    if wb_count >= 2:
         mg += EVAL_BISHOP_PAIR
         eg += EVAL_BISHOP_PAIR
-    if _count_bits(bb.BB) >= 2:
+    if bb_count >= 2:
         mg -= EVAL_BISHOP_PAIR
         eg -= EVAL_BISHOP_PAIR
 
-    # Center control
+    # Center control (fast, no change needed)
     for (cx, cy) in CENTER_SQUARES:
         sq = square_index(cx, cy)
         col = _piece_on_square_color(bb, sq)
@@ -1532,21 +2398,18 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
             mg -= EVAL_CENTER_CONTROL
             eg -= EVAL_CENTER_CONTROL
 
-    # Pawn structure (cached): doubled, isolated, passed, connected passers, backward
+    # Pawn structure (cached, no change needed)
     pe_mg, pe_eg = pawn_eval(bb)
     mg += pe_mg
     eg += pe_eg
 
-    # Open/semi-open files for rook/right presence
-    w_has_rook = _count_bits(bb.WR) > 0
-    w_has_right = _count_bits(bb.WRi) > 0
-    b_has_rook = _count_bits(bb.BR) > 0
-    b_has_right = _count_bits(bb.BRi) > 0
+    # Open/semi-open files (uses pre-calculated counts)
+    w_has_rook = (wr_count + wri_count) > 0
+    b_has_rook = (br_count + bri_count) > 0
     for f in range(5):
         fmask = file_mask(f)
-        w_pawns_on_file = bool(bb.WP & fmask)
-        b_pawns_on_file = bool(bb.BP & fmask)
-        # White rook file
+        w_pawns_on_file = bool(WP & fmask)
+        b_pawns_on_file = bool(BP & fmask)
         if w_has_rook:
             if (not w_pawns_on_file) and (not b_pawns_on_file):
                 mg += EVAL_ROOK_OPEN_FILE
@@ -1554,7 +2417,6 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
             elif not w_pawns_on_file:
                 mg += EVAL_ROOK_SEMIOPEN
                 eg += EVAL_ROOK_SEMIOPEN
-        # Black rook file
         if b_has_rook:
             if (not w_pawns_on_file) and (not b_pawns_on_file):
                 mg -= EVAL_ROOK_OPEN_FILE
@@ -1562,7 +2424,9 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
             elif not b_pawns_on_file:
                 mg -= EVAL_ROOK_SEMIOPEN
                 eg -= EVAL_ROOK_SEMIOPEN
-        # White Right file
+        # (Right logic omitted for brevity, but it's the same pattern)
+        w_has_right = wri_count > 0
+        b_has_right = bri_count > 0
         if w_has_right:
             if (not w_pawns_on_file) and (not b_pawns_on_file):
                 mg += EVAL_RIGHT_OPEN_FILE
@@ -1570,7 +2434,6 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
             elif not w_pawns_on_file:
                 mg += EVAL_RIGHT_SEMIOPEN
                 eg += EVAL_RIGHT_SEMIOPEN
-        # Black Right file
         if b_has_right:
             if (not w_pawns_on_file) and (not b_pawns_on_file):
                 mg -= EVAL_RIGHT_OPEN_FILE
@@ -1579,10 +2442,10 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
                 mg -= EVAL_RIGHT_SEMIOPEN
                 eg -= EVAL_RIGHT_SEMIOPEN
 
-    # Advanced King Safety and pressure evaluation
-    # Compute king attack scores for both sides (count attackers to ring-1 zone)
-    w_k_sq = _pop_lsb_njit(bb.WK) if bb.WK else -1
-    b_k_sq = _pop_lsb_njit(bb.BK) if bb.BK else -1
+
+    # Advanced King Safety (fast, no change needed)
+    w_k_sq = _pop_lsb_njit(WK) if WK else -1
+    b_k_sq = _pop_lsb_njit(BK) if BK else -1
     w_king_score = 0
     b_king_score = 0
     if w_k_sq >= 0:
@@ -1604,25 +2467,27 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
         b_king_score += open_file_to_king_penalty(bb, kx, ky, False)
         b_king_score += same_file_pressure(bb, kx, False)
 
-    # Apply king safety as differential (black pressure increases our score)
     mg += EVAL_KING_ATTACK_SCALE * (b_king_score - w_king_score)
     eg += EVAL_KING_ATTACK_SCALE * (b_king_score - w_king_score)
 
-    # Endgame drives (KQK / KRK) using bitboards
+    # Endgame drives (now uses pre-calculated counts)
+    # Total non-king pieces for EG check
+    w_non_king = wp_count + wn_count + wb_count + wr_count + wri_count + wq_count
+    b_non_king = bp_count + bn_count + bb_count + br_count + bri_count + bq_count
+    
     def _eg_extras_for_color(white: bool) -> int:
-        opp_k = bb.BK if white else bb.WK
-        my_k = bb.WK if white else bb.BK
+        opp_k = BK if white else WK
+        my_k = WK if white else BK
         if opp_k == 0:
             return 0
         ex, ey = index_to_sq(_pop_lsb_njit(opp_k))
-        q_count = _count_bits(bb.WQ if white else bb.BQ)
-        r_count = _count_bits(bb.WR if white else bb.BR)
-        ri_count = _count_bits(bb.WRi if white else bb.BRi)
-        opp_non_king = (
-            _count_bits((bb.BP | bb.BN | bb.BB | bb.BR | bb.BRi | bb.BQ))
-            if white
-            else _count_bits((bb.WP | bb.WN | bb.WB | bb.WR | bb.WRi | bb.WQ))
-        )
+        
+        # Use pre-calculated counts
+        q_count = wq_count if white else bq_count
+        r_count = wr_count if white else br_count
+        ri_count = wri_count if white else bri_count
+        opp_non_king = b_non_king if white else w_non_king
+
         is_kqk = (q_count == 1) and ((r_count + ri_count) == 0) and (opp_non_king == 0)
         is_krk = (q_count == 0) and ((r_count + ri_count) >= 1) and (opp_non_king == 0)
         extra = 0
@@ -1636,13 +2501,13 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
             extra += edge_w * (2 - _edge_distance(ex, ey))
             extra += corner_w * (2 - _corner_distance(ex, ey))
             if is_krk:
-                rr_mask = (bb.WR if white else bb.BR) | (bb.WRi if white else bb.BRi)
+                rr_mask = (WR if white else BR) | (WRi if white else BRi)
                 for rsq in _iter_set_bits(rr_mask):
                     rx, ry = index_to_sq(rsq)
                     if rx == ex or ry == ey:
                         extra += EVAL_EG_ROOK_CUTOFF
             if is_kqk and my_k:
-                q_bb = bb.WQ if white else bb.BQ
+                q_bb = WQ if white else BQ
                 if q_bb:
                     qx, qy = index_to_sq(_pop_lsb_njit(q_bb))
                     kx, ky = index_to_sq(_pop_lsb_njit(my_k))
@@ -1654,11 +2519,7 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
 
     eg += _eg_extras_for_color(True) - _eg_extras_for_color(False)
 
-    # Rooks (and 'Right') on the 7th rank (y=1 for White, y=3 for Black)
-    w_seventh_mask = rank_mask(1)
-    b_seventh_mask = rank_mask(3)
-    w_rooks_on_7th = _count_bits((bb.WR | bb.WRi) & w_seventh_mask)
-    b_rooks_on_7th = _count_bits((bb.BR | bb.BRi) & b_seventh_mask)
+    # Rooks on the 7th rank (uses accumulated counts)
     if w_rooks_on_7th:
         mg += EVAL_ROOK_ON_7TH * w_rooks_on_7th
         eg += EVAL_ROOK_ON_7TH * w_rooks_on_7th
@@ -1671,163 +2532,115 @@ def evaluate_bb_state(bb: "BitboardState") -> float:
         if b_rooks_on_7th >= 2:
             mg -= EVAL_ROOKS_ON_7TH
             eg -= EVAL_ROOKS_ON_7TH
-    # Extra if enemy king is on back rank
-    if bb.BK:
-        bkx, bky = index_to_sq(_pop_lsb_njit(bb.BK))
+            
+    # Extra if enemy king is on back rank (no change)
+    if BK:
+        bkx, bky = index_to_sq(_pop_lsb_njit(BK))
         if bky == 0 and w_rooks_on_7th:
             mg += EVAL_ROOK_ON_7TH_VS_KING * w_rooks_on_7th
             eg += EVAL_ROOK_ON_7TH_VS_KING * w_rooks_on_7th
-    if bb.WK:
-        wkx, wky = index_to_sq(_pop_lsb_njit(bb.WK))
+    if WK:
+        wkx, wky = index_to_sq(_pop_lsb_njit(WK))
         if wky == 4 and b_rooks_on_7th:
             mg -= EVAL_ROOK_ON_7TH_VS_KING * b_rooks_on_7th
             eg -= EVAL_ROOK_ON_7TH_VS_KING * b_rooks_on_7th
 
-    # Knight outposts (protected by own pawn; cannot be attacked by enemy pawn)
-    center_set = set(CENTER_SQUARES)
-    for sq in _iter_set_bits(bb.WN):
-        if is_white_knight_outpost(bb, sq):
-            x, y = index_to_sq(sq)
-            bonus = EVAL_KNIGHT_OUTPOST
-            if (x, y) in center_set:
-                bonus += EVAL_KNIGHT_OUTPOST_CENTER_BONUS
-            mg += bonus
-            eg += bonus
-    for sq in _iter_set_bits(bb.BN):
-        if is_black_knight_outpost(bb, sq):
-            x, y = index_to_sq(sq)
-            bonus = EVAL_KNIGHT_OUTPOST
-            if (x, y) in center_set:
-                bonus += EVAL_KNIGHT_OUTPOST_CENTER_BONUS
-            mg -= bonus
-            eg -= bonus
+    # Knight outposts (now handled in single pass)
 
-    # Good vs Bad bishops (penalize bishops with many own pawns on same color)
-    light_mask = 0
-    dark_mask = 0
-    for ry in range(5):
-        for rx in range(5):
-            sqi = square_index(rx, ry)
-            if ((rx + ry) & 1) == 0:
-                light_mask |= 1 << sqi
-            else:
-                dark_mask |= 1 << sqi
-    wp_light = _count_bits(bb.WP & light_mask)
-    wp_dark = _count_bits(bb.WP & dark_mask)
-    bp_light = _count_bits(bb.BP & light_mask)
-    bp_dark = _count_bits(bb.BP & dark_mask)
-    for sq in _iter_set_bits(bb.WB):
-        pen = wp_light if (light_mask & (1 << sq)) else wp_dark
-        mg += EVAL_BAD_BISHOP_PENALTY_PER_PAWN * pen
-        eg += EVAL_BAD_BISHOP_PENALTY_PER_PAWN * pen
-    for sq in _iter_set_bits(bb.BB):
-        pen = bp_light if (light_mask & (1 << sq)) else bp_dark
-        mg -= EVAL_BAD_BISHOP_PENALTY_PER_PAWN * pen
-        eg -= EVAL_BAD_BISHOP_PENALTY_PER_PAWN * pen
+    # Good vs Bad bishops (uses accumulated counts)
+    mg += EVAL_BAD_BISHOP_PENALTY_PER_PAWN * (w_bishops_light * wp_light_count + w_bishops_dark * wp_dark_count)
+    eg += EVAL_BAD_BISHOP_PENALTY_PER_PAWN * (w_bishops_light * wp_light_count + w_bishops_dark * wp_dark_count)
+    mg -= EVAL_BAD_BISHOP_PENALTY_PER_PAWN * (b_bishops_light * bp_light_count + b_bishops_dark * bp_dark_count)
+    eg -= EVAL_BAD_BISHOP_PENALTY_PER_PAWN * (b_bishops_light * bp_light_count + b_bishops_dark * bp_dark_count)
 
-    # Mobility by attacked squares (fast proxy)
-    def _pawn_attacks_mask(is_white: bool, pawns_bb: int) -> int:
-        mask = 0
-        for sq in _iter_set_bits(pawns_bb):
-            x, y = index_to_sq(sq)
-            if is_white:
-                ny = y - 1
-                if ny >= 0:
-                    if x - 1 >= 0:
-                        mask |= 1 << square_index(x - 1, ny)
-                    if x + 1 < 5:
-                        mask |= 1 << square_index(x + 1, ny)
-            else:
-                ny = y + 1
-                if ny < 5:
-                    if x - 1 >= 0:
-                        mask |= 1 << square_index(x - 1, ny)
-                    if x + 1 < 5:
-                        mask |= 1 << square_index(x + 1, ny)
-        return mask
+    # Mobility (now handled in single pass)
 
-    occ = bb.occ_all
-    # White mobility
-    w_mob = 0
-    for sq in _iter_set_bits(bb.WN):
-        w_mob += MOBILITY_WEIGHTS["Knight"] * _count_bits(_KNIGHT_MOVES[sq] & ~bb.occ_white)
-    for sq in _iter_set_bits(bb.WB):
-        w_mob += MOBILITY_WEIGHTS["Bishop"] * _count_bits(_get_bishop_attacks(sq, occ) & ~bb.occ_white)
-    for sq in _iter_set_bits(bb.WR):
-        w_mob += MOBILITY_WEIGHTS["Rook"] * _count_bits(_get_rook_attacks(sq, occ) & ~bb.occ_white)
-    for sq in _iter_set_bits(bb.WRi):
-        # Right mobility: rook OR knight patterns
-        right_att = _get_rook_attacks(sq, occ) | _KNIGHT_MOVES[sq]
-        w_mob += MOBILITY_WEIGHTS["Right"] * _count_bits(right_att & ~bb.occ_white)
-    for sq in _iter_set_bits(bb.WQ):
-        w_mob += MOBILITY_WEIGHTS["Queen"] * _count_bits(
-            (_get_bishop_attacks(sq, occ) | _get_rook_attacks(sq, occ)) & ~bb.occ_white
-        )
-    for sq in _iter_set_bits(bb.WK):
-        w_mob += MOBILITY_WEIGHTS["King"] * _count_bits(_KING_MOVES[sq] & ~bb.occ_white)
-    w_mob += MOBILITY_WEIGHTS["Pawn"] * _count_bits(_pawn_attacks_mask(True, bb.WP) & ~bb.occ_white)
-
-    # Black mobility
-    b_mob = 0
-    for sq in _iter_set_bits(bb.BN):
-        b_mob += MOBILITY_WEIGHTS["Knight"] * _count_bits(_KNIGHT_MOVES[sq] & ~bb.occ_black)
-    for sq in _iter_set_bits(bb.BB):
-        b_mob += MOBILITY_WEIGHTS["Bishop"] * _count_bits(_get_bishop_attacks(sq, occ) & ~bb.occ_black)
-    for sq in _iter_set_bits(bb.BR):
-        b_mob += MOBILITY_WEIGHTS["Rook"] * _count_bits(_get_rook_attacks(sq, occ) & ~bb.occ_black)
-    for sq in _iter_set_bits(bb.BRi):
-        right_att = _get_rook_attacks(sq, occ) | _KNIGHT_MOVES[sq]
-        b_mob += MOBILITY_WEIGHTS["Right"] * _count_bits(right_att & ~bb.occ_black)
-    for sq in _iter_set_bits(bb.BQ):
-        b_mob += MOBILITY_WEIGHTS["Queen"] * _count_bits(
-            (_get_bishop_attacks(sq, occ) | _get_rook_attacks(sq, occ)) & ~bb.occ_black
-        )
-    for sq in _iter_set_bits(bb.BK):
-        b_mob += MOBILITY_WEIGHTS["King"] * _count_bits(_KING_MOVES[sq] & ~bb.occ_black)
-    b_mob += MOBILITY_WEIGHTS["Pawn"] * _count_bits(_pawn_attacks_mask(False, bb.BP) & ~bb.occ_black)
-
-    mob_diff = w_mob - b_mob
-    mg += EVAL_MOBILITY_MG * mob_diff
-    eg += EVAL_MOBILITY_EG * mob_diff
-
-    # Phase blend
+    # === 4. Phase Blend ===
     phase = _phase_from_bb(bb)
     mg_w = phase / MAX_PHASE
     eg_w = (MAX_PHASE - phase) / MAX_PHASE
     blended = mg * mg_w + eg * eg_w
+    
     return blended if bb.side_to_move == 0 else -blended
 
 
 _IDX_TO_NAME = {0: "Pawn", 1: "Knight", 2: "Bishop", 3: "Rook", 4: "Queen", 5: "King", 6: "Right"}
 
+def fast_static_eval(bb: "BitboardState") -> float:
+    """
+    Cheap static eval using only incremental Material+PST blend.
+    """
+    phase = _phase_from_bb(bb)
+    mg_w = phase / MAX_PHASE
+    eg_w = (MAX_PHASE - phase) / MAX_PHASE
+    val = bb.mg_mat_pst * mg_w + bb.eg_mat_pst * eg_w
+    return val if bb.side_to_move == 0 else -val
 
 def score_move_internal(
     bb: "BitboardState",
-    m: "BBMove",
+    m,
     var: Dict[str, Any],
     ply: int,
     tt_move_tuple: Optional[Tuple[int, int, int, int]],
 ) -> int:
     """
-    Heuristic scoring for move ordering within bitboard search.
+    Assigns a heuristic score to a move for move ordering purposes.
+    
+    Move ordering is critical for alpha-beta search efficiency. This function
+    assigns scores to moves so they can be sorted, with higher-scored moves
+    searched first. This maximizes beta cutoffs and improves search performance.
+    
+    Args:
+        bb: Current BitboardState (used for SEE calculation on captures).
+        m: The BBMove to score.
+        var: Search state dictionary containing:
+            - killers: List of killer moves per ply
+            - countermoves: Dictionary mapping previous move to countermove
+            - history: Dictionary mapping moves to history scores
+            - cont_history: Nested dictionary for continuation history
+            - _prev_move_tuple: Previous move for continuation history lookup
+        ply: Current search ply (for killer move indexing).
+        tt_move_tuple: Optional move tuple from transposition table. If the
+            current move matches this, it gets the highest priority.
+    
+    Returns:
+        An integer score where higher values indicate moves that should be
+        searched first:
+        - 1,000,000: TT move (highest priority)
+        - 100,000+: Captures with MVV-LVA and SEE bonuses
+        - 90,000: Killer moves (first killer at current ply)
+        - 85,000: Countermoves (response to previous move)
+        - 0+: History scores (quiet moves with history/continuation bonuses)
+    
+    Notes:
+        - Captures: Uses MVV-LVA (Most Valuable Victim - Least Valuable Attacker)
+          plus SEE (Static Exchange Evaluation) for accurate capture ordering
+        - Quiet moves: Uses history heuristic and continuation history for learning
+        - Killers: Moves that caused beta cutoffs at the same ply
+        - Countermoves: Good responses to specific opponent moves
     """
     sx, sy, dx, dy = bbmove_to_tuple_xy(m)
+    if isinstance(m, int):
+        from_sq, to_sq, piece_type, captured_type, promo = unpack_move(m)
+    else:
+        from_sq, to_sq = m.from_sq, m.to_sq
+        piece_type, captured_type, promo = m.piece_type, m.captured_type, m.promo
     move_tuple = (sx, sy, dx, dy)
 
     if tt_move_tuple is not None and move_tuple == tt_move_tuple:
         return 1_000_000
 
-    is_capture = m.captured_type >= 0
+    is_capture = captured_type >= 0
     if is_capture:
         # MVV-LVA + SEE
-        victim_name = _IDX_TO_NAME.get(m.captured_type, "Pawn")
-        aggressor_name = _IDX_TO_NAME.get(m.piece_type, "Pawn")
+        victim_name = _IDX_TO_NAME.get(captured_type, "Pawn")
+        aggressor_name = _IDX_TO_NAME.get(piece_type, "Pawn")
         vval = PIECE_VALUES_MG.get(victim_name, 0)
         aval = PIECE_VALUES_MG.get(aggressor_name, 0)
         base = 100_000 + (vval * 10) - aval
         try:
             occ = bb.occ_all
-            tgt_sq = m.to_sq
+            tgt_sq = to_sq
             stm_white = (bb.side_to_move == 0)
             all_bbs_list = [
                 bb.WP, bb.WN, bb.WB, bb.WR, bb.WQ, bb.WK, bb.WRi,
@@ -1876,6 +2689,40 @@ def quiescence_search_bb(
     var: Dict[str, Any],
     ply: int = 0,
 ) -> float:
+    """
+    Performs quiescence search to resolve tactical sequences.
+    
+    Quiescence search extends the search beyond the main search depth to resolve
+    "unquiet" positions - those with pending captures, checks, or other tactical
+    moves. This prevents the horizon effect where the engine misses tactics
+    just beyond the search depth.
+    
+    Args:
+        bb: Current BitboardState representing the position to evaluate.
+        depth: Remaining quiescence depth (typically 3-5 plies). Decrements each
+            recursive call until reaching 0.
+        alpha: Lower bound of the alpha-beta window (best score for maximizing player).
+        beta: Upper bound of the alpha-beta window (best score for minimizing player).
+        var: Search state dictionary containing:
+            - Time management flags (_start_t, _soft_time_s, _hard_time_s)
+            - Zobrist hasher for incremental updates
+            - Flags for search heuristics (qsee for SEE pruning)
+            - Node counters (_qnodes)
+        ply: Current search ply (distance from root). Used for mate distance scoring.
+    
+    Returns:
+        The evaluated score for the position from the perspective of the side-to-move.
+        Positive values favor the side-to-move, negative values favor the opponent.
+        Mate scores are adjusted by ply distance.
+    
+    Notes:
+        - Stand-pat: If static evaluation is already >= beta, returns beta (beta cutoff)
+        - Delta pruning: Skips captures if stand-pat + piece_value < alpha
+        - SEE pruning: Skips losing captures (SEE < 0) when not in check
+        - Generates all moves when in check, captures-only otherwise
+        - Handles checkmate and stalemate terminal conditions
+        - Respects time limits and raises exceptions on timeout
+    """
     # Time checks
     try:
         start_t = var.get("_start_t")
@@ -1904,12 +2751,12 @@ def quiescence_search_bb(
         checkers_bb, _, _ = calculate_legality_masks(bb, ksq, stm_white)
         in_check = (checkers_bb != 0)
 
-    any_moves = generate_legal_moves(bb, captures_only=False)
-    if not any_moves:
-        if in_check:
+    if in_check:
+        moves = generate_legal_moves(bb, captures_only=False)
+        if not moves:
             return -MATE_VALUE + ply
-        contempt = float(var.get("contempt", 0.0))
-        return contempt
+    else:
+        moves = None
 
     stand_pat = evaluate_bb_state(bb)
     if stand_pat >= beta:
@@ -1924,30 +2771,37 @@ def quiescence_search_bb(
     if (not in_check) and (stand_pat + 900 < alpha):
         return alpha
 
-    moves = generate_legal_moves(bb, captures_only=(not in_check))
-    # Order captures by MVV-LVA via score_move_internal with deterministic tie-breaker
-    scored_moves = []
-    for m in moves:
-        s = score_move_internal(bb, m, var, 99, None)
-        sx, sy, dx, dy = bbmove_to_tuple_xy(m)
-        scored_moves.append((s, (sx, sy, dx, dy), m))
-    scored_moves.sort(key=lambda x: (-x[0], x[1]))
+    if moves is None:
+        moves = generate_legal_moves(bb, captures_only=True)
+    # Order captures by MVV-LVA (and SEE via score_move_internal)
+    moves.sort(key=lambda m: score_move_internal(bb, m, var, 99, None), reverse=True)
 
-    for _, __, m in scored_moves:
-        child = apply_bb_move(bb, m, var.get("zobrist"))
-        # SEE gating for captures under time pressure
-        if m.captured_type >= 0 and var.get("flags", {}).get("qsee", True) and not in_check:
-            vname = _IDX_TO_NAME.get(m.captured_type, "Pawn")
+    for m in moves:
+        # SEE gating for captures under time pressure (before applying move)
+        if isinstance(m, int):
+            _fs, _ts, _pt, _ct, _pr = unpack_move(m)
+        else:
+            _fs, _ts, _pt, _ct, _pr = m.from_sq, m.to_sq, m.piece_type, m.captured_type, m.promo
+        if _ct >= 0 and var.get("flags", {}).get("qsee", True) and not in_check:
+            vname = _IDX_TO_NAME.get(_ct, "Pawn")
             vval = PIECE_VALUES_MG.get(vname, 0)
             all_bbs_list = [
                 bb.WP, bb.WN, bb.WB, bb.WR, bb.WQ, bb.WK, bb.WRi,
                 bb.BP, bb.BN, bb.BB, bb.BR, bb.BQ, bb.BK, bb.BRi,
             ]
-            see_gain = bb_see_njit(int(m.to_sq), bool(bb.side_to_move == 0), int(bb.occ_all), int(vval), all_bbs_list.copy())
+            see_gain = bb_see_njit(int(_ts), bool(bb.side_to_move == 0), int(bb.occ_all), int(vval), all_bbs_list.copy())
             if see_gain < 0:
                 continue
 
-        score = -quiescence_search_bb(child, depth - 1, -beta, -alpha, var, ply=ply + 1)
+        if var.get("flags", {}).get("inplace", False):
+            undo_ip = make_move_inplace(bb, m, var.get("zobrist"))
+            try:
+                score = -quiescence_search_bb(bb, depth - 1, -beta, -alpha, var, ply=ply + 1)
+            finally:
+                unmake_move_inplace(bb, undo_ip, var.get("zobrist"))
+        else:
+            child = apply_bb_move(bb, m, var.get("zobrist"))
+            score = -quiescence_search_bb(child, depth - 1, -beta, -alpha, var, ply=ply + 1)
         if score >= beta:
             return beta
         if score > alpha:
@@ -1963,20 +2817,74 @@ def negamax_bb(
     var: Dict[str, Any],
     ply: int,
 ) -> Tuple[float, Optional["BBMove"]]:
+    """
+    Performs negamax alpha-beta search with various optimizations.
+    
+    This is the core search function implementing a negamax variant of alpha-beta
+    pruning. It searches the game tree to a specified depth, using numerous
+    optimizations including transposition tables, null-move pruning, late move
+    reduction, razoring, futility pruning, and more.
+    
+    Args:
+        bb: Current BitboardState representing the position to search.
+        depth: Remaining search depth in plies. When depth reaches 0, calls
+            quiescence_search_bb() to resolve tactical sequences.
+        alpha: Lower bound of the alpha-beta window (best score for maximizing player).
+            Updated during search as better moves are found.
+        beta: Upper bound of the alpha-beta window (best score for minimizing player).
+            Used for beta cutoffs when a move is too good for the opponent.
+        var: Search state dictionary containing:
+            - transposition_table: TT for position caching
+            - zobrist: Zobrist hasher for incremental updates
+            - history, killers, countermoves: Move ordering heuristics
+            - flags: Search heuristic toggles (nmp, lmr, futility, qsee)
+            - Time management flags and node counters
+        ply: Current search ply (distance from root). Used for:
+            - Repetition detection
+            - Mate distance adjustment
+            - Killer move indexing
+    
+    Returns:
+        A tuple (score, best_move) where:
+        - score: The best score found for this position from side-to-move's perspective.
+          Positive favors side-to-move, negative favors opponent. Mate scores adjusted by ply.
+        - best_move: The BBMove that achieves the best score, or None if no moves
+          or if the position is terminal.
+    
+    Notes:
+        - Transposition table: Probes TT for cached results, stores new results
+        - Repetition: Detects 3-fold repetition and returns contempt score
+        - Razoring: At low depths, if eval + margin <= alpha, skip to quiescence
+        - Futility pruning: At depth 1, skip if eval + margin <= alpha
+        - Extended futility: At depth 3-5, skip quiet moves if eval + margin <= alpha
+        - Null-move pruning: Try null move, if score >= beta, assume position is good
+        - Late move reduction: Reduce depth for late quiet moves, re-search if promising
+        - Check extension: Extend search by 1 ply if move gives check
+        - Move ordering: TT move first, then captures (MVV-LVA+SEE), then killers/history
+        - Updates history, killers, and countermoves on beta cutoffs
+    """
     var["_nodes"] = var.get("_nodes", 0) + 1
 
     # Repetition handling using position keys
-    var.setdefault("_bb_rep_stack", [])
+    rep_counts = var.setdefault("_bb_rep_counts", {})
     if ply == 0:
-        var["_bb_rep_stack"] = list(var.get("_bb_game_hist", []))
-    var["_bb_rep_stack"].append(bb.zkey)
+        rep_counts.clear()
+        for k in var.get("_bb_game_hist", []):
+            rep_counts[k] = rep_counts.get(k, 0) + 1
+
+    rep_counts[bb.zkey] = rep_counts.get(bb.zkey, 0) + 1
     try:
-        if var.get("_bb_rep_stack", []).count(bb.zkey) >= 3:
+        if rep_counts[bb.zkey] >= 3:
             contempt = float(var.get("contempt", 0.0))
             sc = contempt if (bb.side_to_move == 0) else -contempt
             return sc, None
-    except Exception:
-        pass
+    finally:
+        # Balance our increment even if we return early above
+        c = rep_counts.get(bb.zkey, 0) - 1
+        if c > 0:
+            rep_counts[bb.zkey] = c
+        else:
+            rep_counts.pop(bb.zkey, None)
 
     # Time checks
     try:
@@ -2026,14 +2934,14 @@ def negamax_bb(
     is_pv_node = (alpha != -INF and beta != INF)
 
     # Determine check status for current node
-    # Determine check status for current node
     stm_white = (bb.side_to_move == 0)
     kbb = bb.WK if stm_white else bb.BK
     ksq = _pop_lsb_njit(kbb) if kbb else -1
     in_check = False
+    legality_info = None
     if ksq >= 0:
-        checkers_bb, _, _ = calculate_legality_masks(bb, ksq, stm_white)
-        in_check = (checkers_bb != 0)
+        legality_info = calculate_legality_masks(bb, ksq, stm_white)
+        in_check = (legality_info[0] != 0)  # legality_info[0] is checkers_bb
     # EGTB probe (stub) for low-piece positions
     try:
         piece_count = _count_bits(bb.occ_all)
@@ -2057,14 +2965,14 @@ def negamax_bb(
             except Exception:
                 out_score = float(var.get("contempt", 0.0))
             # Store and return
-            tt.store(bb.zkey, depth, out_score, TT_FLAG_EXACT, None)
+            tt.store(bb.zkey, depth, out_score, TT_FLAG_EXACT, None, int(var.get("game_ply", 0)))
             return out_score, None
 
     # Razoring and extended futility (only if not in check)
     static_eval: Optional[float] = None
     if not in_check and ply > 0 and (not is_pv_node):
         if depth in (1, 2):
-            static_eval = evaluate_bb_state(bb)
+            static_eval = fast_static_eval(bb)
             margin = RAZOR_MARGIN.get(depth, 0)
             if static_eval + margin <= alpha:
                 q = quiescence_search_bb(bb, 3, alpha, beta, var, ply=ply)
@@ -2072,7 +2980,7 @@ def negamax_bb(
 
     # Futility pruning lite
     if depth <= 1 and not in_check and ply > 0 and (not is_pv_node):
-        static_eval = evaluate_bb_state(bb)
+        static_eval = fast_static_eval(bb)
         if static_eval + 120 * depth <= alpha:
             return static_eval, None
 
@@ -2080,19 +2988,27 @@ def negamax_bb(
     skip_quiet = False
     if not in_check and 3 <= depth <= 5 and ply > 0 and (not is_pv_node):
         if static_eval is None:
-            static_eval = evaluate_bb_state(bb)
+            static_eval = fast_static_eval(bb)
         fut_m = FUTILITY_MARGIN.get(depth, 0)
         if static_eval + fut_m <= alpha:
             skip_quiet = True
 
+    # Reverse Futility Pruning: if already clearly >= beta, skip quiets (captures/checks still searched)
+    rfp_skip_quiet = False
+    if var.get("flags", {}).get("rfp", True) and (not in_check) and ply > 0 and (not is_pv_node) and (1 <= depth <= 5):
+        if static_eval is None:
+            static_eval = fast_static_eval(bb)
+        rfp_margin = RFP_MARGIN.get(depth, RFP_MARGIN[5])
+        if static_eval - rfp_margin >= beta:
+            rfp_skip_quiet = True
+
     # Move gen and ordering
-    all_moves = generate_legal_moves(bb, captures_only=False)
+    all_moves = generate_legal_moves(bb, captures_only=False, legality_info=legality_info)
     if not all_moves:
         # No legal moves: stalemate or checkmate -> loss per board_rules
         return (-MATE_VALUE + ply), None
-
-    scored = [(score_move_internal(bb, m, var, ply, hash_move_tuple), m) for m in all_moves]
-    scored.sort(key=lambda x: x[0], reverse=True)
+    flags = var.get("flags", {})
+    all_moves.sort(key=lambda m: score_move_internal(bb, m, var, ply, hash_move_tuple), reverse=True)
 
     best_score = -INF
     best_move = None
@@ -2112,76 +3028,146 @@ def negamax_bb(
             occ_white=bb.occ_white, occ_black=bb.occ_black, occ_all=bb.occ_all,
             side_to_move=(1 if bb.side_to_move == 0 else 0),
             zkey=(z.toggle_black_to_move(bb.zkey) if z else bb.zkey),
+            mg_mat_pst=bb.mg_mat_pst,
+            eg_mat_pst=bb.eg_mat_pst,
         )
         s, _ = negamax_bb(null_child, depth - 1 - R, -beta, -beta + 1, var, ply + 1)
         score_nmp = -s
         if score_nmp >= beta:
             return beta, None
 
-    for i, (_, m) in enumerate(scored):
+    for i, m in enumerate(all_moves):
         # Prepare prev move tuple for continuation history in child
         pre_tuple = bbmove_to_tuple_xy(m)
-
-        child, undo = make_move(bb, m, var.get("zobrist"))
-        # Check extension: extend one ply if this move gives check to the opponent,
-        # but avoid runaway when current node is already in check.
-        child_stm_white = (child.side_to_move == 0)
-        child_kbb = child.WK if child_stm_white else child.BK
-        child_ksq = _pop_lsb_njit(child_kbb) if child_kbb else -1
-        child_in_check = False
-        if child_ksq >= 0:
-            c_checkers, _, _ = calculate_legality_masks(child, child_ksq, child_stm_white)
-            child_in_check = (c_checkers != 0)
-        extend = (not in_check) and child_in_check
-        next_depth = max(0, depth - 1 + (1 if extend else 0))
-
-        # Extended futility: skip non-capture, non-promo, non-checks if flagged
-        if skip_quiet and (m.captured_type < 0) and (m.promo == 0) and (not child_in_check):
-            bb = unmake_move(child, undo)
-            continue
-
-        # Track previous move tuple for child node (continuation history)
-        old_prev = var.get("_prev_move_tuple")
-        var["_prev_move_tuple"] = pre_tuple
-
-        # Principal variation search
-        if i == 0:
-            s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
-            score = -s
+        if isinstance(m, int):
+            _fs, _ts, _pt, _ct, _pr = unpack_move(m)
         else:
-            # Late Move Reductions for quiet moves
-            do_lmr = (
-                var.get("flags", {}).get("lmr", True)
-                and (m.captured_type < 0)
-                and (m.promo == 0)
-                and (not in_check)
-                and (not child_in_check)
-                and depth >= 3
-                and i > 3
-            )
-            if do_lmr:
-                r = 1 + (1 if i > 8 else 0) + (1 if depth > 5 else 0)
-                red_depth = max(0, next_depth - r)
-                s, _ = negamax_bb(child, red_depth, -(alpha + 1), -alpha, var, ply + 1)
-                score = -s
-                if score > alpha:
-                    s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
-                    score = -s
-            else:
-                s, _ = negamax_bb(child, next_depth, -(alpha + 1), -alpha, var, ply + 1)
-                score = -s
-                if score > alpha and score < beta:
-                    s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
-                    score = -s
+            _fs, _ts, _pt, _ct, _pr = m.from_sq, m.to_sq, m.piece_type, m.captured_type, m.promo
 
-        # Restore previous move tuple after child search
-        if old_prev is None:
+        if flags.get("inplace", False):
+            undo_ip = make_move_inplace(bb, m, var.get("zobrist"))
+            # Check extension and child-in-check on mutated bb
+            child_stm_white = (bb.side_to_move == 0)
+            child_kbb = bb.WK if child_stm_white else bb.BK
+            child_ksq = _pop_lsb_njit(child_kbb) if child_kbb else -1
+            child_in_check = False
+            if child_ksq >= 0:
+                c_checkers, _, _ = calculate_legality_masks(bb, child_ksq, child_stm_white)
+                child_in_check = (c_checkers != 0)
+            extend = (not in_check) and child_in_check
+            next_depth = max(0, depth - 1 + (1 if extend else 0))
+
+            # Skip non-capture, non-promo, non-checks if flagged (extended futility or RFP)
+            if (skip_quiet or rfp_skip_quiet) and (_ct < 0) and (_pr == 0) and (not child_in_check):
+                unmake_move_inplace(bb, undo_ip, var.get("zobrist"))
+                continue
+
+            # Track previous move tuple for child node (continuation history)
+            old_prev = var.get("_prev_move_tuple")
+            var["_prev_move_tuple"] = pre_tuple
+
             try:
-                del var["_prev_move_tuple"]
-            except Exception:
-                var["_prev_move_tuple"] = None
+                # Principal variation search on mutated bb
+                if i == 0:
+                    s, _ = negamax_bb(bb, next_depth, -beta, -alpha, var, ply + 1)
+                    score = -s
+                else:
+                    # Late Move Reductions for quiet moves
+                    do_lmr = (
+                        flags.get("lmr", True)
+                        and (_ct < 0)
+                        and (_pr == 0)
+                        and (not in_check)
+                        and (not child_in_check)
+                        and depth >= 3
+                        and i > 3
+                    )
+                    if do_lmr:
+                        r = 1 + (1 if i > 8 else 0) + (1 if depth > 5 else 0)
+                        red_depth = max(0, next_depth - r)
+                        s, _ = negamax_bb(bb, red_depth, -(alpha + 1), -alpha, var, ply + 1)
+                        score = -s
+                        if score > alpha:
+                            s, _ = negamax_bb(bb, next_depth, -beta, -alpha, var, ply + 1)
+                            score = -s
+                    else:
+                        s, _ = negamax_bb(bb, next_depth, -(alpha + 1), -alpha, var, ply + 1)
+                        score = -s
+                        if score > alpha and score < beta:
+                            s, _ = negamax_bb(bb, next_depth, -beta, -alpha, var, ply + 1)
+                            score = -s
+            finally:
+                unmake_move_inplace(bb, undo_ip, var.get("zobrist"))
+
+            # Restore previous move tuple after child search
+            if old_prev is None:
+                try:
+                    del var["_prev_move_tuple"]
+                except Exception:
+                    var["_prev_move_tuple"] = None
+            else:
+                var["_prev_move_tuple"] = old_prev
         else:
-            var["_prev_move_tuple"] = old_prev
+            child, undo = make_move(bb, m, var.get("zobrist"))
+            # Check extension: extend one ply if this move gives check to the opponent,
+            # but avoid runaway when current node is already in check.
+            child_stm_white = (child.side_to_move == 0)
+            child_kbb = child.WK if child_stm_white else child.BK
+            child_ksq = _pop_lsb_njit(child_kbb) if child_kbb else -1
+            child_in_check = False
+            if child_ksq >= 0:
+                c_checkers, _, _ = calculate_legality_masks(child, child_ksq, child_stm_white)
+                child_in_check = (c_checkers != 0)
+            extend = (not in_check) and child_in_check
+            next_depth = max(0, depth - 1 + (1 if extend else 0))
+
+            # Skip non-capture, non-promo, non-checks if flagged (extended futility or RFP)
+            if (skip_quiet or rfp_skip_quiet) and (_ct < 0) and (_pr == 0) and (not child_in_check):
+                bb = unmake_move(child, undo)
+                continue
+
+            # Track previous move tuple for child node (continuation history)
+            old_prev = var.get("_prev_move_tuple")
+            var["_prev_move_tuple"] = pre_tuple
+
+            # Principal variation search
+            if i == 0:
+                s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
+                score = -s
+            else:
+                # Late Move Reductions for quiet moves
+                do_lmr = (
+                    flags.get("lmr", True)
+                    and (_ct < 0)
+                    and (_pr == 0)
+                    and (not in_check)
+                    and (not child_in_check)
+                    and depth >= 3
+                    and i > 3
+                )
+                if do_lmr:
+                    r = 1 + (1 if i > 8 else 0) + (1 if depth > 5 else 0)
+                    red_depth = max(0, next_depth - r)
+                    s, _ = negamax_bb(child, red_depth, -(alpha + 1), -alpha, var, ply + 1)
+                    score = -s
+                    if score > alpha:
+                        s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
+                        score = -s
+                else:
+                    s, _ = negamax_bb(child, next_depth, -(alpha + 1), -alpha, var, ply + 1)
+                    score = -s
+                    if score > alpha and score < beta:
+                        s, _ = negamax_bb(child, next_depth, -beta, -alpha, var, ply + 1)
+                        score = -s
+
+            # Restore previous move tuple after child search
+            if old_prev is None:
+                try:
+                    del var["_prev_move_tuple"]
+                except Exception:
+                    var["_prev_move_tuple"] = None
+            else:
+                var["_prev_move_tuple"] = old_prev
 
         if score > best_score:
             best_score = score
@@ -2197,7 +3183,7 @@ def negamax_bb(
                 if pre_tuple != killers[0]:
                     killers[1] = killers[0]
                     killers[0] = pre_tuple
-            if m.captured_type >= 0:
+            if _ct >= 0:
                 ch = var.setdefault("capture_history", {})
                 ch[pre_tuple] = ch.get(pre_tuple, 0) + depth**2
             else:
@@ -2229,45 +3215,36 @@ def negamax_bb(
             score_to_store = best_score - ply
     except Exception:
         pass
-    tt.store(bb.zkey, depth, score_to_store, tt_flag, best_tuple)
+    tt.store(bb.zkey, depth, score_to_store, tt_flag, best_tuple, int(var.get("game_ply", 0)))
     return best_score, best_move
-
-def clone_and_apply_move(board, piece, move_opt):
-    """Clones the board, maps (piece, move_opt) to the clone, and applies it.
-
-    Returns (new_board, mapped_piece, mapped_move) or (None, None, None) on failure.
-    """
-    try:
-        new_board = board.clone()
-    except Exception as e:
-        print(f"Error cloning board: {e}")
-        return None, None, None
-
-    try:
-        _, mapped_piece, mapped_move = copy_piece_move(new_board, piece, move_opt)
-        if mapped_piece and mapped_move:
-            mapped_piece.move(mapped_move)
-            return new_board, mapped_piece, mapped_move
-    except Exception as e:
-        print(f"Error copying piece move: {e}")
-    return None, None, None
-
 
 def bb_from_board(board) -> BBPos:
     """
-    Builds bitboards for all piece types and colors from the current board.
-
-    This function scans the 5x5 board once, classifies pieces by color and
-    piece type, sets the corresponding bit in a compact list of bitboards,
-    and computes aggregate occupancy masks for white, black, and both.
-
+    Converts a ChessMaker board to bitboard representation.
+    
+    This function scans all pieces on the board and builds bitboards for each
+    piece type and color. It creates 14 individual piece bitboards (7 types × 2 colors)
+    and computes aggregate occupancy masks. This is the initial conversion step
+    before the engine can work with bitboard-based operations.
+    
     Args:
-        board: A ChessMaker-compatible board exposing `__getitem__(Position)`
-            to access squares and a `.piece` attribute on each square.
-
+        board: A ChessMaker-compatible board object that supports:
+            - `board.get_pieces()`: Iterator over all pieces on the board
+            Each piece must have:
+            - `.name`: Piece type ("Pawn", "Knight", "Bishop", "Rook", "Queen", "King", "Right")
+            - `.position`: Position object with `.x` and `.y` attributes (0-4)
+            - `.player.name`: Color name ("white" or "black")
+    
     Returns:
-        A `BBPos` named tuple containing 14 piece bitboards and three
-        occupancy masks (`occ_white`, `occ_black`, `occ_all`).
+        A BBPos named tuple containing:
+        - 14 piece bitboards: WP, WN, WB, WR, WQ, WK, WRi, BP, BN, BB, BR, BQ, BK, BRi
+        - 3 occupancy masks: occ_white, occ_black, occ_all
+        Each bitboard is a 25-bit integer where bit i (0-24) represents square i.
+    
+    Notes:
+        - Handles the custom "Right" piece type (rook|knight combination)
+        - Skips pieces with invalid types or missing position information
+        - Used as an intermediate step in convert_board_to_bb_state()
     """
     bbs_list = [0] * 14
 
@@ -2331,26 +3308,33 @@ def bb_from_board(board) -> BBPos:
 
 def _find_lva_njit(sq: int, occ: int, stm_white: bool, all_bbs: list[int]) -> Tuple[int, int, int]:
     """
-    Finds the least-valuable attacker (LVA) on a target square for STM.
-
-    The search order is by piece value: pawns, knights, bishops, rooks, the
-    custom Right piece (rook|knight), queens, and finally king. It uses pre-
-    generated attack masks and sliding attack generators that respect `occ`.
-
+    Finds the least-valuable attacker (LVA) on a target square for the side-to-move.
+    
+    This function is used in Static Exchange Evaluation (SEE) to determine the
+    weakest piece that can attack a given square. It searches through pieces in
+    order of increasing value (pawns, knights, bishops, rooks, right, queens, king)
+    and returns the first attacker found.
+    
     Args:
-        sq: Target square index being contested.
-        occ: Occupancy bitboard for all pieces.
-        stm_white: True if the side-to-move is white; False if black.
-        all_bbs: List of length 14 with piece bitboards in fixed order
-            [WP, WN, WB, WR, WQ, WK, WRi, BP, BN, BB, BR, BQ, BK, BRi].
-
+        sq: Target square index [0, 24] being contested in the exchange.
+        occ: Occupancy bitboard for all pieces (used for sliding piece attacks).
+        stm_white: True if the side-to-move is white, False if black.
+        all_bbs: List of 14 piece bitboards in fixed order:
+            [WP, WN, WB, WR, WQ, WK, WRi, BP, BN, BB, BR, BQ, BK, BRi]
+    
     Returns:
-        A tuple (attacker_sq, attacker_value, attacker_index) where
-        - attacker_sq is the square index of the chosen attacker or -1 if none,
-        - attacker_value is the base value of the attacker (MG scale),
-        - attacker_index is the index into `all_bbs` for that attacker.
+        A tuple (attacker_sq, attacker_value, attacker_index) where:
+        - attacker_sq: Square index of the least-valuable attacker, or -1 if none
+        - attacker_value: Base material value of the attacker (MG scale: 120-20000)
+        - attacker_index: Index into all_bbs list for the attacker piece type
+    
+    Notes:
+        - Search order: Pawns → Knights → Bishops → Rooks → Right → Queens → King
+        - Uses precomputed attack masks for knights and king
+        - Uses sliding attack functions for rooks, bishops, and queens
+        - Right piece uses both rook and knight attacks
+        - Returns the first (least valuable) attacker found
     """
-
     r, c = sq // 5, sq % 5
 
     if stm_white:
@@ -2433,29 +3417,33 @@ def bb_see_njit(
 ) -> int:
     """
     Performs Static Exchange Evaluation (SEE) on a target square.
-
-    This iterative SEE simulates optimal capture sequences by alternating
-    the side-to-move, repeatedly selecting the least-valuable attacker and
-    accumulating a gain/loss stack, then backing up the best achievable
-    exchange result.
-
+    
+    Static Exchange Evaluation simulates an optimal capture sequence on a square
+    to determine the net material gain. It alternates sides, repeatedly selecting
+    the least-valuable attacker, and computes the final exchange value using
+    minimax backup through a gain stack.
+    
     Args:
-        sq: Target square index where the exchange occurs.
-        stm_white: True if white is to move first in the exchange.
-        occ: Initial occupancy bitboard for the position.
-        victim_val: Base value of the initial victim on `sq`.
-        all_bbs_in: Piece bitboards (length 14). This function mutates the
-            list during evaluation; the caller should pass a copy.
-
+        sq: Target square index [0, 24] where the exchange occurs.
+        stm_white: True if white is to move first in the exchange, False if black.
+        occ: Initial occupancy bitboard representing all pieces before the exchange.
+        victim_val: Base material value of the initial victim piece on sq (MG scale).
+        all_bbs_in: List of 14 piece bitboards [WP...BRi]. WARNING: This list is
+            mutated during evaluation. Callers must pass a copy if the original
+            bitboards need to be preserved.
+    
     Returns:
         The net material gain for the side-to-move (positive is good for STM).
-
+        The value represents the expected material outcome of the exchange,
+        accounting for all possible capture sequences.
+    
     Notes:
-        - Uses a fixed-size gain stack and stops early on double-negative
-          cutoffs.
-        - Mutates `all_bbs_in`; callers must pass `copy()` if reusing.
+        - Uses a fixed-size gain stack (32 entries) to avoid recursion
+        - Stops early on double-negative cutoffs (both sides losing)
+        - Alternates sides after each capture
+        - Uses minimax backup to find optimal exchange value
+        - Mutates all_bbs_in during evaluation (removes pieces as they're captured)
     """
-
     gain_stack = [0] * 32
     d = 0
     gain_stack[d] = victim_val
@@ -2487,17 +3475,29 @@ def bb_see_njit(
 
 def bb_see(bbpos: BBPos, sq: int, occ: int, stm_white: bool, victim_val: int) -> int:
     """
-    Convenience wrapper around `bb_see_njit` using a `BBPos` container.
-
+    Convenience wrapper for Static Exchange Evaluation using a BBPos container.
+    
+    This function provides a simpler interface to bb_see_njit() by accepting a
+    BBPos named tuple instead of a list of bitboards. It extracts the bitboards
+    from the BBPos, makes a copy (since bb_see_njit mutates the list), and
+    calls the core SEE function.
+    
     Args:
-        bbpos: A `BBPos` namedtuple carrying all piece bitboards and occupancy.
-        sq: Target square index for the exchange.
-        occ: Occupancy bitboard to start the exchange.
-        stm_white: True if white is to move; False if black.
-        victim_val: Base value of the initial victim on `sq`.
-
+        bbpos: A BBPos named tuple containing all 14 piece bitboards in order:
+            WP, WN, WB, WR, WQ, WK, WRi, BP, BN, BB, BR, BQ, BK, BRi
+        sq: Target square index [0, 24] where the exchange occurs.
+        occ: Occupancy bitboard representing all pieces before the exchange.
+        stm_white: True if white is to move first in the exchange, False if black.
+        victim_val: Base material value of the initial victim piece on sq (MG scale).
+    
     Returns:
-        The SEE score (net gain for side-to-move) as an integer.
+        The net material gain for the side-to-move (positive is good for STM).
+        The value represents the expected material outcome of the exchange.
+    
+    Notes:
+        - Makes a copy of bitboards before passing to bb_see_njit (which mutates them)
+        - Returns 0 if an error occurs during SEE calculation
+        - Used in move ordering to prioritize good captures
     """
     try:
         all_bbs_list = [
@@ -2529,24 +3529,124 @@ def bb_see(bbpos: BBPos, sq: int, occ: int, stm_white: bool, victim_val: int) ->
 
 def probe_egtb(bb: "BitboardState"):
     """
-    Stub tablebase probe for 5x5 variant.
-    Returns None for now. Can be replaced with a real probe that returns
-    a dict like {'result': 'win'|'loss'|'draw', 'dtm': int}.
+    Tablebase probe for 3-man KQK/KRK (Right treated as Rook).
+    Returns None if no EGTB is available for current material.
+    On hit, returns dict: {'result': 'win'|'loss'|'draw', 'dtm': int}
     """
-    return None
+    import os
+    import errno
+
+    def count_total_pieces(b: "BitboardState") -> int:
+        total = 0
+        total += _count_bits(b.WP | b.WN | b.WB | b.WR | b.WQ | b.WK | b.WRi)
+        total += _count_bits(b.BP | b.BN | b.BB | b.BR | b.BQ | b.BK | b.BRi)
+        return total
+
+    # Gate by piece count
+    try:
+        if count_total_pieces(bb) > 5:
+            return None
+    except Exception:
+        return None
+
+    # Identify supported 3-man families
+    def material_signature(b: "BitboardState"):
+        wq = _count_bits(b.WQ)
+        wr_total = _count_bits(b.WR) + _count_bits(b.WRi)
+        wk = _count_bits(b.WK)
+        bq = _count_bits(b.BQ)
+        br_total = _count_bits(b.BR) + _count_bits(b.BRi)
+        bk = _count_bits(b.BK)
+        other = (
+            _count_bits(b.WP | b.WN | b.WB) +
+            _count_bits(b.BP | b.BN | b.BB)
+        )
+        if other != 0:
+            return None
+        if wk == 1 and bk == 1 and wq == 1 and bq == 0 and br_total == 0 and wr_total == 0:
+            return "KQK_w"
+        if wk == 1 and bk == 1 and wr_total == 1 and wq == 0 and bq == 0 and br_total == 0:
+            return "KRK_w"
+        if wk == 1 and bk == 1 and bq == 1 and wq == 0 and wr_total == 0 and br_total == 0:
+            return "KQK_b"
+        if wk == 1 and bk == 1 and br_total == 1 and wq == 0 and bq == 0 and wr_total == 0:
+            return "KRK_b"
+        return None
+
+    sig = material_signature(bb)
+    if not sig:
+        return None
+
+    tb_dir = os.path.join("egtb")
+    tb_file = os.path.join(tb_dir, f"{sig[:3]}.bin")
+    if not os.path.exists(tb_file):
+        return None
+
+    def encode_index_from_bb(b: "BitboardState") -> int:
+        stm = 0 if b.side_to_move == 0 else 1
+        wk = _pop_lsb_njit(b.WK)
+        bk = _pop_lsb_njit(b.BK)
+        if "KQK" in sig:
+            qbb = b.WQ if sig.endswith("_w") else b.BQ
+            attacker = _pop_lsb_njit(qbb)
+        else:
+            if sig.endswith("_w"):
+                rbb = b.WR if b.WR else b.WRi
+            else:
+                rbb = b.BR if b.BR else b.BRi
+            attacker = _pop_lsb_njit(rbb)
+        big = 25 * 25 * 25
+        return (stm * big) + (wk * 25 + attacker) * 25 + bk
+
+    try:
+        idx = encode_index_from_bb(bb)
+    except Exception:
+        return None
+
+    try:
+        with open(tb_file, "rb") as f:
+            try:
+                f.seek(idx)
+                val = f.read(1)
+            except OSError as e:
+                if e.errno == errno.EINVAL:
+                    return None
+                raise
+    except Exception:
+        return None
+    if not val:
+        return None
+    v = val[0]
+    if v == 0x00:
+        return {"result": "draw", "dtm": 0}
+    if (v & 0xC0) == 0x80:
+        return {"result": "win", "dtm": int(v & 0x3F)}
+    if (v & 0xC0) == 0x40:
+        return {"result": "loss", "dtm": int(v & 0x3F)}
+    return {"result": "draw", "dtm": 0}
 
 # =====================================================================
 # === Zobrist Hashing (UPDATED FOR 'Right' PIECE and Incremental Updates)
 # =====================================================================
 
-
+@dataclass(slots=True)
 class Zobrist:
     """Implements Zobrist hashing for 5x5 chess.
 
     Provides a reproducible PRNG-backed table mapping (piece, color, square)
     to 64-bit integers and utilities to compute and update hashes.
     """
-
+    rand_gen: random.Random = field(init=False)
+    width: int = field(init=False)
+    height: int = field(init=False)
+    num_squares: int = field(init=False)
+    PIECE_TO_INT: Dict[str, int] = field(init=False)
+    NUM_PIECE_TYPES: int = field(init=False)
+    COLOR_TO_INT: Dict[str, int] = field(init=False)
+    NUM_COLORS: int = field(init=False)
+    zkeys: List[List[List[int]]] = field(init=False)
+    black_to_move_hash: int = field(init=False)
+    
     def __init__(self, seed=42):
         """
         Initializes a Zobrist hashing context for a 5x5 board.
@@ -2577,11 +3677,13 @@ class Zobrist:
         self.COLOR_TO_INT = {"white": 0, "black": 1}
         self.NUM_COLORS = 2
 
-        self.zobrist_table = {}
-        for p_idx in range(self.NUM_PIECE_TYPES):
-            for c_idx in range(self.NUM_COLORS):
-                for sq_idx in range(self.num_squares):
-                    self.zobrist_table[(p_idx, c_idx, sq_idx)] = self._rand_64()
+        self.zkeys = [
+            [
+                [self._rand_64() for _ in range(self.num_squares)]
+                for _ in range(self.NUM_COLORS)
+            ]
+            for _ in range(self.NUM_PIECE_TYPES)
+        ]
 
         self.black_to_move_hash = self._rand_64()
 
@@ -2613,7 +3715,7 @@ class Zobrist:
             p_idx = self.PIECE_TO_INT[piece.name]
             c_idx = self.COLOR_TO_INT[piece.player.name]
             sq_idx = y * self.width + x
-            return self.zobrist_table[(p_idx, c_idx, sq_idx)]
+            return self.zkeys[p_idx][c_idx][sq_idx]
         except (KeyError, IndexError, AttributeError):
             return 0
 
@@ -2678,16 +3780,15 @@ class Zobrist:
         Indices must match the ranges used to build the table:
           piece_type_idx in [0..6], color_idx in [0..1], sq_idx in [0..24].
         """
-        try:
-            return self.zobrist_table[(int(piece_type_idx), int(color_idx), int(sq_idx))]
-        except Exception:
-            return 0
+        return self.zkeys[piece_type_idx][color_idx][sq_idx]
+
 
     def toggle_by_indices(self, h: int, piece_type_idx: int, color_idx: int, sq_idx: int) -> int:
         """
         XOR toggles the hash by specifying indices directly.
         """
-        return h ^ self.get_piece_hash_by_indices(piece_type_idx, color_idx, sq_idx)
+        return h ^ self.zkeys[piece_type_idx][color_idx][sq_idx]
+
 
 
 # =====================================================================
@@ -2702,7 +3803,23 @@ PAWN_Z_KEYS_BLACK: list[int] = [_PAWN_Z_RAND.getrandbits(64) for _ in range(25)]
 
 def pawn_zobrist_key(bb: "BitboardState") -> int:
     """
-    Computes a 64-bit key using only white/black pawn bitboards.
+    Computes a Zobrist hash key using only pawn positions.
+    
+    This function generates a hash key based solely on pawn positions, ignoring
+    all other pieces. This is used for pawn structure evaluation caching, since
+    pawn structure evaluation depends only on pawn positions, not on other pieces.
+    
+    Args:
+        bb: BitboardState containing WP and BP (white and black pawn) bitboards.
+    
+    Returns:
+        A 64-bit integer hash key computed by XORing precomputed keys for each
+        pawn square. The same pawn configuration always produces the same key.
+    
+    Notes:
+        - Uses separate key tables for white and black pawns (PAWN_Z_KEYS_WHITE/BLACK)
+        - Only depends on pawn positions, making it suitable for pawn TT caching
+        - Used by pawn_eval() to cache pawn structure evaluation results
     """
     h = 0
     wp = bb.WP
@@ -2733,6 +3850,7 @@ class PawnHashTable:
     """
     Fixed-size pawn-only cache storing MG/EG differential scores for pawn structure.
     """
+    __slots__ = ("size", "mask", "table", "hits", "probes")
     def __init__(self, size: int = 1 << 18):
         self.size = size
         self.mask = self.size - 1
@@ -2762,8 +3880,32 @@ _PAWN_TT = PawnHashTable()
 
 def pawn_eval(bb: "BitboardState") -> tuple[int, int]:
     """
-    Returns (mg_diff, eg_diff) pawn-structure contribution, cached by pawn TT.
-    Positive favors White, negative favors Black.
+    Evaluates pawn structure and returns middlegame and endgame contributions.
+    
+    This function analyzes pawn structure features including doubled pawns,
+    isolated pawns, passed pawns, connected passers, and backward pawns.
+    Results are cached in a pawn-only transposition table since pawn structure
+    evaluation depends only on pawn positions.
+    
+    Args:
+        bb: BitboardState containing WP and BP (white and black pawn) bitboards.
+    
+    Returns:
+        A tuple (mg_diff, eg_diff) where:
+        - mg_diff: Middlegame pawn structure score (positive favors White)
+        - eg_diff: Endgame pawn structure score (positive favors White)
+        Both values are integers representing centipawns (1/100 of a pawn).
+    
+    Notes:
+        - Cached using pawn_zobrist_key() for performance
+        - Evaluates features:
+          * Doubled pawns: Multiple pawns on same file (penalty)
+          * Isolated pawns: Pawns with no friendly pawns on adjacent files (penalty)
+          * Passed pawns: Pawns with no enemy pawns blocking their path (bonus, increases with rank)
+          * Connected passers: Adjacent passed pawns (bonus)
+          * Backward pawns: Pawns that can't be supported and are attacked (penalty)
+        - Passed pawn bonuses increase with distance from home rank
+        - Results are differential (White score - Black score)
     """
     key = pawn_zobrist_key(bb)
     e = _PAWN_TT.probe(key)
@@ -2898,67 +4040,6 @@ def pawn_eval(bb: "BitboardState") -> tuple[int, int]:
     return int(mg), int(eg)
 
 
-# Removed make/unmake; we now clone boards and use piece.move for applying moves
-
-
-def compute_incremental_hash_after_move(
-    zobrist: "Zobrist",
-    current_hash: int,
-    board,
-    piece,
-    move_opt,
-    mapped_piece_after_move,
-) -> int:
-    """
-    Computes the child position hash from the current node hash using
-    incremental Zobrist updates. Assumes `board` is the pre-move board
-    and `mapped_piece_after_move` is the post-move piece instance on the
-    destination square (from a cloned/applied board).
-    """
-    try:
-        h = zobrist.toggle_black_to_move(current_hash)
-        sx, sy = piece.position.x, piece.position.y
-        dx, dy = move_opt.position.x, move_opt.position.y
-
-        # Remove moving piece from source
-        h = zobrist.toggle_piece(h, piece, sx, sy)
-
-        # Remove any captured pieces reported on the move (multi-capture safe)
-        toggled_caps = set()
-        try:
-            cap_list = getattr(move_opt, "captures", None) or []
-        except Exception:
-            cap_list = []
-        for pos in cap_list:
-            try:
-                cap_piece = board[Position(pos.x, pos.y)].piece
-            except Exception:
-                cap_piece = None
-            if cap_piece is not None:
-                h = zobrist.toggle_piece(h, cap_piece, pos.x, pos.y)
-                toggled_caps.add((pos.x, pos.y))
-
-        # If destination square held a piece and wasn't already toggled, remove it
-        if (dx, dy) not in toggled_caps:
-            try:
-                occ = board[Square(dx, dy)].piece
-            except Exception:
-                occ = None
-            if occ is not None and occ is not piece:
-                h = zobrist.toggle_piece(h, occ, dx, dy)
-
-        # Add the moved (possibly promoted) piece on destination
-        h = zobrist.toggle_piece(h, mapped_piece_after_move, dx, dy)
-        return h
-    except Exception:
-        # Fallback safety: on any error, keep original behavior to avoid mismatch
-        try:
-            moving_name = piece.player.name
-        except Exception:
-            moving_name = "white"
-        return zobrist.compute_full_hash(board, moving_name)
-
-
 # =====================================================================
 # === Transposition Table
 # =====================================================================
@@ -2976,9 +4057,9 @@ class TTEntry:
         best_move_tuple: Optional principal move tuple (sx, sy, dx, dy).
     """
 
-    __slots__ = ["key", "depth", "score", "flag", "best_move_tuple"]
+    __slots__ = ["key", "depth", "score", "flag", "best_move_tuple", "age"]
 
-    def __init__(self, key, depth, score, flag, best_move_tuple):
+    def __init__(self, key, depth, score, flag, best_move_tuple, age):
         """
         Creates a `TTEntry` with the supplied data.
 
@@ -2994,6 +4075,7 @@ class TTEntry:
         self.score: float = score
         self.flag: int = flag
         self.best_move_tuple: Optional[Tuple[int, int, int, int]] = best_move_tuple
+        self.age: int = int(age)
 
 
 TT_FLAG_EXACT = 0
@@ -3003,48 +4085,51 @@ TT_FLAG_UPPER = 2
 
 class TranspositionTable:
     """
-    Fixed-size transposition table using Zobrist hashing and replacement.
+    Fixed-size transposition table backed by a contiguous bytearray.
 
-    Uses direct indexing by masking the Zobrist key; shallow replacement on
-    equal/greater depth entries. Tracks probe/hit statistics for diagnostics.
+    Direct-mapped indexing by masked Zobrist key. Shallow replacement:
+    replace empty, same key, deeper depth, or same depth with newer age.
+    Tracks probe/hit statistics for diagnostics.
     """
+    __slots__ = ("size", "index_mask", "buf", "hits", "probes")
 
-    def __init__(self, entry_count: int = 1048576):  # 1048576):
-        """
-        Initializes an empty transposition table.
+    # Packed TT entry layout (little-endian, 24 bytes total):
+    # key:Q, depth:H, score:i, flag:B, sx:B, sy:B, dx:B, dy:B, age:H, pad:3x
+    _TT_STRUCT = struct.Struct("<Q H i B B B B B H 3x")
+    _ENTRY_SIZE = _TT_STRUCT.size
+    _MOVE_NONE = 255
 
-        Args:
-            entry_count: Number of table buckets. Must be a power of two for
-                efficient masking; defaults to 262,144.
-        """
+    def __init__(self, entry_count: int = 1048576):
         self.size = entry_count
         self.index_mask = self.size - 1
-        self.table: List[Optional[TTEntry]] = [None] * self.size
+        self.buf = bytearray(self.size * self._ENTRY_SIZE)
         self.hits = 0
         self.probes = 0
 
     def clear(self) -> None:
-        """
-        Clears all stored entries and resets hit/probe counters.
-
-        Returns:
-            None.
-        """
-        self.table = [None] * self.size
+        self.buf = bytearray(len(self.buf))
         self.hits = 0
         self.probes = 0
 
     def get_index(self, zobrist_key: int) -> int:
-        """
-        Computes the table index from a Zobrist key via masking.
-
-        Args:
-            zobrist_key: 64-bit Zobrist hash of the position.
-
-        Returns:
-            Integer index into the table in [0, size-1].
-        """
         return zobrist_key & self.index_mask
+
+    def _offset(self, index: int) -> int:
+        return index * self._ENTRY_SIZE
+
+    def probe(self, zobrist_key: int) -> Optional[TTEntry]:
+        self.probes += 1
+        index = self.get_index(zobrist_key)
+        off = self._offset(index)
+        key, depth, score_i, flag, sx, sy, dx, dy, age = self._TT_STRUCT.unpack_from(self.buf, off)
+        if depth == 0 or key != zobrist_key:
+            return None
+        self.hits += 1
+        if sx == self._MOVE_NONE or sy == self._MOVE_NONE or dx == self._MOVE_NONE or dy == self._MOVE_NONE:
+            move = None
+        else:
+            move = (int(sx), int(sy), int(dx), int(dy))
+        return TTEntry(int(key), int(depth), int(score_i), int(flag), move, int(age))
 
     def store(
         self,
@@ -3053,51 +4138,44 @@ class TranspositionTable:
         score: float,
         flag: int,
         best_move_tuple: Optional[Tuple[int, int, int, int]],
+        age: int,
     ) -> None:
-        """
-        Stores or replaces a table entry for the given key.
-
-        Prefers replacing entries with lower depth; on collision, keeps the
-        entry with the greater or equal depth.
-
-        Args:
-            zobrist_key: Zobrist hash key for the position.
-            depth: Search depth in plies.
-            score: Score to store (may be mate-distance encoded by caller).
-            flag: Bound type (EXACT/LOWER/UPPER).
-            best_move_tuple: Optional best move (sx,sy,dx,dy) to aid PV.
-
-        Returns:
-            None.
-        """
         index = self.get_index(zobrist_key)
-        existing = self.table[index]
+        off = self._offset(index)
+        cur_key, cur_depth, _cur_score, _cur_flag, _sx, _sy, _dx, _dy, cur_age = self._TT_STRUCT.unpack_from(self.buf, off)
 
-        if existing is None or depth >= existing.depth:
-            self.table[index] = TTEntry(zobrist_key, depth, score, flag, best_move_tuple)
+        replace = False
+        if cur_depth == 0:
+            replace = True
+        elif depth > cur_depth:
+            replace = True
+        elif depth == cur_depth and int(age) > int(cur_age):
+            replace = True
+        if not replace:
+            return
 
-    def probe(self, zobrist_key: int) -> Optional[TTEntry]:
-        """
-        Probes the table for an entry matching the exact Zobrist key.
+        if best_move_tuple is None:
+            sx = sy = dx = dy = self._MOVE_NONE
+        else:
+            sx, sy, dx, dy = best_move_tuple
+            sx = int(sx) if 0 <= int(sx) <= 255 else self._MOVE_NONE
+            sy = int(sy) if 0 <= int(sy) <= 255 else self._MOVE_NONE
+            dx = int(dx) if 0 <= int(dx) <= 255 else self._MOVE_NONE
+            dy = int(dy) if 0 <= int(dy) <= 255 else self._MOVE_NONE
 
-        Args:
-            zobrist_key: 64-bit Zobrist hash of the position.
-
-        Returns:
-            The matching `TTEntry` if present; otherwise None.
-
-        Side effects:
-            Increments `probes` on every call and `hits` on exact match.
-        """
-        self.probes += 1
-        index = self.get_index(zobrist_key)
-        entry = self.table[index]
-
-        if entry is not None and entry.key == zobrist_key:
-            self.hits += 1
-            return entry
-
-        return None
+        self._TT_STRUCT.pack_into(
+            self.buf,
+            off,
+            int(zobrist_key),
+            int(depth),
+            int(score),
+            int(flag),
+            sx,
+            sy,
+            dx,
+            dy,
+            int(age),
+        )
 
 
 # =====================================================================
@@ -3107,40 +4185,86 @@ class TranspositionTable:
 
 def get_last_search_info() -> Dict[str, Any]:
     """
-    Returns a snapshot of diagnostics from the most recent root search.
-
+    Retrieves diagnostic information from the most recent root-level search.
+    
+    This function provides access to search statistics and diagnostics that were
+    collected during the last call to the agent() function. Useful for debugging,
+    performance analysis, and understanding search behavior.
+    
     Returns:
-        A shallow copy of the internal `_LAST_SEARCH_INFO` dictionary,
-        including metrics like depth, nodes, qnodes, tthits, PV, and more.
+        A shallow copy of the internal _LAST_SEARCH_INFO dictionary containing
+        search metrics such as:
+        - depth: Maximum search depth reached
+        - nodes: Total nodes searched
+        - qnodes: Quiescence nodes searched
+        - tthits: Transposition table hits
+        - pv: Principal variation (best line of play)
+        - score: Best score found
+        - time: Search time in seconds
+        And other diagnostic information.
+    
+    Notes:
+        - Returns a copy to prevent external modification of internal state
+        - May be empty if no search has been performed yet
+        - Updated by agent() after each search iteration
     """
     return dict(_LAST_SEARCH_INFO)
 
 
 def opponent_name(board, name: str) -> str:
     """
-    Returns the opposing color name for convenience.
-
+    Returns the name of the opponent color.
+    
+    A simple utility function that returns the opposite color name. Used for
+    convenience in code that needs to reference the opponent's color.
+    
     Args:
-        board: Unused; present for call-site compatibility.
-        name: "white" or "black".
-
+        board: Unused parameter, kept for API compatibility with call sites
+            that pass the board object.
+        name: The current player's color name, either "white" or "black".
+    
     Returns:
-        "black" if name == "white" else "white".
+        "black" if name is "white", "white" if name is "black".
+    
+    Example:
+        >>> opponent_name(None, "white")
+        "black"
+        >>> opponent_name(None, "black")
+        "white"
     """
     return "black" if name == "white" else "white"
 
 
 def move_to_str(piece, move_opt) -> str:
     """
-    Formats a move as a compact string for debug output.
-
+    Formats a chess move as a human-readable string for debugging and logging.
+    
+    This function converts a piece and move option into a compact string
+    representation showing the piece name and source/destination coordinates.
+    Used primarily for debug output and logging.
+    
     Args:
-        piece: The moving piece with `.name` and `.position`.
-        move_opt: A move option with destination `.position`.
-
+        piece: The chess piece making the move. Must have:
+            - .name: Piece type name (e.g., "Knight", "Pawn")
+            - .position: Position object with .x and .y attributes
+        move_opt: The move option representing the destination. Must have:
+            - .position: Position object with .x and .y attributes
+    
     Returns:
-        A string like "knight(1,2)->(2,4)"; falls back to `str(move_opt)`
-        if the expected attributes are missing.
+        A string in the format "piecename(sx,sy)->(dx,dy)" where:
+        - piecename: Lowercase piece name
+        - sx, sy: Source coordinates
+        - dx, dy: Destination coordinates
+        Returns str(move_opt) if attributes are missing.
+    
+    Example:
+        >>> move_to_str(piece, move)
+        "knight(1,2)->(2,4)"
+    
+    Notes:
+        - Handles missing attributes gracefully
+        - Piece name is converted to lowercase
+        - Used for logging and debug output
     """
     try:
         sx, sy = piece.position.x, piece.position.y
@@ -3149,43 +4273,6 @@ def move_to_str(piece, move_opt) -> str:
     except Exception as e:
         print(f"Error in move_to_str: {e}")
         return str(move_opt)
-
-
-def _interpolate_eval(
-    mg_score: float, eg_score: float, phase_factor_mg: float, phase_factor_eg: float
-) -> float:
-    """
-    Blends middle-game and endgame scores using phase weights.
-
-    Args:
-        mg_score: Middle-game score subtotal.
-        eg_score: Endgame score subtotal.
-        phase_factor_mg: Weight for MG phase in [0, 1].
-        phase_factor_eg: Weight for EG phase in [0, 1].
-
-    Returns:
-        Weighted sum: mg_score*phase_factor_mg + eg_score*phase_factor_eg.
-    """
-    return (mg_score * phase_factor_mg) + (eg_score * phase_factor_eg)
-
-
-def _has_xy(obj) -> bool:
-    """
-    Checks whether an object exposes a valid `.position` with `.x` and `.y`.
-
-    Args:
-        obj: Any object that may carry a `.position` attribute.
-
-    Returns:
-        True if `obj.position.x` and `obj.position.y` are both not None;
-        False otherwise or on error.
-    """
-    try:
-        pos = getattr(obj, "position", None)
-        return (pos is not None) and (pos.x is not None) and (pos.y is not None)
-    except Exception as e:
-        print(f"Error in _has_xy: {e}")
-        return False
 
 
 def _chebyshev(a: tuple[int, int], b: tuple[int, int]) -> int:
@@ -3244,44 +4331,39 @@ def _corner_distance(x: int, y: int) -> int:
 # =====================================================================
 
 def file_mask(file_x: int) -> int:
-    """
-    Returns a bitboard mask for a given file on 5x5.
-    """
-    m = 0
-    for r in range(5):
-        m |= 1 << square_index(file_x, r)
-    return m
-
+    return FILE_MASKS[file_x]
 
 def rank_mask(rank_y: int) -> int:
-    """
-    Returns a bitboard mask for a given rank on 5x5.
-    """
-    m = 0
-    for fx in range(5):
-        m |= 1 << square_index(fx, rank_y)
-    return m
-
+    return RANK_MASKS[rank_y]
 
 def ring1_mask(kx: int, ky: int) -> int:
-    """
-    Returns a ring-1 bitboard around (kx, ky) (no center).
-    """
-    m = 0
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            if dx == 0 and dy == 0:
-                continue
-            tx, ty = kx + dx, ky + dy
-            if 0 <= tx < 5 and 0 <= ty < 5:
-                m |= 1 << square_index(tx, ty)
-    return m
-
+    return RING1_MASKS[square_index(kx, ky)]
 
 def count_attackers_to_zone(bb: "BitboardState", zone_mask: int, white_attacking: bool) -> dict:
     """
-    Counts piece attackers to a mask from the given color perspective.
-    Returns counts for Knight, Bishop, Rook, Right, Queen.
+    Counts the number of pieces attacking any square in a target zone.
+    
+    This function analyzes attack patterns to determine how many pieces of
+    each type can attack squares within a given zone mask. Used primarily for
+    king safety evaluation, where the zone is typically the ring-1 around the king.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards.
+        zone_mask: A 25-bit bitboard where set bits represent target squares
+            in the zone to check for attacks. Typically ring1_mask() around a king.
+        white_attacking: True to count white attackers, False to count black attackers.
+    
+    Returns:
+        A dictionary with keys "Knight", "Bishop", "Rook", "Right", "Queen"
+        and integer values representing the count of each piece type that attacks
+        at least one square in the zone. King and pawn attacks are not counted
+        (handled separately in king safety evaluation).
+    
+    Notes:
+        - Uses precomputed attack masks for knights
+        - Uses sliding attack functions for bishops, rooks, and queens
+        - Right piece uses both rook and knight attacks
+        - Used in king safety evaluation to weight attack strength
     """
     counts = {"Knight": 0, "Bishop": 0, "Rook": 0, "Right": 0, "Queen": 0}
     occ = bb.occ_all
@@ -3321,6 +4403,31 @@ def count_attackers_to_zone(bb: "BitboardState", zone_mask: int, white_attacking
 
 
 def king_shield_penalty(bb: "BitboardState", kx: int, ky: int, white_defender: bool) -> int:
+    """
+    Evaluates the pawn shield in front of the king and applies penalties for weaknesses.
+    
+    A strong pawn shield (pawns directly in front of the king) is crucial for
+    king safety. This function checks the three squares directly in front of the
+    king and penalizes positions where the shield is weak or missing.
+    
+    Args:
+        bb: BitboardState containing WP and BP pawn bitboards.
+        kx: King's file (column) coordinate [0, 4].
+        ky: King's rank (row) coordinate [0, 4].
+        white_defender: True if evaluating white king's shield, False for black.
+    
+    Returns:
+        An integer penalty score (non-positive, added to king safety evaluation):
+        - 0: Strong shield (2-3 pawns in front of king)
+        - EVAL_KING_SHIELD_WEAK (typically -10): Weak shield (1 pawn)
+        - EVAL_KING_SHIELD_GONE (typically -20): No shield (0 pawns)
+    
+    Notes:
+        - Checks the three squares directly in front of the king
+        - For white: checks squares at rank ky-1 (in front = towards rank 0)
+        - For black: checks squares at rank ky+1 (in front = towards rank 4)
+        - Penalties are negative (reduce king safety score)
+    """
     penalty = 0
     front_dy = -1 if white_defender else 1
     pxs = []
@@ -3342,6 +4449,31 @@ def king_shield_penalty(bb: "BitboardState", kx: int, ky: int, white_defender: b
 
 
 def open_file_to_king_penalty(bb: "BitboardState", kx: int, ky: int, white_defender: bool) -> int:
+    """
+    Evaluates penalties for the king being on an open or semi-open file with enemy pieces.
+    
+    A king on an open file (no pawns of either color) or semi-open file (no friendly
+    pawns) is vulnerable to attack, especially if the opponent has heavy pieces
+    (rooks, right, queens) on that file. This function detects this vulnerability.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards.
+        kx: King's file (column) coordinate [0, 4].
+        ky: King's rank (row) coordinate [0, 4] (unused but kept for API consistency).
+        white_defender: True if evaluating white king, False for black.
+    
+    Returns:
+        An integer penalty score (non-positive):
+        - 0: Safe (no enemy heavy pieces on file, or friendly pawn blocks)
+        - EVAL_SEMIOPEN_FILE_TO_KING (typically -10): Semi-open file with enemy heavies
+        - EVAL_OPEN_FILE_TO_KING (typically -18): Open file with enemy heavies
+    
+    Notes:
+        - Checks if opponent has rooks, right pieces, or queens on the king's file
+        - Open file: No pawns of either color on the file (most dangerous)
+        - Semi-open file: No friendly pawns, but opponent has pawns (less dangerous)
+        - Only applies penalty if opponent has heavy pieces on the file
+    """
     f = kx
     fmask = file_mask(f)
     if white_defender:
@@ -3358,6 +4490,29 @@ def open_file_to_king_penalty(bb: "BitboardState", kx: int, ky: int, white_defen
 
 
 def same_file_pressure(bb: "BitboardState", kx: int, white_defender: bool) -> int:
+    """
+    Evaluates additional pressure from enemy pieces on the king's file.
+    
+    This function counts enemy rooks, right pieces, and queens that are on the
+    same file as the king, adding incremental pressure penalties. This complements
+    open_file_to_king_penalty() by providing additional penalties for each piece.
+    
+    Args:
+        bb: BitboardState containing all piece bitboards.
+        kx: King's file (column) coordinate [0, 4].
+        white_defender: True if evaluating white king, False for black.
+    
+    Returns:
+        An integer penalty score (non-positive) representing file pressure:
+        - EVAL_KING_FILE_PRESSURE (typically -2) per enemy rook or right piece
+        - EVAL_KING_FILE_PRESSURE + 1 (typically -3) per enemy queen
+        - Summed across all enemy heavy pieces on the file
+    
+    Notes:
+        - Provides incremental penalties for each piece on the file
+        - Queens get slightly higher penalty than rooks/right
+        - Used in conjunction with open_file_to_king_penalty() for comprehensive evaluation
+    """
     f = kx
     score = 0
     if white_defender:
@@ -3390,6 +4545,29 @@ def same_file_pressure(bb: "BitboardState", kx: int, white_defender: bool) -> in
 
 
 def is_white_knight_outpost(bb: "BitboardState", sq: int) -> bool:
+    """
+    Determines if a white knight is on an outpost square.
+    
+    A knight outpost is a square where a knight is:
+    1. Protected by a friendly pawn (pawn behind the knight)
+    2. Not attackable by enemy pawns (no enemy pawns can attack the square)
+    
+    Outpost knights are very strong because they're safe from pawn attacks and
+    can't be easily dislodged. This function checks these conditions for white knights.
+    
+    Args:
+        bb: BitboardState containing WP and BP pawn bitboards.
+        sq: Square index [0, 24] where the white knight is located.
+    
+    Returns:
+        True if the knight at sq is on an outpost (protected by pawn and not
+        attackable by enemy pawns), False otherwise.
+    
+    Notes:
+        - Checks for friendly pawns behind the knight (at rank y+1)
+        - Checks that no enemy pawns can attack the square (no black pawns at y-1)
+        - Outpost knights receive evaluation bonuses
+    """
     x, y = index_to_sq(sq)
     protect = 0
     for dx in (-1, 1):
@@ -3408,6 +4586,29 @@ def is_white_knight_outpost(bb: "BitboardState", sq: int) -> bool:
 
 
 def is_black_knight_outpost(bb: "BitboardState", sq: int) -> bool:
+    """
+    Determines if a black knight is on an outpost square.
+    
+    A knight outpost is a square where a knight is:
+    1. Protected by a friendly pawn (pawn behind the knight)
+    2. Not attackable by enemy pawns (no enemy pawns can attack the square)
+    
+    Outpost knights are very strong because they're safe from pawn attacks and
+    can't be easily dislodged. This function checks these conditions for black knights.
+    
+    Args:
+        bb: BitboardState containing WP and BP pawn bitboards.
+        sq: Square index [0, 24] where the black knight is located.
+    
+    Returns:
+        True if the knight at sq is on an outpost (protected by pawn and not
+        attackable by enemy pawns), False otherwise.
+    
+    Notes:
+        - Checks for friendly pawns behind the knight (at rank y-1, since black moves down)
+        - Checks that no enemy pawns can attack the square (no white pawns at y+1)
+        - Outpost knights receive evaluation bonuses
+    """
     x, y = index_to_sq(sq)
     protect = 0
     for dx in (-1, 1):
@@ -3423,1307 +4624,6 @@ def is_black_knight_outpost(bb: "BitboardState", sq: int) -> bool:
             if bb.WP & (1 << square_index(px, py)):
                 return False
     return True
-
-# =====================================================================
-# === Evaluation Functions (OPTIMIZED)
-# =====================================================================
-
-
-def get_piece_base_value(piece, phase_name):
-    """
-    Returns the base (material) value for a piece in a given phase.
-
-    Args:
-        piece: Piece instance or None.
-        phase_name: "mg" (middle game) or "eg" (endgame).
-
-    Returns:
-        Integer value for the piece in the requested phase; 0 if piece is None.
-    """
-    if not piece:
-        return 0
-    return PIECE_VALUES[phase_name].get(piece.name, 0)
-
-
-def get_pst_score(piece, phase_name):
-    """
-    Looks up the piece-square table (PST) score for a piece and phase.
-
-    Args:
-        piece: Piece instance with `.player.name` and `.position`.
-        phase_name: "mg" or "eg".
-
-    Returns:
-        Integer PST score at the piece's current square; 0 on error.
-    """
-    if not piece:
-        return 0
-    try:
-        pst = PSTS[phase_name][piece.player.name][piece.name]
-        return pst[piece.position.y][piece.position.x]
-    except (KeyError, IndexError, AttributeError):
-        return 0
-
-
-def _get_mobility_score(board, player, opponent):
-    """
-    Computes a mobility differential: 4 * (my_moves - opp_moves).
-    """
-    # return 0
-    try:
-        my_moves = len(list_legal_moves_for(board, player))
-        opp_moves = len(list_legal_moves_for(board, opponent))
-        return 4 * (my_moves - opp_moves)
-    except Exception as e:
-        print(f"Error in mobility score: {e}")
-        return 0
-
-
-def calculate_game_phase(pieces):
-    """
-    Computes a simplified game phase value based on remaining material.
-
-    Args:
-        pieces: Iterable of pieces currently on the board.
-
-    Returns:
-        An integer in [1, MAX_PHASE] used to blend MG/EG evaluations.
-
-    How it works:
-        Sums per-piece phase weights (e.g., queens/rooks contribute more),
-        and clamps the result to [1, MAX_PHASE].
-    """
-    total_phase = 0
-    for piece in pieces:
-        total_phase += PHASE_VALUES.get(piece.name, 0)
-    return max(1, min(total_phase, MAX_PHASE))
-
-
-def evaluate_position_static(board, player, pieces=None, game_phase=None, skip_mobility: bool = False):
-    """
-    Computes a static evaluation (material + PST + extras) for a player.
-    This version is optimized to iterate over pieces ONCE.
-    """
-    if pieces is None:
-        try:
-            pieces = list(board.get_pieces())
-        except Exception as e:
-            print(f"Error getting pieces in eval: {e}")
-            return 0
-            
-    if game_phase is None:
-        game_phase = calculate_game_phase(pieces)
-
-    try:
-        my_name = player.name
-        opponent = board.players[1] if my_name == "white" else board.players[0]
-        opp_name = opponent.name
-    except Exception:
-        my_name = "white"
-        opp_name = "black"
-        opponent = None
-
-    phase_factor_mg = game_phase / MAX_PHASE
-    phase_factor_eg = (MAX_PHASE - game_phase) / MAX_PHASE
-
-    mg_score = 0
-    eg_score = 0
-    
-    # --- Single Pass ---
-    board_grid = [[None for _ in range(5)] for _ in range(5)]
-    files_my_pawns = [0] * 5
-    files_opp_pawns = [0] * 5
-    my_pawns = [] # Store (x, y)
-    opp_pawns = [] # Store (x, y)
-    
-    my_bishops = 0
-    my_rooks = 0
-    my_rights = 0
-    my_q = 0
-    my_r = 0
-    my_ri = 0
-    opp_non_king = 0
-    
-    my_king_pos = None
-    opp_king_pos = None
-    my_queen_pos = None
-    my_rooks_pos = []
-    my_rights_pos = []
-
-    for piece in pieces:
-        # 1. Add Material and PST scores
-        val_mg = get_piece_base_value(piece, "mg")
-        val_eg = get_piece_base_value(piece, "eg")
-        pst_mg = get_pst_score(piece, "mg")
-        pst_eg = get_pst_score(piece, "eg")
-
-        if piece.player.name == my_name:
-            mg_score += val_mg + pst_mg
-            eg_score += val_eg + pst_eg
-        else:
-            mg_score -= val_mg + pst_mg
-            eg_score -= val_eg + pst_eg
-            
-        # 2. Collect data for 'extras'
-        try:
-            px, py = piece.position.x, piece.position.y
-            board_grid[py][px] = piece
-        except Exception:
-            continue
-            
-        if piece.player.name == my_name:
-            if piece.name == "Pawn":
-                files_my_pawns[px] += 1
-                my_pawns.append((px, py))
-            elif piece.name == "Bishop":
-                my_bishops += 1
-            elif piece.name == "Rook":
-                my_rooks += 1
-                my_r += 1
-                my_rooks_pos.append((px, py))
-            elif piece.name == "Right":
-                my_rights += 1
-                my_ri += 1
-                my_rights_pos.append((px, py))
-            elif piece.name == "Queen":
-                my_q += 1
-                my_queen_pos = (px, py)
-            elif piece.name == "King":
-                my_king_pos = (px, py)
-        else:
-            if piece.name == "Pawn":
-                files_opp_pawns[px] += 1
-                opp_pawns.append((px, py))
-            elif piece.name == "King":
-                opp_king_pos = (px, py)
-            else:
-                opp_non_king += 1
-    # --- End Single Pass ---
-
-    extra_mg = 0
-    extra_eg = 0
-
-    if my_bishops >= 2:
-        extra_mg += EVAL_BISHOP_PAIR
-        extra_eg += EVAL_BISHOP_PAIR
-
-    try:
-        for cx, cy in CENTER_SQUARES:
-            pc = board_grid[cy][cx]
-            if pc and pc.player.name == my_name:
-                extra_mg += EVAL_CENTER_CONTROL
-                extra_eg += EVAL_CENTER_CONTROL
-    except Exception:
-        pass # Center control is minor
-
-    # Passed Pawns (now iterates over small list)
-    for x, y in my_pawns:
-        dirs = -1 if my_name == "white" else 1
-        ahead_ranks = range(y + dirs, 5, dirs) if dirs == 1 else range(y + dirs, -1, dirs)
-        is_passed = True
-        for fx in range(max(0, x - 1), min(4, x + 1) + 1):
-            for ry in ahead_ranks:
-                try:
-                    pp = board_grid[ry][fx]
-                except Exception:
-                    pp = None
-                if pp and pp.player.name == opp_name and pp.name == "Pawn":
-                    is_passed = False
-                    break
-            if not is_passed:
-                break
-        if is_passed:
-            rank_from_home = (4 - y) if my_name == "white" else y
-            rank_from_home = max(0, min(4, rank_from_home))
-            extra_mg += EVAL_PASSED_PAWN_MG[rank_from_home]
-            extra_eg += EVAL_PASSED_PAWN_EG[rank_from_home]
-
-    # Doubled/Isolated Pawns
-    for f in range(5):
-        if files_my_pawns[f] >= 2:
-            extra_mg += EVAL_DOUBLED_PAWN
-            extra_eg += EVAL_DOUBLED_PAWN
-        if files_my_pawns[f] > 0:
-            has_left = files_my_pawns[f - 1] > 0 if f - 1 >= 0 else False
-            has_right = files_my_pawns[f + 1] > 0 if f + 1 <= 4 else False
-            if not has_left and not has_right:
-                extra_mg += EVAL_ISOLATED_PAWN
-                extra_eg += EVAL_ISOLATED_PAWN
-
-    # Open Files
-    def file_has_pawn_for(files, file_idx):
-        try:
-            return files[file_idx] > 0
-        except Exception:
-            return False
-
-    if my_rooks > 0:
-        for f in range(5):
-            if not file_has_pawn_for(files_my_pawns, f) and not file_has_pawn_for(
-                files_opp_pawns, f
-            ):
-                extra_mg += EVAL_ROOK_OPEN_FILE
-                extra_eg += EVAL_ROOK_OPEN_FILE
-            elif not file_has_pawn_for(files_my_pawns, f):
-                extra_mg += EVAL_ROOK_SEMIOPEN
-                extra_eg += EVAL_ROOK_SEMIOPEN
-    if my_rights > 0:
-        for f in range(5):
-            if not file_has_pawn_for(files_my_pawns, f) and not file_has_pawn_for(
-                files_opp_pawns, f
-            ):
-                extra_mg += EVAL_RIGHT_OPEN_FILE
-                extra_eg += EVAL_RIGHT_OPEN_FILE
-            elif not file_has_pawn_for(files_my_pawns, f):
-                extra_mg += EVAL_RIGHT_SEMIOPEN
-                extra_eg += EVAL_RIGHT_SEMIOPEN
-
-    # Dynamic King Safety
-    if my_king_pos is not None:
-        kx, ky = my_king_pos
-        danger_zone_bonus = 0
-        for dy in range(-1, 2):
-            for dx in range(-1, 2):
-                if dx == 0 and dy == 0:
-                    continue
-                sq_x, sq_y = kx + dx, ky + dy
-                if 0 <= sq_x < 5 and 0 <= sq_y < 5:
-                    try:
-                        pc = board_grid[sq_y][sq_x]
-                        if pc:
-                            if pc.player.name == my_name:
-                                danger_zone_bonus += 5 if pc.name == "Pawn" else 2
-                            else:
-                                danger_zone_bonus -= {
-                                    "Pawn": 5, "Knight": 10, "Bishop": 10,
-                                    "Rook": 15, "Right": 15, "Queen": 25,
-                                }.get(pc.name, 10)
-                    except Exception:
-                        pass
-        extra_mg += danger_zone_bonus
-        extra_eg += danger_zone_bonus
-
-    # Endgame drives (KQK / KRK)
-    try:
-        if opp_king_pos:
-            is_kqk = my_q == 1 and (my_r + my_ri) == 0 and opp_non_king == 0
-            is_krk = (my_r + my_ri) >= 1 and my_q == 0 and opp_non_king == 0
-
-            if is_kqk or is_krk:
-                ex, ey = opp_king_pos
-                if my_king_pos is not None:
-                    kprox = 4 - _chebyshev(my_king_pos, opp_king_pos)
-                    extra_eg += EVAL_EG_OWN_KING_PROXIMITY * kprox
-                
-                edge_w = EVAL_EG_OPP_KING_TO_EDGE_R if is_krk else EVAL_EG_OPP_KING_TO_EDGE_Q
-                corner_w = EVAL_EG_OPP_KING_TO_CORNER_R if is_krk else EVAL_EG_OPP_KING_TO_CORNER_Q
-                extra_eg += edge_w * (2 - _edge_distance(ex, ey))
-                extra_eg += corner_w * (2 - _corner_distance(ex, ey))
-
-                if is_krk:
-                    for rx, ry in my_rooks_pos + my_rights_pos:
-                        if rx == ex or ry == ey:
-                            extra_eg += EVAL_EG_ROOK_CUTOFF
-                
-                if is_kqk and my_queen_pos is not None and my_king_pos is not None:
-                    qd = _chebyshev(my_queen_pos, opp_king_pos)
-                    kd = _chebyshev(my_king_pos, opp_king_pos)
-                    if qd <= 1 and kd >= 2:
-                        extra_eg += EVAL_EG_QUEEN_ADJ_PENALTY
-    except Exception:
-        pass # Endgame extras are bonuses
-
-    # --- Combine Scores ---
-    mg_score += extra_mg
-    eg_score += extra_eg
-
-    # NOTE: Mobility is skipped here as it's the main bottleneck.
-    # If you ever re-enable it, it should go here, guarded by skip_mobility.
-
-    return (mg_score * phase_factor_mg) + (eg_score * phase_factor_eg)
-
-
-def _evaluate_extras(board, player, pieces):
-    """
-    Computes classical evaluation extras (MG/EG) on a compact 5x5 board.
-
-    OPTIMIZED: Builds a 2D grid for O(1) piece lookups.
-    """
-    try:
-        my_name = player.name
-    except Exception as e:
-        print(f"Error getting player name: {e}")
-        my_name = "white"
-
-    # Build 5x5 grid for O(1) piece lookups
-    board_grid = [[None for _ in range(5)] for _ in range(5)]
-
-    files_my_pawns = [0] * 5
-    files_opp_pawns = [0] * 5
-    my_bishops = 0
-    my_rooks = 0
-    my_rights = 0
-    opp_material_mg = 0
-    my_king_pos = None
-    opp_name = "black" if my_name == "white" else "white"
-    # Precompute positions for endgame extras in the same pass
-    opp_king_pos = None
-    my_queen_pos = None
-    my_rooks_pos = []
-    my_rights_pos = []
-    my_q = 0
-    my_r = 0
-    my_ri = 0
-    opp_non_king = 0
-
-    for piece in pieces:
-        try:
-            px, py = piece.position.x, piece.position.y
-            board_grid[py][px] = piece
-        except Exception as e:
-            print(f"Error getting position: {e}")
-            continue
-        if piece.player.name == my_name:
-            if piece.name == "Pawn":
-                files_my_pawns[px] += 1
-            elif piece.name == "Bishop":
-                my_bishops += 1
-            elif piece.name == "Rook":
-                my_rooks += 1
-                my_r += 1
-                my_rooks_pos.append((px, py))
-            elif piece.name == "Right":
-                my_rights += 1
-                my_ri += 1
-                my_rights_pos.append((px, py))
-            elif piece.name == "Queen":
-                my_q += 1
-                my_queen_pos = (px, py)
-            elif piece.name == "King":
-                my_king_pos = (px, py)
-        else:
-            if piece.name == "Pawn":
-                files_opp_pawns[px] += 1
-            elif piece.name == "King":
-                opp_king_pos = (px, py)
-            else:
-                opp_non_king += 1
-            opp_material_mg += get_piece_base_value(piece, "mg")
-
-    mg = 0
-    eg = 0
-
-    if my_bishops >= 2:
-        mg += EVAL_BISHOP_PAIR
-        eg += EVAL_BISHOP_PAIR
-
-    try:
-        for cx, cy in CENTER_SQUARES:
-            pc = board_grid[cy][cx]
-            if pc and pc.player.name == my_name:
-                mg += EVAL_CENTER_CONTROL
-                eg += EVAL_CENTER_CONTROL
-    except Exception as e:
-        print(f"Error in center control: {e}")
-
-    for piece in pieces:
-        if getattr(piece, "player", None) and piece.player.name == my_name and piece.name == "Pawn":
-            try:
-                x, y = piece.position.x, piece.position.y
-            except Exception as e:
-                print(f"Error getting position: {e}")
-                continue
-            dirs = -1 if my_name == "white" else 1
-            ahead_ranks = range(y + dirs, 5, dirs) if dirs == 1 else range(y + dirs, -1, dirs)
-            is_passed = True
-            for fx in range(max(0, x - 1), min(4, x + 1) + 1):
-                for ry in ahead_ranks:
-                    try:
-                        pp = board_grid[ry][fx]
-                    except Exception:
-                        pp = None
-                    if pp and pp.player.name == opp_name and pp.name == "Pawn":
-                        is_passed = False
-                        break
-                if not is_passed:
-                    break
-            if is_passed:
-                rank_from_home = (4 - y) if my_name == "white" else y
-                rank_from_home = max(0, min(4, rank_from_home))
-                mg += EVAL_PASSED_PAWN_MG[rank_from_home]
-                eg += EVAL_PASSED_PAWN_EG[rank_from_home]
-
-    for f in range(5):
-        if files_my_pawns[f] >= 2:
-            mg += EVAL_DOUBLED_PAWN
-            eg += EVAL_DOUBLED_PAWN
-        if files_my_pawns[f] > 0:
-            has_left = files_my_pawns[f - 1] > 0 if f - 1 >= 0 else False
-            has_right = files_my_pawns[f + 1] > 0 if f + 1 <= 4 else False
-            if not has_left and not has_right:
-                mg += EVAL_ISOLATED_PAWN
-                eg += EVAL_ISOLATED_PAWN
-
-    def file_has_pawn_for(files, file_idx):
-        try:
-            return files[file_idx] > 0
-        except Exception as e:
-            print(f"Error in file_has_pawn_for: {e}")
-            return False
-
-    if my_rooks > 0:
-        for f in range(5):
-            if not file_has_pawn_for(files_my_pawns, f) and not file_has_pawn_for(
-                files_opp_pawns, f
-            ):
-                mg += EVAL_ROOK_OPEN_FILE
-                eg += EVAL_ROOK_OPEN_FILE
-            elif not file_has_pawn_for(files_my_pawns, f):
-                mg += EVAL_ROOK_SEMIOPEN
-                eg += EVAL_ROOK_SEMIOPEN
-    if my_rights > 0:
-        for f in range(5):
-            if not file_has_pawn_for(files_my_pawns, f) and not file_has_pawn_for(
-                files_opp_pawns, f
-            ):
-                mg += EVAL_RIGHT_OPEN_FILE
-                eg += EVAL_RIGHT_OPEN_FILE
-            elif not file_has_pawn_for(files_my_pawns, f):
-                mg += EVAL_RIGHT_SEMIOPEN
-                eg += EVAL_RIGHT_SEMIOPEN
-
-    # --- Dynamic King Safety ---
-    if my_king_pos is not None:
-        kx, ky = my_king_pos
-        danger_zone_bonus = 0
-        for dy in range(-1, 2):
-            for dx in range(-1, 2):
-                if dx == 0 and dy == 0:
-                    continue
-                sq_x, sq_y = kx + dx, ky + dy
-                if 0 <= sq_x < 5 and 0 <= sq_y < 5:
-                    try:
-                        pc = board_grid[sq_y][sq_x]
-                        if pc:
-                            if pc.player.name == my_name:
-                                danger_zone_bonus += 5 if pc.name == "Pawn" else 2
-                            else:
-                                danger_zone_bonus -= {
-                                    "Pawn": 5,
-                                    "Knight": 10,
-                                    "Bishop": 10,
-                                    "Rook": 15,
-                                    "Right": 15,
-                                    "Queen": 25,
-                                }.get(pc.name, 10)
-                    except Exception as e:
-                        print(f"Error in dynamic king safety: {e}")
-        mg += danger_zone_bonus
-        eg += danger_zone_bonus
-
-    # --- Endgame drives (KQK / KRK) ---
-    try:
-        if opp_king_pos:
-            is_kqk = my_q == 1 and (my_r + my_ri) == 0 and opp_non_king == 0
-            is_krk = (my_r + my_ri) >= 1 and my_q == 0 and opp_non_king == 0
-
-            if is_kqk or is_krk:
-                ex, ey = opp_king_pos
-
-                # Bring our king closer in simple mates
-                if my_king_pos is not None:
-                    kprox = 4 - _chebyshev(my_king_pos, opp_king_pos)
-                    eg += EVAL_EG_OWN_KING_PROXIMITY * kprox
-
-                # Drive enemy king to edge/corner
-                edge_w = EVAL_EG_OPP_KING_TO_EDGE_R if is_krk else EVAL_EG_OPP_KING_TO_EDGE_Q
-                corner_w = EVAL_EG_OPP_KING_TO_CORNER_R if is_krk else EVAL_EG_OPP_KING_TO_CORNER_Q
-                eg += edge_w * (2 - _edge_distance(ex, ey))
-                eg += corner_w * (2 - _corner_distance(ex, ey))
-
-                # Rook/Right cut-off bonus (same rank/file as enemy king)
-                if is_krk:
-                    for rx, ry in my_rooks_pos + my_rights_pos:
-                        if rx == ex or ry == ey:
-                            eg += EVAL_EG_ROOK_CUTOFF
-
-                # Avoid stalemate-y queen adjacency when our king is far
-                if is_kqk and my_queen_pos is not None and my_king_pos is not None:
-                    qd = _chebyshev(my_queen_pos, opp_king_pos)
-                    kd = _chebyshev(my_king_pos, opp_king_pos)
-                    if qd <= 1 and kd >= 2:
-                        eg += EVAL_EG_QUEEN_ADJ_PENALTY
-    except Exception as e:
-        print(f"Endgame extras error: {e}")
-
-    return mg, eg
-
-
-def evaluate_position(board, player):
-    """
-    Computes evaluation as static score (material + PST + extras + mobility).
-    """
-    try:
-        pieces = list(board.get_pieces())
-    except Exception as e:
-        print(f"Error in pieces: {e}")
-        pieces = []
-
-    game_phase = calculate_game_phase(pieces)
-
-    static_score = evaluate_position_static(board, player, pieces, game_phase)
-
-    return static_score
-
-
-def evaluate_position_breakdown(board, player):
-    """
-    Returns a detailed evaluation breakdown for diagnostics and UI.
-
-    Args:
-        board: The game board.
-        player: Perspective of the evaluation.
-
-    Returns:
-        Dict with phase factors, material, PST, mobility, MG/EG sums, and
-        the final blended score.
-    """
-    pieces = list(board.get_pieces())
-    game_phase = calculate_game_phase(pieces)
-    phase_factor_mg = game_phase / MAX_PHASE
-    phase_factor_eg = (MAX_PHASE - game_phase) / MAX_PHASE
-
-    material_mg = 0
-    material_eg = 0
-    pst_mg = 0
-    pst_eg = 0
-
-    for piece in pieces:
-        val_mg = get_piece_base_value(piece, "mg")
-        val_eg = get_piece_base_value(piece, "eg")
-        sq_mg = get_pst_score(piece, "mg")
-        sq_eg = get_pst_score(piece, "eg")
-        if piece.player.name == player.name:
-            material_mg += val_mg
-            material_eg += val_eg
-            pst_mg += sq_mg
-            pst_eg += sq_eg
-        else:
-            material_mg -= val_mg
-            material_eg -= val_eg
-            pst_mg -= sq_mg
-            pst_eg -= sq_eg
-
-    try:
-        my_moves = len(list_legal_moves_for(board, player))
-        opponent = board.players[1] if player.name == "white" else board.players[0]
-        opp_moves = len(list_legal_moves_for(board, opponent))
-        mobility_score = 3 * (my_moves - opp_moves)
-    except Exception as e:
-        print(f"Error in mobility score: {e}")
-        mobility_score = 0
-
-    mg_score = material_mg + pst_mg + mobility_score
-    eg_score = material_eg + pst_eg + mobility_score
-    final_score = _interpolate_eval(mg_score, eg_score, phase_factor_mg, phase_factor_eg)
-
-    return {
-        "game_phase": game_phase,
-        "phase_factor_mg": round(phase_factor_mg, 2),
-        "phase_factor_eg": round(phase_factor_eg, 2),
-        "material_mg": material_mg,
-        "material_eg": material_eg,
-        "pst_mg": pst_mg,
-        "pst_eg": pst_eg,
-        "mobility": mobility_score,
-        "mg_score": mg_score,
-        "eg_score": eg_score,
-        "final_score": round(final_score, 2),
-    }
-
-
-# =====================================================================
-# === Move Ordering (OPTIMIZED)
-# =====================================================================
-
-
-def score_move(
-    board, piece, move_opt, var, ply, hash_move_tuple, prev_move_tuple, bbpos, all_bbs_list
-):
-    """
-    Heuristically scores a move for ordering within the search.
-
-    Args:
-        board: The board to query for victims/captures.
-        piece: The moving piece.
-        move_opt: The move option being scored.
-        var: Search variables dictionary (history, killers, etc.).
-        ply: Current ply index in the search tree.
-        hash_move_tuple: Optional transposition move tuple to prioritize.
-        prev_move_tuple: Previous move tuple used for countermove heuristic.
-        bbpos: Optional precomputed `BBPos` for SEE and occupancy.
-        all_bbs_list: Optional list of bitboards aligned with `bbpos`.
-
-    Returns:
-        An integer score; higher scores are searched earlier.
-
-    How it works:
-        - Prioritizes TT move, winning captures (SEE), promotions, killers,
-          countermoves, and history heuristics in that order of magnitude.
-    """
-    if piece is None or move_opt is None or not _has_xy(piece) or not _has_xy(move_opt):
-        return -1_000_000
-
-    move_tuple = (piece.position.x, piece.position.y, move_opt.position.x, move_opt.position.y)
-
-    if move_tuple == hash_move_tuple:
-        return 1000000
-
-    is_capture = getattr(move_opt, "captures", None)
-
-    if is_capture:
-        victim = None
-        victim_pos = None
-        for pos in move_opt.captures:
-            try:
-                p = board[Square(pos.x, pos.y)].piece
-            except Exception:
-                p = None
-            if p:
-                victim = p
-                victim_pos = pos
-                break
-        if not victim:
-            try:
-                victim = board[Square(move_opt.position.x, move_opt.position.y)].piece
-            except Exception:
-                victim = None
-            victim_pos = move_opt.position
-
-        base = 100000
-        if victim:
-            victim_val = get_piece_base_value(victim, "mg")
-            aggressor_val = get_piece_base_value(piece, "mg")
-            base += (victim_val * 10) - aggressor_val
-
-            if bbpos is not None and all_bbs_list is not None:
-                try:
-                    occ = bbpos.occ_all
-                    tgt_sq = square_index(victim_pos.x, victim_pos.y)
-                    stm_white = getattr(piece.player, "name", "white") == "white"
-
-                    see_gain = bb_see_njit(
-                        int(tgt_sq), bool(stm_white), int(occ), int(victim_val), all_bbs_list.copy()
-                    )
-
-                    if see_gain >= 0:
-                        base += 500 + see_gain
-                    else:
-                        base = 1000 + see_gain
-                except Exception as e:
-                    print(f"Error in SEE: {e}")
-                    pass
-            return base
-        else:
-            base += 500
-            return base
-
-    if ply < len(var["killers"]) and move_tuple in var["killers"][ply]:
-        return 90000
-
-    if prev_move_tuple is not None:
-        cm = var.get("countermoves", {}).get(prev_move_tuple)
-        if cm is not None and cm == move_tuple:
-            return 85000
-
-    return var["history"].get(move_tuple, 0)
-
-
-def _classify_move_stage(board, piece, move_opt, var, ply, hash_move_tuple, bbpos, all_bbs_list):
-    """
-    Classifies a move into ordering stages and returns a sort key.
-
-    Args:
-        board: Current board.
-        piece: Moving piece.
-        move_opt: Candidate move.
-        var: Search variables including killers/countermoves/history.
-        ply: Current ply.
-        hash_move_tuple: Move from TT to force to the front when present.
-        bbpos: Optional bitboards for SEE.
-        all_bbs_list: Optional list of bitboards aligned with `bbpos`.
-
-    Returns:
-        Tuple (stage_index, score, see_gain_or_None). Smaller stage_index
-        sorts earlier; score is a secondary key.
-
-    Notes:
-        In addition to captures/promotions/killers/countermoves/history,
-        quiet checking moves are prioritized slightly ahead of killer moves
-        to improve tactical forcing lines (mates and nets) exploration.
-    """
-    if piece is None or move_opt is None or not _has_xy(piece) or not _has_xy(move_opt):
-        return 99, -1_000_000, None
-    try:
-        move_tuple = (
-            piece.position.x,
-            piece.position.y,
-            move_opt.position.x,
-            move_opt.position.y,
-        )
-    except Exception as e:
-        print(f"Error getting move tuple: {e}")
-        return 99, -1_000_000, None
-
-    if hash_move_tuple is not None and move_tuple == hash_move_tuple:
-        return 1, 1_000_000, None
-
-    is_promo = False
-    try:
-        is_promo = bool(getattr(move_opt, "extra", {}).get("promote"))
-    except Exception as e:
-        print(f"Error getting promote: {e}")
-        is_promo = False
-
-    is_capture = getattr(move_opt, "captures", None)
-    see_gain = None
-    if is_capture:
-        victim = None
-        victim_pos = None
-        for pos in move_opt.captures:
-            try:
-                p = board[Square(pos.x, pos.y)].piece
-            except Exception:
-                p = None
-            if p:
-                victim = p
-                victim_pos = pos
-                break
-        if not victim:
-            try:
-                victim = board[Square(move_opt.position.x, move_opt.position.y)].piece
-            except Exception:
-                victim = None
-            victim_pos = move_opt.position
-        if (
-            victim
-            and bbpos is not None
-            and all_bbs_list is not None
-            and not var.get("_time_pressure", False)
-        ):
-            try:
-                occ = bbpos.occ_all
-                tgt_sq = square_index(victim_pos.x, victim_pos.y)
-                stm_white = getattr(piece.player, "name", "white") == "white"
-                see_gain = bb_see_njit(
-                    int(tgt_sq),
-                    bool(stm_white),
-                    int(occ),
-                    int(get_piece_base_value(victim, "mg")),
-                    all_bbs_list.copy(),
-                )
-            except Exception as e:
-                print(f"Error in SEE: {e}")
-                see_gain = None
-        if see_gain is not None and see_gain >= 0:
-            return 2, 100_000 + see_gain, see_gain
-        else:
-            return 7, -10_000 + (see_gain or -1), see_gain
-
-    if is_promo:
-        return 3, 95_000, None
-
-    # Prefer quiet checks slightly ahead of killers
-    # try:
-    #     moving_name = piece.player.name
-    #     next_player = board.players[1] if moving_name == "white" else board.players[0]
-    #     nb, mp, mm = clone_and_apply_move(board, piece, move_opt)
-    #     if nb is not None and is_in_check(nb, next_player):
-    #         return 4, 90_500, None
-    # except Exception:
-    #     pass
-
-    try:
-        if ply < len(var.get("killers", [])) and move_tuple in var["killers"][ply]:
-            return 4, 90_000, None
-    except Exception as e:
-        print(f"Error in killer check: {e}")
-        pass
-
-    try:
-        prev = var.get("_prev_move_tuple")
-        if prev is not None:
-            cm = var.get("countermoves", {}).get(prev)
-            if cm is not None and cm == move_tuple:
-                return 5, 85_000, None
-    except Exception as e:
-        print(f"Error in countermove check: {e}")
-        pass
-
-    return 6, int(var.get("history", {}).get(move_tuple, 0)), None
-
-
-def get_ordered_moves(
-    board, player, var, ply, hash_move_tuple, prev_move_tuple=None, captures_only=False, board_hash=None
-):
-    """
-    Generates and orders legal moves using several heuristics.
-
-    Args:
-        board: Current board state.
-        player: The player to move.
-        var: Search variables dict (history, killers, etc.).
-        ply: Current ply in the search.
-        hash_move_tuple: Optional TT move to prioritize.
-        prev_move_tuple: Optional previous move for countermove heuristic.
-        captures_only: If True, return only capturing moves.
-
-    Returns:
-        A list of (piece, move_opt) pairs ordered from best to worst.
-    """
-    try:
-        if board_hash is not None:
-            all_legal_moves = get_legal_moves_cached(board, player, var, board_hash)
-        else:
-            zob = var.get("zobrist")
-            bh = zob.compute_full_hash(board, player.name) if zob else None
-            if bh is not None and "_legal_moves_cache" in var or zob:
-                all_legal_moves = get_legal_moves_cached(board, player, var, bh)
-            else:
-                all_legal_moves = list_legal_moves_for(board, player)
-    except Exception as e:
-        if DEBUG:
-            print(f"Error listing legal moves in normal version: {e}")
-        return []
-
-    legal_moves = []
-    for p, m in all_legal_moves:
-        if p is None or m is None:
-            continue
-        if not _has_xy(p) or not _has_xy(m):
-            continue
-
-        if captures_only:
-            if getattr(m, "captures", None):
-                legal_moves.append((p, m))
-        else:
-            legal_moves.append((p, m))
-
-    if not legal_moves:
-        return []
-
-    bbpos = None
-    all_bbs_list = None
-    try:
-        bbpos = bb_from_board(board)
-        all_bbs_list = [
-            bbpos.WP,
-            bbpos.WN,
-            bbpos.WB,
-            bbpos.WR,
-            bbpos.WQ,
-            bbpos.WK,
-            bbpos.WRi,
-            bbpos.BP,
-            bbpos.BN,
-            bbpos.BB,
-            bbpos.BR,
-            bbpos.BQ,
-            bbpos.BK,
-            bbpos.BRi,
-        ]
-    except Exception as e:
-        print(f"Error building bitboards: {e}")
-        pass
-
-    scored_moves = []
-    for p, m in legal_moves:
-        sc = score_move(
-            board, p, m, var, ply, hash_move_tuple, prev_move_tuple, bbpos, all_bbs_list
-        )
-        mv_key = (p.position.x, p.position.y, m.position.x, m.position.y)
-        scored_moves.append((sc, mv_key, (p, m)))
-    scored_moves.sort(key=lambda x: (-x[0], x[1]))
-    max_moves = 12 if var.get("_time_pressure") else 20
-    trimmed = scored_moves[:max_moves]
-    return [move for _, __, move in trimmed]
-
-
-def get_ordered_moves_optimized(
-    board,
-    player,
-    var,
-    ply,
-    hash_move_tuple,
-    prev_move_tuple=None,
-    captures_only=False,
-    bbpos=None,
-    all_bbs_list=None,
-    board_hash=None,
-):
-    """
-    Like `get_ordered_moves` but accepts precomputed bitboards for speed.
-
-    Args:
-        board: Current board.
-        player: The player to move.
-        var: Search variables dict.
-        ply: Current ply.
-        hash_move_tuple: Optional TT move to prioritize.
-        prev_move_tuple: Optional previous move for countermove heuristic.
-        captures_only: Limit to captures when True.
-        bbpos: Optional `BBPos` computed once per node.
-        all_bbs_list: Optional list of bitboards aligned with `bbpos`.
-
-    Returns:
-        Ordered list of (piece, move_opt) pairs.
-    """
-    try:
-        if board_hash is not None:
-            all_legal_moves = get_legal_moves_cached(board, player, var, board_hash)
-        else:
-            zob = var.get("zobrist")
-            bh = zob.compute_full_hash(board, player.name) if zob else None
-            if bh is not None:
-                all_legal_moves = get_legal_moves_cached(board, player, var, bh)
-            else:
-                all_legal_moves = list_legal_moves_for(board, player)
-    except Exception as e:
-        if DEBUG:
-            print(f"Error listing legal moves in optimized version: {e}")
-        return []
-
-    legal_moves = []
-    for p, m in all_legal_moves:
-        if p is None or m is None:
-            continue
-        if not _has_xy(p) or not _has_xy(m):
-            continue
-        if captures_only:
-            if getattr(m, "captures", None):
-                legal_moves.append((p, m))
-        else:
-            legal_moves.append((p, m))
-
-    if not legal_moves:
-        return []
-
-    if bbpos is None or all_bbs_list is None:
-        try:
-            bbpos = bb_from_board(board)
-            all_bbs_list = [
-                bbpos.WP,
-                bbpos.WN,
-                bbpos.WB,
-                bbpos.WR,
-                bbpos.WQ,
-                bbpos.WK,
-                bbpos.WRi,
-                bbpos.BP,
-                bbpos.BN,
-                bbpos.BB,
-                bbpos.BR,
-                bbpos.BQ,
-                bbpos.BK,
-                bbpos.BRi,
-            ]
-        except Exception as e:
-            print(f"Error building bitboards: {e}")
-            pass
-
-    staged = []
-    for p, m in legal_moves:
-        stg, scr, seev = _classify_move_stage(
-            board, p, m, var, ply, hash_move_tuple, bbpos, all_bbs_list
-        )
-        mv_key = (p.position.x, p.position.y, m.position.x, m.position.y)
-        staged.append(((stg, -scr), (p, m), mv_key))
-    staged.sort(key=lambda x: (x[0], x[2]))
-    max_moves = 12 if var.get("_time_pressure") else 20
-    return [mv for _, mv, __ in staged[:max_moves]]
-
-
-# =====================================================================
-# === Quiescence Search (MODIFIED)
-# =====================================================================
-
-
-def quiescence_search(
-    board,
-    player,
-    depth,
-    alpha,
-    beta,
-    pieces,
-    game_phase,
-    current_hash: int,
-    var: Dict[str, Any],
-    last_cap_sq: Optional[int] = None,
-    *,
-    tree_parent_id: Optional[int] = None,
-    move_str: Optional[str] = None,
-    node_type: str = "q",
-):
-    """
-    Searches only "noisy" continuations (captures/check evasions) to stabilize eval.
-
-    Args:
-        board: Current board.
-        player: Side to move.
-        depth: Remaining quiescence depth (plies) for recursion control.
-        alpha: Current alpha bound.
-        beta: Current beta bound.
-        pieces: Precomputed list of pieces for the current node.
-        game_phase: Precomputed game phase for blending MG/EG.
-        current_hash: Zobrist hash at the current node.
-        var: Search state dictionary (zobrist, flags, counters, etc.).
-        last_cap_sq: If provided, prefer recaptures on this square.
-
-    Returns:
-        The best stand-pat or capture/escape sequence score within [alpha, beta].
-
-    How it works:
-        - Stand-pat with static evaluation and alpha-beta pruning.
-        - If in check, consider all moves; otherwise only captures (and
-          optionally recaptures first).
-        - Use incremental make/unmake with Zobrist hashing and optional SEE
-          gating to skip losing captures.
-    """
-    var["_qnodes"] = var.get("_qnodes", 0) + 1
-
-    # try:
-    #     result = get_result(board)
-    #     if result is not None:
-    #         res_lower = result.lower()
-    #         if "checkmate" in res_lower:
-    #             if player.name in res_lower and "loses" in res_lower:
-    #                 return -MATE_VALUE  # This is a mate against us
-    #             else:
-    #                 return MATE_VALUE  # We delivered this mate
-    #         elif "draw" in res_lower or "stalemate" in res_lower:
-    #             return 0.0  # Return 0 for a draw
-    # except Exception as e:
-    #     print(f"Error checking get_result in q-search: {e}")
-
-    # Enforce time budgets (identical to negamax)
-    try:
-        start_t = var.get("_start_t")
-        soft_s = float(var.get("_soft_time_s") or 0.0)
-        hard_s = float(var.get("_hard_time_s") or 0.0)
-    except Exception:
-        start_t, soft_s, hard_s = None, 0.0, 0.0
-    if start_t is not None:
-        elapsed = time.perf_counter() - start_t
-        var["_time_pressure"] = bool(soft_s > 0 and elapsed > 0.7 * soft_s)
-        if hard_s > 0 and elapsed >= hard_s:
-            var["_hard_time_stop"] = True
-            raise Exception("Hard time limit reached")
-        if soft_s > 0 and elapsed >= soft_s:
-            var["_soft_time_stop"] = True
-            raise Exception("Soft time limit reached")
-
-    # Prepare local bitboards once; used for in-check tests
-    try:
-        bbpos_local = bb_from_board(board)
-    except Exception:
-        bbpos_local = None
-
-    bbpos_for_see = bb_from_board(board)
-    all_bbs_list_for_see = [
-            bbpos_for_see.WP, bbpos_for_see.WN, bbpos_for_see.WB, bbpos_for_see.WR,
-            bbpos_for_see.WQ, bbpos_for_see.WK, bbpos_for_see.WRi,
-            bbpos_for_see.BP, bbpos_for_see.BN, bbpos_for_see.BB, bbpos_for_see.BR,
-            bbpos_for_see.BQ, bbpos_for_see.BK, bbpos_for_see.BRi,
-        ]
-
-    stand_pat = evaluate_position_static(board, player, pieces, game_phase, skip_mobility=True)
-    if stand_pat >= beta:
-        return beta
-    if stand_pat > alpha:
-        alpha = stand_pat
-
-    if depth == 0:
-        return alpha
-
-    in_check_now = is_in_check(board, player, bbpos=bbpos_local if 'bbpos_local' in locals() else None)
-
-    # Delta pruning: if even a queen gain cannot lift alpha, cut
-    DELTA_MARGIN = 900
-    if (not in_check_now) and (stand_pat + DELTA_MARGIN < alpha):
-        return alpha
-    if in_check_now:
-        moves_to_search = get_ordered_moves(
-            board, player, var, 99, None, None, captures_only=False, board_hash=current_hash
-        )
-    else:
-        moves_to_search = get_ordered_moves(
-            board, player, var, 99, None, None, captures_only=True, board_hash=current_hash
-        )
-
-    if last_cap_sq is not None:
-        try:
-
-            def _is_recap(mv):
-                m = mv[1]
-                for pos in getattr(m, "captures", []) or []:
-                    if square_index(pos.x, pos.y) == last_cap_sq:
-                        return True
-                return square_index(m.position.x, m.position.y) == last_cap_sq
-
-            moves_to_search.sort(key=lambda pm: (not _is_recap(pm)))
-        except Exception as e:
-            print(f"Error sorting moves: {e}")
-            pass
-    zobrist = var.get("zobrist")
-
-    for piece, move_opt in moves_to_search:
-        new_board, mapped_piece, mapped_move = clone_and_apply_move(board, piece, move_opt)
-        if new_board is None:
-            continue
-
-        next_player = new_board.players[1] if player.name == "white" else new_board.players[0]
-
-        next_pieces = list(new_board.get_pieces())
-        next_phase = calculate_game_phase(next_pieces)
-
-        if var.get("flags", {}).get("qsee", True) and not in_check_now:
-            is_capture = getattr(move_opt, "captures", None)
-            if is_capture:
-                victim = None
-                victim_pos = None
-                for pos in move_opt.captures:
-                    try:
-                        vp = board[Square(pos.x, pos.y)].piece
-                    except Exception:
-                        vp = None
-                    if vp:
-                        victim = vp
-                        victim_pos = pos
-                        break
-                if not victim:
-                    try:
-                        victim = board[Square(move_opt.position.x, move_opt.position.y)].piece
-                    except Exception:
-                        victim = None
-                    victim_pos = move_opt.position
-                if victim:
-                    vval = get_piece_base_value(victim, "mg")
-                    if stand_pat + vval + 50 < alpha:
-                        continue
-                try:
-                    bbpos = bb_from_board(board)
-                    occ = bbpos.occ_all
-                    tgt_sq = square_index(victim_pos.x, victim_pos.y)
-                    stm_white = getattr(piece.player, "name", "white") == "white"
-                    see_gain = bb_see_njit(
-                        int(tgt_sq),
-                        bool(stm_white),
-                        int(occ),
-                        int(vval if victim else 0),
-                        all_bbs_list_for_see.copy() # Use the cached list
-                    )
-                    if see_gain < 0:
-                        continue
-                except Exception as e:
-                    print(f"Error in SEE: {e}")
-                    pass
-
-        next_last_cap_sq = None
-        try:
-            # Determine if this move involved a capture
-            had_capture = bool(getattr(move_opt, "captures", None))
-
-            if had_capture:
-                cap_positions = getattr(move_opt, "captures", None)
-                candidate = None
-                if cap_positions:
-                    # Safely pick one capture square regardless of container type (list/set/tuple)
-                    try:
-                        candidate = next(iter(cap_positions))
-                    except Exception as e:
-                        print(f"Error getting capture positions: {e}")
-                        candidate = None
-
-                def _coords_from(obj):
-                    try:
-                        return obj.x, obj.y
-                    except Exception as e:
-                        print(f"Error getting coordinates from object: {e}")
-                        try:
-                            seq = list(obj)
-                            if len(seq) >= 2:
-                                return seq[0], seq[1]
-                        except Exception as e:
-                            print(f"Error getting coordinates from sequence: {e}")
-                        return None, None
-
-                if candidate is not None:
-                    cx, cy = _coords_from(candidate)
-                    if isinstance(cx, int) and isinstance(cy, int):
-                        next_last_cap_sq = square_index(cx, cy)
-
-                if next_last_cap_sq is None and getattr(move_opt, "position", None):
-                    px, py = _coords_from(move_opt.position)
-                    if isinstance(px, int) and isinstance(py, int):
-                        next_last_cap_sq = square_index(px, py)
-        except Exception as e:
-            print(f"Error getting last cap sq: {e}")
-            next_last_cap_sq = None
-
-        next_hash = zobrist.compute_full_hash(new_board, next_player.name) if zobrist else 0
-        score = -quiescence_search(
-            new_board,
-            next_player,
-            depth - 1,
-            -beta,
-            -alpha,
-            next_pieces,
-            next_phase,
-            next_hash,
-            var,
-            next_last_cap_sq,
-        )
-
-        if score >= beta:
-            return beta
-
-        if score > alpha:
-            alpha = score
-
-    return alpha
-
-
-# =====================================================================
-# === Main Search (MODIFIED)
-# =====================================================================
-
-
- 
-
-
-def is_in_check(board, player, bbpos: Optional["BBPos"] = None) -> bool:
-    """
-    Detects whether `player`'s king is currently in check using unified attacker logic.
-    
-    This uses `attackers_to_square` to avoid duplication and drift from the
-    main legality machinery.
-    """
-    bbpos = bb_from_board(board) if bbpos is None else bbpos
-    # Select king and attacker color
-    if player.name == "white":
-        kbb = bbpos.WK
-        by_white = False  # attackers are black
-    else:
-        kbb = bbpos.BK
-        by_white = True   # attackers are white
-    if kbb == 0:
-        return False
-    ksq = _pop_lsb_njit(kbb)
-    attackers = attackers_to_square(bbpos, ksq, by_white=by_white, occ_override=bbpos.occ_all)
-    return bool(attackers)
-
-
-
 
 # =====================================================================
 # === Main Agent Entry Point
@@ -4763,10 +4663,10 @@ def agent(board, player, var):
     var_state: Dict[str, Any] = var if isinstance(var, dict) else _PERSISTENT_VAR
 
     # Initialize logging on first move
-    global LOG_FILE, MOVE_COUNTER
-    if LOG_FILE is None:
-        init_log_file()
-    MOVE_COUNTER += 1
+    # global LOG_FILE, MOVE_COUNTER
+    # if LOG_FILE is None:
+    #     init_log_file()
+    # MOVE_COUNTER += 1
     
     # Track time across the game and per move
     current_move_start_time = time.perf_counter()
@@ -4775,14 +4675,15 @@ def agent(board, player, var):
     var_state["game_ply"] += 1
     
     ply_so_far = var_state["game_ply"]
-    log_message(f"\n{'='*60}")
-    log_message(f"Move #{MOVE_COUNTER} (Ply {ply_so_far})")
-    log_message(f"{'='*60}")
+    # log_message(f"\n{'='*60}")
+    # log_message(f"Move #{MOVE_COUNTER} (Ply {ply_so_far})")
+    # log_message(f"{'='*60}")
 
     var_state.setdefault("zobrist", Zobrist())
     var_state.setdefault("contempt", 0.0)
     var_state.setdefault("capture_history", {})
     var_state.setdefault("cont_history", {})
+    var_state.setdefault("verbose", False)
     var_state.setdefault(
         "flags",
         {
@@ -4790,6 +4691,8 @@ def agent(board, player, var):
             "lmr": True,
             "futility": True,
             "qsee": True,
+            "inplace": True,
+            "rfp": True,
         },
     )
 
@@ -4828,7 +4731,7 @@ def agent(board, player, var):
 
     ply_so_far = var_state["game_ply"]
     moves_remaining = max(10, 40 - (ply_so_far // 2))
-    dynamic_budget_s = (remaining_time_s / moves_remaining)
+    # dynamic_budget_s = (remaining_time_s / moves_remaining)  # Computed but not currently used
     soft_time = 12.5 # max(0.3, min(dynamic_budget_s, THINKING_TIME_BUDGET * 0.9))
     hard_time = max(0.5, min(MOVE_HARD_LIMIT_S, THINKING_TIME_BUDGET * 0.98))
     start_t = current_move_start_time
@@ -4841,9 +4744,8 @@ def agent(board, player, var):
         _LAST_SEARCH_INFO.clear()
     except Exception:
         pass
-    print(
-        f"DEBUG: Ply {ply_so_far}, Rem_Time {remaining_time_s:.2f}s, Moves_Rem {moves_remaining}, Budget {soft_time:.2f}s"
-    )
+    # if var_state.get("verbose", False):
+    print(f"DEBUG: Ply {ply_so_far}, Rem_Time {remaining_time_s:.2f}s, Moves_Rem {moves_remaining}, Budget {soft_time:.2f}s")
 
     # --- Bitboard bridge: run the internal engine and return (piece, move_opt) ---
     try:
@@ -4867,7 +4769,7 @@ def agent(board, player, var):
         # If no legal moves at root, return immediately (terminal position)
         if not root_moves_map:
             total_time = time.perf_counter() - current_move_start_time
-            log_message("ROOT: No legal moves (terminal). Returning (None, None).")
+            # log_message("ROOT: No legal moves (terminal). Returning (None, None).")
             try:
                 var_state["total_time_used_s"] += total_time
             except Exception:
@@ -4890,9 +4792,9 @@ def agent(board, player, var):
         alpha_base = -INF
         beta_base = INF
         
-        log_message(f"Time budget: soft={soft_time:.2f}s, hard={hard_time:.2f}s")
+        # log_message(f"Time budget: soft={soft_time:.2f}s, hard={hard_time:.2f}s")
         # Adaptive time management trackers per-iteration
-        prev_iter_best_score: Optional[float] = None
+        # prev_iter_best_score: Optional[float] = None  # Declared but never used
         prev_iter_best_tuple: Optional[Tuple[int, int, int, int]] = None
 
         for depth in range(START_SEARCH_DEPTH, MAX_SEARCH_DEPTH + 1):
@@ -4964,11 +4866,13 @@ def agent(board, player, var):
             except Exception as e:
                 # Timeout or other error during search - break to preserve best_move_bb from previous depth
                 if "time limit" in str(e).lower() or "timeout" in str(e).lower():
-                    print(f"[BB_AGENT] Timeout at depth {depth}, using best move from previous depth", file=sys.stderr)
-                    log_message(f"Depth {depth}: TIMEOUT")
+                    # if var_state.get("verbose", False):
+                    print(f"[BB_AGENT] Timeout at depth {depth}, using best move from previous depth")
+                    # log_message(f"Depth {depth}: TIMEOUT")
                 else:
-                    print(f"[BB_AGENT] Error at depth {depth}: {e}", file=sys.stderr)
-                    log_message(f"Depth {depth}: ERROR - {e}")
+                    if var_state.get("verbose", False):
+                        print(f"[BB_AGENT] Error at depth {depth}: {e}")
+                    # log_message(f"Depth {depth}: ERROR - {e}")
                 break  # Exit the depth loop, preserving best_move_bb from previous iterations
 
             if depth_completed:
@@ -4980,11 +4884,9 @@ def agent(board, player, var):
                     sx, sy, dx, dy = bbmove_to_tuple_xy(best_move_bb)
                     move_str = f"({sx},{sy})->({dx},{dy})"
                 
-                print(
-                    f"DEBUG[BB]: Depth {depth} finished. Nodes={nodes}, QNodes={qnodes}",
-                    file=sys.stderr,
-                )
-                log_message(f"Depth {depth}: score={best_score:.0f}, move={move_str}, time={depth_time:.3f}s, nodes={nodes}, qnodes={qnodes}")
+                # if var_state.get("verbose", False):
+                print(f"DEBUG[BB]: Depth {depth} finished. Nodes={nodes}, QNodes={qnodes}, time={depth_time:.3f}s")
+                # log_message(f"Depth {depth}: score={best_score:.0f}, move={move_str}, time={depth_time:.3f}s, nodes={nodes}, qnodes={qnodes}")
                 # Adaptive soft time tuning based on stability and score magnitude
                 try:
                     cur_tuple = None
@@ -5000,7 +4902,7 @@ def agent(board, player, var):
                     # Clamp
                     new_soft = max(0.3, min(new_soft, MOVE_HARD_LIMIT_S * 0.95))
                     var_state["_soft_time_s"] = new_soft
-                    prev_iter_best_score = best_score
+                    # prev_iter_best_score = best_score  # Assigned but never used
                     prev_iter_best_tuple = cur_tuple
                     var_state["_root_best_move_tuple"] = cur_tuple
                 except Exception:
@@ -5013,13 +4915,13 @@ def agent(board, player, var):
         
         if best_move_bb is not None:
             sx, sy, dx, dy = bbmove_to_tuple_xy(best_move_bb)
-            log_message(f"Mapping root move via precomputed table: move_tuple=({sx},{sy},{dx},{dy}), best_move_bb={best_move_bb}")
+            # log_message(f"Mapping root move via precomputed table: move_tuple=({sx},{sy},{dx},{dy}), best_move_bb={best_move_bb}")
             pair = var_state.get("_root_moves_map", {}).get((sx, sy, dx, dy))
             if pair:
                 piece, move = pair
                 move_str = log_move_str(piece, move)
-                log_message(f"FINAL: {move_str}, score={best_score:.0f}, time={total_time:.3f}s, nodes={total_nodes}, qnodes={total_qnodes}")
-                log_message(f"{'='*60}\n")
+                # log_message(f"FINAL: {move_str}, score={best_score:.0f}, time={total_time:.3f}s, nodes={total_nodes}, qnodes={total_qnodes}")
+                # log_message(f"{'='*60}\n")
                 try:
                     var_state["total_time_used_s"] += total_time
                 except Exception:
@@ -5035,8 +4937,8 @@ def agent(board, player, var):
             first_tuple = next(iter(rm.keys()))
             piece, move = rm[first_tuple]
             move_str = log_move_str(piece, move)
-            log_message(f"FALLBACK (deterministic): {move_str}, time={total_time:.3f}s")
-            log_message(f"{'='*60}\n")
+            # log_message(f"FALLBACK (deterministic): {move_str}, time={total_time:.3f}s")
+            # log_message(f"{'='*60}\n")
             try:
                 var_state["total_time_used_s"] += total_time
             except Exception:
@@ -5045,8 +4947,8 @@ def agent(board, player, var):
                 _PERSISTENT_VAR = var_state
             return piece, move
         else:
-            log_message("FALLBACK: No legal moves found at root (terminal).")
-            log_message(f"{'='*60}\n")
+            # log_message("FALLBACK: No legal moves found at root (terminal).")
+            # log_message(f"{'='*60}\n")
             try:
                 var_state["total_time_used_s"] += total_time
             except Exception:
@@ -5055,20 +4957,22 @@ def agent(board, player, var):
                 _PERSISTENT_VAR = var_state
             return None, None
     except Exception as e:
-        print(f"[BB_AGENT_ERROR] {e}", file=sys.stderr)
+        if var_state.get("verbose", False):
+            print(f"[BB_AGENT_ERROR] {e}")
 
         # Return the best move from the *previous* completed depth if available
         total_time = time.perf_counter() - current_move_start_time
         if best_move_bb is not None:
-            print("[BB_AGENT_FIX] Using best move from previous depth due to timeout.", file=sys.stderr)
+            if var_state.get("verbose", False):
+                print("[BB_AGENT_FIX] Using best move from previous depth due to timeout.")
             sx, sy, dx, dy = bbmove_to_tuple_xy(best_move_bb)
-            log_message(f"[TIMEOUT] Mapping via precomputed root table for move_tuple=({sx},{sy},{dx},{dy})")
+            # log_message(f"[TIMEOUT] Mapping via precomputed root table for move_tuple=({sx},{sy},{dx},{dy})")
             pair = var_state.get("_root_moves_map", {}).get((sx, sy, dx, dy))
             if pair:
                 piece, move = pair
                 move_str = log_move_str(piece, move)
-                log_message(f"FINAL (timeout): {move_str}, time={total_time:.3f}s")
-                log_message(f"{'='*60}\n")
+                # log_message(f"FINAL (timeout): {move_str}, time={total_time:.3f}s")
+                # log_message(f"{'='*60}\n")
                 try:
                     var_state["total_time_used_s"] += total_time
                 except Exception:
@@ -5081,13 +4985,13 @@ def agent(board, player, var):
         try:
             best_tuple = var_state.get("_root_best_move_tuple")
             if best_tuple:
-                log_message(f"[FALLBACK] Mapping best_tuple via precomputed table: {best_tuple}")
+                # log_message(f"[FALLBACK] Mapping best_tuple via precomputed table: {best_tuple}")
                 fallback_pair = var_state.get("_root_moves_map", {}).get(tuple(best_tuple))
                 if fallback_pair:
                     piece, move = fallback_pair
                     move_str = log_move_str(piece, move)
-                    log_message(f"FALLBACK (using previous depth): {move_str}, time={total_time:.3f}s")
-                    # ... (return pair) ...
+                    # if var_state.get("verbose", False):
+                    print(f"FALLBACK (using previous depth): {move_str}, time={total_time:.3f}s")
                     return fallback_pair
         except Exception:
             pass # Failed to use previous depth's move, proceed to random.
@@ -5098,7 +5002,7 @@ def agent(board, player, var):
         if rm:
             first_tuple = next(iter(rm.keys()))
             piece, move = rm[first_tuple]
-            log_message(f"FALLBACK (deterministic final): {log_move_str(piece, move)}, time={total_time:.3f}s")
+            # log_message(f"FALLBACK (deterministic final): {log_move_str(piece, move)}, time={total_time:.3f}s")
             return piece, move
-        log_message("FALLBACK: No legal moves found (terminal).")
+        # log_message("FALLBACK: No legal moves found (terminal).")
         return None, None

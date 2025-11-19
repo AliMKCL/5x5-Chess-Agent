@@ -160,7 +160,7 @@ TRANSPOSITION_TABLE = BitboardTranspositionTable(size_mb=64)
 
 # Search configuration
 MAX_DEPTH = 50          # Maximum search depth for iterative deepening
-QUIESCENCE_MAX_DEPTH = 9  # Maximum quiescence search depth
+QUIESCENCE_MAX_DEPTH = 7  # Maximum quiescence search depth
 TIME_LIMIT = 12.5       # Time limit in seconds (leave buffer for move conversion)
 
 # Score constants
@@ -260,16 +260,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
                      depth: int, max_depth: int, start_time: float,
                      is_maximizing: bool, player_is_white: bool) -> int:
     """
-    Quiescence search to resolve tactical sequences (captures only).
-
-    STANDARD MINIMAX VERSION (not negamax):
-    - is_maximizing=True: Maximizing player tries to maximize score
-    - is_maximizing=False: Minimizing player tries to minimize score
-    - Evaluation always from player_is_white's perspective
-
-    This prevents the horizon effect where the engine misses tactical blows
-    just beyond the search depth. We search capture sequences until reaching
-    a "quiet" position (no captures available or max depth).
+    Quiescence search to resolve tactical sequences (captures, plus checkmate detection).
 
     Args:
         bb_state: Current bitboard position
@@ -282,7 +273,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
         player_is_white: True if evaluating from white's perspective (constant throughout search)
 
     Returns:
-        Static evaluation or best capture sequence score
+        Static evaluation or best capture sequence score, or MATE/STALEMATE score
     """
     global stats
     stats['quiescence_nodes'] += 1
@@ -291,49 +282,78 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
     if time.time() - start_time > TIME_LIMIT:
         return evaluate_bitboard(bb_state, player_is_white)
 
-    # Stand-pat score: current position evaluation (always from player's perspective)
-    stand_pat = evaluate_bitboard(bb_state, player_is_white)
+    # --- CHECK FOR TERMINAL STATES (MATE/STALEMATE) ---
+    in_check = is_in_check(bb_state, bb_state.side_to_move == 0)
 
-    # Update alpha/beta bounds with stand-pat, but DON'T return early
-    # We must search at least one ply of captures to avoid tactical blindness
-    if is_maximizing:
-        # Maximizing player: if stand-pat already >= beta, opponent won't allow this
+    # If in check, we must generate all moves to confirm if it's mate.
+    if in_check:
+        # Generate ALL moves (not just captures) to find escapes
+        moves = generate_legal_moves(bb_state, captures_only=False)
+        
+        if not moves:
+            # CHECKMATE DETECTED IN QUIESCENCE!
+            # The current side_to_move is checkmated.
+            # 
+            # CRITICAL: Apply fixed 60,000 penalty to ALL quiescence mates to ensure they score
+            # BELOW the early termination threshold (949,999), preventing false positives.
+            #
+            # Score examples:
+            # - Quiescence mate (any depth): 999,999 - 60,000 = 939,999 (< 949,999 threshold)
+            # - Main search mate at depth 4: -999,999 - 4,000 = -1,003,999 (uses ADDITION in minimax)
+            # 
+            # This ensures only genuine main-search forced mates trigger early termination.
+            mate_score_base = CHECKMATE_SCORE - 60000
 
-        # ========== FİX 4 geri ekledim ========
-        if stand_pat >= beta:
-            return beta
-        # Update alpha with stand-pat (we can always choose not to capture)
-        if stand_pat > alpha:
-            alpha = stand_pat
+            # Determine return score based on whose turn it is
+            if bb_state.side_to_move == 0:  # White is mated
+                return -mate_score_base if player_is_white else mate_score_base
+            else:  # Black is mated
+                return mate_score_base if player_is_white else -mate_score_base
+        
+        # If in check but not mated, we must search the escape moves (which are now the 'captures' set)
+        captures = order_moves(moves, bb_state)
+        # Skip the stand-pat logic below, as standing still in check is illegal.
+
     else:
-        # Update beta with stand-pat (opponent can always choose not to capture)
-        # Minimizing player: if stand-pat already <= alpha, we won't allow this
+        # --- STANDARD QUIESCENCE LOGIC (Only if NOT in check) ---
+        
+        # 1. Stand-pat score: current position evaluation
+        stand_pat = evaluate_bitboard(bb_state, player_is_white)
 
-        # ========== FİX 4 geri ekledim ========
-        if stand_pat <= alpha:
-            return alpha
-
-        if stand_pat < beta:
-            beta = stand_pat
+        # 2. Update alpha/beta bounds with stand-pat (can always choose not to capture)
+        if is_maximizing:
+            if stand_pat >= beta:
+                return beta
+            if stand_pat > alpha:
+                alpha = stand_pat
+            best_score = stand_pat # Initialize best score
+        else:
+            if stand_pat <= alpha:
+                return alpha
+            if stand_pat < beta:
+                beta = stand_pat
+            best_score = stand_pat # Initialize best score
+            
+        # 3. Generate captures only for search
+        captures = generate_legal_moves(bb_state, captures_only=True)
+        captures = order_moves(captures, bb_state)
 
     # Max depth reached: return static evaluation
     if depth >= max_depth:
-        return stand_pat
+        # If we reached max depth, return the most recent static evaluation (stand_pat or current evaluation)
+        return evaluate_bitboard(bb_state, player_is_white)
+    
+    # If not in check, best_score is already initialized to stand_pat.
+    # If in check, initialize best_score to alpha/beta bounds to handle the first move.
+    if in_check:
+        best_score = -float('inf') if is_maximizing else float('inf')
 
-    # Generate captures only
-    captures = generate_legal_moves(bb_state, captures_only=True)
 
-    # No captures available: quiet position
-    if not captures:
-        return stand_pat
+    # No captures/forcing moves available: quiet position
+    if not captures and not in_check:
+        return stand_pat # Only reached if not in check, and no captures
 
-    # Order captures by MVV-LVA + SEE
-    captures = order_moves(captures, bb_state)
-
-    # Initialize best score based on whose turn it is
-    best_score = stand_pat
-
-    # Search captures (STANDARD MINIMAX - no negation)
+    # Search forcing moves (captures or check escapes)
     for move in captures:
         new_state = apply_move(bb_state, move)
 
@@ -488,9 +508,9 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
     # Store in transposition table
     if best_move:
         # Convert BBMove to framework format for TT
-        from_x, from_y = index_to_xy(best_move.from_sq)
-        to_x, to_y = index_to_xy(best_move.to_sq)
-        tt_move_tuple = ((from_x, from_y), (to_x, to_y))
+        #from_x, from_y = index_to_xy(best_move.from_sq)
+        #to_x, to_y = index_to_xy(best_move.to_sq)
+        tt_move_tuple = (best_move.from_sq, best_move.to_sq)
         TRANSPOSITION_TABLE.store(bb_state.zobrist_hash, depth, best_score, tt_move_tuple)
         stats['tt_stores'] += 1
 
@@ -625,9 +645,16 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
 
         # Early termination: found forced checkmate FOR US (positive score only!)
-        # Require minimum depth 6 to ensure it's a real forced mate in main search
-        # Only stop if WE are winning (positive score), never if we're getting mated (negative)
-        # Threshold: 949,999 means mate found within ~50 main search plies
+        # 
+        # Requirements:
+        # 1. Minimum depth 6 to ensure sufficient search (not just quiescence discoveries)
+        # 2. Score >= 949,999 (only main-search mates, not quiescence mates @ 939,999)
+        # 3. Positive score only (we're winning, not losing)
+        #
+        # Score ranges:
+        # - Main search mate: 999,999 to ~1,050,000 (uses ADDITION of mate_bonus)
+        # - Quiescence mate: 939,999 (fixed penalty, below threshold)
+        # - Normal position: -50,000 to +50,000 (typical eval range)
         if depth >= 6 and best_score >= CHECKMATE_SCORE - 50000:
             if LOGGING_ENABLED:
                 log_message(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")

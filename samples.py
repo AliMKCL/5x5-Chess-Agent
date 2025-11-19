@@ -30,3 +30,11 @@ sample2 = [
     [Square(), Square(), Square(), Square(Pawn_Q(white)), Square()],
     [Square(), Square(), Square(King(white)), Square(), Square()],
 ]
+
+sample3 = [
+    [Square(), Square(King(black)), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(King(white)), Square(Right(white)), Square()],
+]
