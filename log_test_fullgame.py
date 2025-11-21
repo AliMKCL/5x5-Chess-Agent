@@ -13,6 +13,7 @@ from opponent import opponent
 import agentBitboard as agentB
 import agentP 
 import agentBitboard_gemini as agentBG
+from agentBitboard_25610 import agent as agentNUMBERS
 
 # Global move counter for logging
 global_move_counter = 0

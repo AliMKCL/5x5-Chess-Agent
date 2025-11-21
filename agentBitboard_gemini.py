@@ -33,6 +33,7 @@ from chessmaker.chess.base.board import Position
 
 
 
+
 # ============================================================================
 # BITBOARD-NATIVE TRANSPOSITION TABLE
 # ============================================================================
@@ -168,6 +169,10 @@ CHECKMATE_SCORE = 999_999
 STALEMATE_SCORE = 0
 DRAW_SCORE = 0
 
+# FIX #16: Precompute infinity constants to avoid repeated float object creation
+NEG_INF = float('-inf')
+POS_INF = float('inf')
+
 # Move ordering piece values (for MVV-LVA)
 # Must match PIECE_VALUES from helpersBitboard.py exactly!
 MVV_LVA_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right (indices 0-5)
@@ -184,7 +189,7 @@ stats = {
 
 # Logging
 LOG_FILE = "game_log.txt"
-LOGGING_ENABLED = True
+LOGGING_ENABLED = False
 
 
 # ============================================================================
@@ -221,7 +226,8 @@ def score_move(move: BBMove, bb_state: BitboardState, tt_best_move: Optional[Tup
         base_score = (victim_value * 10) - attacker_value
 
         # Static Exchange Evaluation: analyze if this capture is safe/profitable
-        see_score = static_exchange_eval(bb_state, move)
+        #see_score = static_exchange_eval(bb_state, move)
+        see_score = 0
 
         # Scaled SEE bonus: if SEE > 0 (winning exchange), add SEE value + 500
         # This matches agentT's philosophy: favorable exchanges get significant boost
@@ -249,7 +255,9 @@ def order_moves(moves: List[BBMove], bb_state: BitboardState, tt_best_move: Opti
     Returns:
         Sorted list of moves (best moves first)
     """
-    return sorted(moves, key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    # FIX #13: Use in-place sort to avoid creating new list
+    moves.sort(key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    return moves
 
 
 # ============================================================================
@@ -346,7 +354,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
     # If not in check, best_score is already initialized to stand_pat.
     # If in check, initialize best_score to alpha/beta bounds to handle the first move.
     if in_check:
-        best_score = -float('inf') if is_maximizing else float('inf')
+        best_score = NEG_INF if is_maximizing else POS_INF
 
 
     # No captures/forcing moves available: quiet position
@@ -439,8 +447,11 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
         in_check = is_in_check(bb_state, bb_state.side_to_move == 0)
         if in_check:
             # Checkmate: the current side_to_move is checkmated
-            # Determine if that's good or bad for player_is_white
-            mate_bonus = (root_depth - depth) * 1000
+            
+            # --- FIX START ---
+            # Use depth directly. Higher depth = closer to root = faster mate = higher score.
+            mate_bonus = depth * 1000  
+            # --- FIX END ---
 
             # If white is in checkmate
             if bb_state.side_to_move == 0:  # white to move but checkmated
@@ -462,20 +473,13 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
             return STALEMATE_SCORE
 
     # Extract TT move for ordering (if available)
-    tt_best_move_tuple = None
-    if tt_move:
-        # Convert from framework format (((x1,y1), (x2,y2))) to (from_sq, to_sq)
-        if isinstance(tt_move, tuple) and len(tt_move) == 2:
-            from_pos, to_pos = tt_move
-            if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                from_sq = square_index(from_pos[0], from_pos[1])
-                to_sq = square_index(to_pos[0], to_pos[1])
-                tt_best_move_tuple = (from_sq, to_sq)
+    # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+    tt_best_move_tuple = tt_move if tt_move else None
 
     # Order moves
     moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
-    best_score = -float('inf') if is_maximizing else float('inf')
+    best_score = NEG_INF if is_maximizing else POS_INF
     best_move = None
 
     # STANDARD MINIMAX: No negation of scores or bounds
@@ -548,7 +552,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     global stats
     start_time = time.time()
     best_move = None
-    best_score = -float('inf')
+    best_score = NEG_INF
 
     # Get all legal moves
     moves = generate_legal_moves(bb_state)
@@ -578,16 +582,11 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     for depth in range(1, max_depth + 1):
         # Check if we have time for this depth
         elapsed = time.time() - start_time
-        if elapsed > time_limit * 0.9:  # Reserve 10% buffer
-            if LOGGING_ENABLED:
-                log_message(f"Time limit approaching, stopping at depth {depth-1}")
-            print(f"Time limit approaching, stopping at depth {depth-1}")
-            break
 
         depth_start_time = time.time()
         depth_nodes_before = stats['nodes_searched']
         depth_best_move = None
-        depth_best_score = -float('inf')
+        depth_best_score = NEG_INF
 
         # Removed verbose depth start logging - only show completion
         if LOGGING_ENABLED:
@@ -595,22 +594,16 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
 
         # Probe TT for move ordering hint
         tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
-        tt_best_move_tuple = None
-        if tt_move:
-            if isinstance(tt_move, tuple) and len(tt_move) == 2:
-                from_pos, to_pos = tt_move
-                if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                    from_sq = square_index(from_pos[0], from_pos[1])
-                    to_sq = square_index(to_pos[0], to_pos[1])
-                    tt_best_move_tuple = (from_sq, to_sq)
+        # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+        tt_best_move_tuple = tt_move if tt_move else None
 
         # Order moves for this depth
         ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
         # Search all moves at current depth
         # Root is always maximizing (we're finding our best move)
-        alpha = -float('inf')
-        beta = float('inf')
+        alpha = NEG_INF
+        beta = POS_INF
 
         for move in ordered_moves:
             new_state = apply_move(bb_state, move)
@@ -629,9 +622,10 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             if time.time() - start_time > time_limit:
                 if LOGGING_ENABLED:
                     log_message(f"Timeout during depth {depth}, using previous depth result")
+                print(f"Timeout during depth {depth}, keeping previous depth's best move")
                 return best_move if best_move else depth_best_move
 
-        # Update best move
+        # Depth completed successfully - update best move
         best_move = depth_best_move
         best_score = depth_best_score
         stats['depth_reached'] = depth
@@ -640,9 +634,17 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         depth_nodes = stats['nodes_searched'] - depth_nodes_before
 
         # Simple depth completion logging
-        print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
+        if best_move:
+            from_x, from_y = index_to_xy(best_move.from_sq)
+            to_x, to_y = index_to_xy(best_move.to_sq)
+            piece_names = ['Pawn', 'Knight', 'Bishop', 'Queen', 'King', 'Right']
+            piece_name = piece_names[best_move.piece_type]
+            move_str = f"{piece_name} ({from_x},{from_y}) to ({to_x},{to_y})"
+        else:
+            move_str = "None"
+        print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
         if LOGGING_ENABLED:
-            log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
+            log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
 
         # Early termination: found forced checkmate FOR US (positive score only!)
         # 
@@ -772,6 +774,8 @@ def agent(board, player, var):
         Tuple of (piece, move_option) representing the best move
     """
     reset_statistics()
+
+    TRANSPOSITION_TABLE.clear()
 
     if LOGGING_ENABLED:
         log_message("\n" + "="*60)

@@ -9,8 +9,12 @@ from old_agents.agent import agent
 from old_agents.agentS import agent as agentS
 from old_agents.agentQ import agent as agentQ
 from agentE import agent as agentE
-from agentD import agent as agentEY
+from agentBitboard_gemini import agent as agentBG
 from opponent import opponent
+from agentP import agent as agentP
+from agentBitboard import agent as agentB
+from agentBitboard_25610 import agent as agentNUMBERS
+
 
 
 def make_custom_board(board_sample):
@@ -91,4 +95,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentEY, p_black=agentE, board_sample=sample1)
+    testgame_timeout(p_white=agentNUMBERS, p_black=agentP, board_sample=sample0)

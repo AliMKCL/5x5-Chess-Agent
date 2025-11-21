@@ -185,7 +185,7 @@ stats = {
 
 # Logging
 LOG_FILE = "game_log.txt"
-LOGGING_ENABLED = True
+LOGGING_ENABLED = False
 
 
 # ============================================================================
@@ -222,7 +222,8 @@ def score_move(move: BBMove, bb_state: BitboardState, tt_best_move: Optional[Tup
         base_score = (victim_value * 10) - attacker_value
 
         # Static Exchange Evaluation: analyze if this capture is safe/profitable
-        see_score = static_exchange_eval(bb_state, move)
+        #see_score = static_exchange_eval(bb_state, move)
+        see_score = 0
 
         # Scaled SEE bonus: if SEE > 0 (winning exchange), add SEE value + 500
         # This matches agentT's philosophy: favorable exchanges get significant boost
@@ -466,15 +467,8 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
             return STALEMATE_SCORE
 
     # Extract TT move for ordering (if available)
-    tt_best_move_tuple = None
-    if tt_move:
-        # Convert from framework format (((x1,y1), (x2,y2))) to (from_sq, to_sq)
-        if isinstance(tt_move, tuple) and len(tt_move) == 2:
-            from_pos, to_pos = tt_move
-            if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                from_sq = square_index(from_pos[0], from_pos[1])
-                to_sq = square_index(to_pos[0], to_pos[1])
-                tt_best_move_tuple = (from_sq, to_sq)
+    # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+    tt_best_move_tuple = tt_move if tt_move else None
 
     # Order moves
     moves = order_moves(moves, bb_state, tt_best_move_tuple)
@@ -582,11 +576,6 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     for depth in range(1, max_depth + 1):
         # Check if we have time for this depth
         elapsed = time.time() - start_time
-        if elapsed > time_limit * 0.9:  # Reserve 10% buffer
-            if LOGGING_ENABLED:
-                log_message(f"Time limit approaching, stopping at depth {depth-1}")
-            print(f"Time limit approaching, stopping at depth {depth-1}")
-            break
 
         depth_start_time = time.time()
         depth_nodes_before = stats['nodes_searched']
@@ -599,14 +588,8 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
 
         # Probe TT for move ordering hint
         tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
-        tt_best_move_tuple = None
-        if tt_move:
-            if isinstance(tt_move, tuple) and len(tt_move) == 2:
-                from_pos, to_pos = tt_move
-                if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                    from_sq = square_index(from_pos[0], from_pos[1])
-                    to_sq = square_index(to_pos[0], to_pos[1])
-                    tt_best_move_tuple = (from_sq, to_sq)
+        # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+        tt_best_move_tuple = tt_move if tt_move else None
 
         # Order moves for this depth
         ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
@@ -633,9 +616,10 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             if time.time() - start_time > time_limit:
                 if LOGGING_ENABLED:
                     log_message(f"Timeout during depth {depth}, using previous depth result")
+                print(f"Timeout during depth {depth}, keeping previous depth's best move")
                 return best_move if best_move else depth_best_move
 
-        # Update best move
+        # Depth completed successfully - update best move
         best_move = depth_best_move
         best_score = depth_best_score
         stats['depth_reached'] = depth
@@ -784,6 +768,8 @@ def agent(board, player, var):
         Tuple of (piece, move_option) representing the best move
     """
     reset_statistics()
+
+    TRANSPOSITION_TABLE.clear()
 
     if LOGGING_ENABLED:
         log_message("\n" + "="*60)

@@ -83,6 +83,7 @@ For example if white bishops ^ black knight moves = 1 --> There is a capture.
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import random
+from functools import lru_cache
 
 # ============================================================================
 # PART 1: CORE INFRASTRUCTURE
@@ -107,37 +108,16 @@ PIECE_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right
 
 # --- Coordinate Mapping Functions ---
 
+# OPTIMIZED: Inline-friendly single expression functions (Fix #5)
+# These are called thousands of times per search, so they need to be as fast as possible
+# Python will inline these automatically due to their simplicity
+
 def square_index(x: int, y: int) -> Square:
-    """
-    Convert (x, y) coordinates to square index.
-
-    Args:
-        x: File (column) coordinate [0-4]
-        y: Rank (row) coordinate [0-4]
-
-    Returns:
-        Square index [0-24] using row-major ordering (y*5 + x)
-        where (0, 0) is top-left and (4, 4) is bottom right.
-
-    Example:
-        square_index(2, 3) → 3*5 + 2 = 17
-    """
+    """Convert (x,y) to square index. Example: square_index(2,3) → 17"""
     return y * 5 + x
 
-
 def index_to_xy(sq: Square) -> Tuple[int, int]:
-    """
-    Convert square index to (x, y) coordinates.
-
-    Args:
-        sq: Square index [0-24]
-
-    Returns:
-        Tuple of (x, y) coordinates
-
-    Example:
-        index_to_xy(17) → (17 % 5, 17 // 5) = (2, 3)
-    """
+    """Convert square index to (x,y). Example: index_to_xy(17) → (2,3)"""
     return (sq % 5, sq // 5)
 
 
@@ -281,7 +261,9 @@ def _generate_knight_attacks() -> List[Bitboard]:
     """
     attacks = []
     for sq in range(25):
-        x, y = index_to_xy(sq)
+        # Inline index_to_xy for performance (Fix #5)
+        x = sq % 5
+        y = sq // 5
         attack_bb = 0
 
         # Try all 8 L-shaped knight moves
@@ -289,8 +271,9 @@ def _generate_knight_attacks() -> List[Bitboard]:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
             if 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = square_index(nx, ny)
-                attack_bb = set_bit(attack_bb, dest_sq)
+                # Inline square_index for performance (Fix #5)
+                dest_sq = ny * 5 + nx
+                attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
 
@@ -309,7 +292,9 @@ def _generate_king_attacks() -> List[Bitboard]:
     """
     attacks = []
     for sq in range(25):
-        x, y = index_to_xy(sq)
+        # Inline index_to_xy for performance (Fix #5)
+        x = sq % 5
+        y = sq // 5
         attack_bb = 0
 
         # Try all 8 adjacent squares
@@ -317,8 +302,9 @@ def _generate_king_attacks() -> List[Bitboard]:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
             if 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = square_index(nx, ny)
-                attack_bb = set_bit(attack_bb, dest_sq)
+                # Inline square_index for performance (Fix #5)
+                dest_sq = ny * 5 + nx
+                attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
 
@@ -330,6 +316,67 @@ KNIGHT_ATTACKS = _generate_knight_attacks()
 KING_ATTACKS = _generate_king_attacks()
 
 
+# --- Precompute Sliding Piece Ray Masks (Optimization Fix #6) ---
+def _generate_rook_rays() -> List[Bitboard]:
+    """
+    Precompute rook ray masks for all 25 squares (ignoring occupancy).
+    These are used as a quick mask before computing actual attacks.
+    
+    Returns:
+        List of 25 bitboards, one for each square
+    """
+    rays = []
+    for sq in range(25):
+        x = sq % 5
+        y = sq // 5
+        attacks = 0
+        
+        # Cast rays in 4 directions without considering occupancy
+        directions = ((0, 1), (0, -1), (1, 0), (-1, 0))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            while 0 <= nx < 5 and 0 <= ny < 5:
+                dest_sq = ny * 5 + nx
+                attacks |= (1 << dest_sq)
+                nx += dx
+                ny += dy
+        
+        rays.append(attacks)
+    return rays
+
+
+def _generate_bishop_rays() -> List[Bitboard]:
+    """
+    Precompute bishop ray masks for all 25 squares (ignoring occupancy).
+    
+    Returns:
+        List of 25 bitboards, one for each square
+    """
+    rays = []
+    for sq in range(25):
+        x = sq % 5
+        y = sq // 5
+        attacks = 0
+        
+        # Cast rays in 4 diagonal directions
+        directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            while 0 <= nx < 5 and 0 <= ny < 5:
+                dest_sq = ny * 5 + nx
+                attacks |= (1 << dest_sq)
+                nx += dx
+                ny += dy
+        
+        rays.append(attacks)
+    return rays
+
+
+# Precompute ray masks for quick checks
+ROOK_RAYS = _generate_rook_rays()
+BISHOP_RAYS = _generate_bishop_rays()
+
+
 # --- Sliding Piece Attacks (Rook, Bishop, Queen, Right) ---
 # NOTE: There is no ROOK piece in this variant, but _get_rook_attacks() is a
 #       helper function used to generate horizontal/vertical moves for Queen and Right
@@ -337,9 +384,10 @@ KING_ATTACKS = _generate_king_attacks()
 def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
     Generate rook attack bitboard from square sq considering occupancy.
+    
+    OPTIMIZED: Uses precomputed ROOK_RAYS for early exit when no blockers present.
 
     A rook attacks along ranks (rows) and files (columns) until blocked.
-    This function uses a simple ray-casting approach.
 
     NOTE: This is a helper function - there is no rook piece in this variant.
           Used by Queen (rook+bishop) and Right (rook+knight) pieces.
@@ -352,25 +400,32 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
         Bitboard of all squares the rook can attack
 
     Algorithm:
-        1. Cast rays in 4 directions (up, down, left, right)
-        2. Stop at first occupied square (include it if capturable)
-        3. Combine all rays with OR
+        1. Check if precomputed ray has any blockers
+        2. If no blockers, return full ray (fast path)
+        3. Otherwise, cast rays per direction until hitting blocker (slow path)
     """
-    x, y = index_to_xy(sq)
+    # Fast path: if no occupancy along rays, return full ray mask
+    ray_mask = ROOK_RAYS[sq]
+    if not (ray_mask & occupancy):
+        return ray_mask
+    
+    # Slow path: there are blockers, need to compute exact attacks
+    x = sq % 5
+    y = sq // 5
     attacks = 0
 
     # Direction vectors: (dx, dy)
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # up, down, right, left
+    directions = ((0, 1), (0, -1), (1, 0), (-1, 0))  # up, down, right, left
 
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
         while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = square_index(nx, ny)
-            attacks = set_bit(attacks, dest_sq)
+            dest_sq = ny * 5 + nx
+            attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square (include the blocker)
-            if test_bit(occupancy, dest_sq):
+            if occupancy & (1 << dest_sq):
                 break
 
             nx += dx
@@ -378,13 +433,13 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
 
     return attacks
 
-
 def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
     Generate bishop attack bitboard from square sq considering occupancy.
+    
+    OPTIMIZED: Uses precomputed BISHOP_RAYS for early exit when no blockers present.
 
     A bishop attacks along diagonals until blocked.
-    Uses ray-casting similar to rook.
 
     Args:
         sq: Source square
@@ -392,22 +447,34 @@ def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
 
     Returns:
         Bitboard of all squares the bishop can attack
+        
+    Algorithm:
+        1. Check if precomputed ray has any blockers
+        2. If no blockers, return full ray (fast path)
+        3. Otherwise, cast rays per direction until hitting blocker (slow path)
     """
-    x, y = index_to_xy(sq)
+    # Fast path: if no occupancy along rays, return full ray mask
+    ray_mask = BISHOP_RAYS[sq]
+    if not (ray_mask & occupancy):
+        return ray_mask
+    
+    # Slow path: there are blockers, need to compute exact attacks
+    x = sq % 5
+    y = sq // 5
     attacks = 0
 
     # Diagonal directions: (dx, dy)
-    directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]  # NE, SE, NW, SW
+    directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))  # NE, SE, NW, SW
 
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
         while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = square_index(nx, ny)
-            attacks = set_bit(attacks, dest_sq)
+            dest_sq = ny * 5 + nx
+            attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square
-            if test_bit(occupancy, dest_sq):
+            if occupancy & (1 << dest_sq):
                 break
 
             nx += dx
@@ -520,7 +587,9 @@ _ZOBRIST = ZobristHasher(seed=42)
 def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
     """
     Determine if the specified side's king is in check.
-
+    
+    FIX #12: Now uses cached implementation for performance.
+    
     Uses "reverse attack generation": From the king's position, generate attacks
     as if the king were each piece type, then check if opponent has that piece
     type on those squares.
@@ -542,30 +611,50 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
         5. Generate bishop attacks from king → check if opponent bishops/queens there
         6. Check pawn attacks (special case - asymmetric)
     """
-    occ = bb_state.occ_all
+    # FIX #12: Delegate to cached version with individual bitboards as args
+    return _is_in_check_cached(
+        check_white,
+        bb_state.WK, bb_state.BK,
+        bb_state.WP, bb_state.BP,
+        bb_state.WN, bb_state.BN,
+        bb_state.WB, bb_state.BB,
+        bb_state.WQ, bb_state.BQ,
+        bb_state.WR, bb_state.BR,
+        bb_state.occ_all
+    )
 
+
+# FIX #12: Cached version of is_in_check for performance
+@lru_cache(maxsize=10000)
+def _is_in_check_cached(
+    check_white: bool,
+    WK: int, BK: int, WP: int, BP: int, WN: int, BN: int,
+    WB: int, BB: int, WQ: int, BQ: int, WR: int, BR: int,
+    occ_all: int
+) -> bool:
+    """
+    Cached implementation of is_in_check using individual bitboards as cache key.
+    All arguments are ints (bitboards) which are hashable for lru_cache.
+    """
     if check_white:
-        # Checking if WHITE king is in check
-        king_bb = bb_state.WK
-        opp_knights = bb_state.BN
-        opp_bishops = bb_state.BB
-        opp_queens = bb_state.BQ
-        opp_rights = bb_state.BR
-        opp_king = bb_state.BK
-        opp_pawns = bb_state.BP
+        king_bb = WK
+        opp_knights = BN
+        opp_bishops = BB
+        opp_queens = BQ
+        opp_rights = BR
+        opp_king = BK
+        opp_pawns = BP
         king_is_white = True
     else:
-        # Checking if BLACK king is in check
-        king_bb = bb_state.BK
-        opp_knights = bb_state.WN
-        opp_bishops = bb_state.WB
-        opp_queens = bb_state.WQ
-        opp_rights = bb_state.WR
-        opp_king = bb_state.WK
-        opp_pawns = bb_state.WP
+        king_bb = BK
+        opp_knights = WN
+        opp_bishops = WB
+        opp_queens = WQ
+        opp_rights = WR
+        opp_king = WK
+        opp_pawns = WP
         king_is_white = False
 
-    # No king on board (shouldn't happen in valid game)
     if king_bb == 0:
         return False
 
@@ -576,31 +665,26 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
     if knight_attacks & (opp_knights | opp_rights):
         return True
 
-    # 2. Check for king adjacency (illegal position)
+    # 2. Check for king adjacency
     if KING_ATTACKS[king_sq] & opp_king:
         return True
 
-    # 3. Check for rook/queen/Right attacks (sliding horizontal/vertical)
-    rook_attacks = _get_rook_attacks(king_sq, occ)
+    # 3. Check for rook/queen/Right attacks
+    rook_attacks = _get_rook_attacks(king_sq, occ_all)
     if rook_attacks & (opp_queens | opp_rights):
         return True
 
-    # 4. Check for bishop/queen attacks (sliding diagonal)
-    bishop_attacks = _get_bishop_attacks(king_sq, occ)
+    # 4. Check for bishop/queen attacks
+    bishop_attacks = _get_bishop_attacks(king_sq, occ_all)
     if bishop_attacks & (opp_bishops | opp_queens):
         return True
 
-    # 5. Check for pawn attacks (SPECIAL CASE - asymmetric)
-    # Pawns attack diagonally forward (direction depends on color)
-    # We check the squares where enemy pawns would attack our king from
+    # 5. Check for pawn attacks
     kx, ky = index_to_xy(king_sq)
 
     if king_is_white:
-        # White king checks diagonals BELOW (black pawns attack downward from white's perspective)
-        # Black pawn at (kx±1, ky-1) would attack white king at (kx, ky)
         pawn_attack_y = ky - 1
     else:
-        # Black king checks diagonals ABOVE (white pawns attack upward)
         pawn_attack_y = ky + 1
 
     if 0 <= pawn_attack_y < 5:
@@ -1467,20 +1551,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
     if total_pieces > 8:  # Middlegame
         # Evaluate white king safety
         if white_king_sq != -1:
-            kx, ky = index_to_xy(white_king_sq)
-            nearby_allies = 0
-
-            # Count white pieces within 1 square of white king
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue  # Skip king's own square
-                    nx, ny = kx + dx, ky + dy
-                    if 0 <= nx < 5 and 0 <= ny < 5:
-                        neighbor_sq = square_index(nx, ny)
-                        # Check if white piece on this square
-                        if test_bit(bb_state.occ_white, neighbor_sq):
-                            nearby_allies += 1
+            # FIX #14: Use precomputed KING_ATTACKS for neighbor squares
+            nearby_allies = count_bits(KING_ATTACKS[white_king_sq] & bb_state.occ_white)
 
             # Apply king safety bonus/penalty
             if nearby_allies >= 2:
@@ -1492,20 +1564,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
 
         # Evaluate black king safety (subtract from score since it's opponent)
         if black_king_sq != -1:
-            kx, ky = index_to_xy(black_king_sq)
-            nearby_allies = 0
-
-            # Count black pieces within 1 square of black king
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue  # Skip king's own square
-                    nx, ny = kx + dx, ky + dy
-                    if 0 <= nx < 5 and 0 <= ny < 5:
-                        neighbor_sq = square_index(nx, ny)
-                        # Check if black piece on this square
-                        if test_bit(bb_state.occ_black, neighbor_sq):
-                            nearby_allies += 1
+            # FIX #14: Use precomputed KING_ATTACKS for neighbor squares
+            nearby_allies = count_bits(KING_ATTACKS[black_king_sq] & bb_state.occ_black)
 
             # Apply king safety bonus/penalty (inverted for black)
             if nearby_allies >= 2:
