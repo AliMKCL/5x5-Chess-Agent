@@ -1,4 +1,9 @@
 """
+IMPROVEMENTS LEFT:
+- LMR (better pruning)
+- Add double pawn move (currently not available)
+
+
 Bitboard-Based Chess Agent with Minimax Search
 
 This agent uses the bitboard infrastructure from helpersBitboard.py to achieve
@@ -24,12 +29,13 @@ INTERFACE:
 
 import time
 from typing import List, Optional, Tuple, Dict
-from helpersBitboard import (
+from helpersBitboard_gemini import (
     board_to_bitboard, generate_legal_moves, apply_move, evaluate_bitboard,
     is_in_check, static_exchange_eval, BitboardState, BBMove, index_to_xy, square_index,
     PIECE_VALUES, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT
 )
 from chessmaker.chess.base.board import Position
+
 
 
 
@@ -75,22 +81,26 @@ class BitboardTranspositionTable:
         self.stores = 0
         self.evictions = 0
 
-    def store(self, zobrist_hash: int, depth: int, score: int,
+    def store(self, zobrist_hash: int, depth: int, score: int, bound_type: int,
               best_move_tuple: Optional[Tuple[int, int]] = None):
         """
-        Store a position evaluation.
+        Store a position evaluation with bound type.
 
         Args:
             zobrist_hash: Zobrist hash from BitboardState
             depth: Search depth
             score: Evaluation score
+            bound_type: TT_EXACT, TT_LOWER_BOUND, or TT_UPPER_BOUND
             best_move_tuple: Optional (from_sq, to_sq) for move ordering
         """
         # Depth-preferred replacement: only overwrite if deeper or new
+        # Also prefer EXACT scores over bound scores at same depth
         if zobrist_hash in self.table:
-            old_depth, _, _ = self.table[zobrist_hash]
+            old_depth, _, old_bound, _ = self.table[zobrist_hash]
             if depth < old_depth:
                 return  # Keep deeper result
+            if depth == old_depth and old_bound == 0 and bound_type != 0:
+                return  # Keep exact score over bound score at same depth
 
         # Evict if table full
         if len(self.table) >= self.max_entries and zobrist_hash not in self.table:
@@ -98,21 +108,23 @@ class BitboardTranspositionTable:
             self.table.pop(next(iter(self.table)))
             self.evictions += 1
 
-        # Store entry
-        self.table[zobrist_hash] = (depth, score, best_move_tuple)
+        # Store entry: (depth, score, bound_type, best_move)
+        self.table[zobrist_hash] = (depth, score, bound_type, best_move_tuple)
         self.stores += 1
 
-    def probe(self, zobrist_hash: int, depth: int) -> Tuple[Optional[int], Optional[Tuple[int, int]]]:
+    def probe(self, zobrist_hash: int, depth: int, alpha: int, beta: int) -> Tuple[Optional[int], Optional[Tuple[int, int]]]:
         """
-        Probe transposition table for cached evaluation.
+        Probe transposition table for cached evaluation with bound-aware logic.
 
         Args:
             zobrist_hash: Zobrist hash from BitboardState
             depth: Current search depth
+            alpha: Current alpha bound
+            beta: Current beta bound
 
         Returns:
             (score, best_move_tuple):
-                - score: Cached score if depth >= stored depth, else None
+                - score: Cached score if usable (exact or causes cutoff), else None
                 - best_move_tuple: Best move for ordering, or None
         """
         self.probes += 1
@@ -120,14 +132,27 @@ class BitboardTranspositionTable:
         if zobrist_hash not in self.table:
             return None, None  # Cache miss
 
-        stored_depth, score, best_move_tuple = self.table[zobrist_hash]
+        stored_depth, score, bound_type, best_move_tuple = self.table[zobrist_hash]
 
         # Only use score if searched at >= current depth
         if stored_depth >= depth:
-            self.hits += 1
-            return score, best_move_tuple  # Full hit
+            # TT_EXACT = 0, TT_LOWER_BOUND = 1, TT_UPPER_BOUND = 2
+            if bound_type == 0:  # EXACT
+                # Exact score - always usable
+                self.hits += 1
+                return score, best_move_tuple
+            elif bound_type == 1:  # LOWER_BOUND
+                # Score is at least 'score' - usable if score >= beta (causes cutoff)
+                if score >= beta:
+                    self.hits += 1
+                    return score, best_move_tuple
+            elif bound_type == 2:  # UPPER_BOUND
+                # Score is at most 'score' - usable if score <= alpha (causes cutoff)
+                if score <= alpha:
+                    self.hits += 1
+                    return score, best_move_tuple
 
-        # Shallow hit: return move for ordering but not score
+        # Can't use score, but can still use move for ordering
         return None, best_move_tuple
 
     def clear(self):
@@ -172,6 +197,11 @@ DRAW_SCORE = 0
 # FIX #16: Precompute infinity constants to avoid repeated float object creation
 NEG_INF = float('-inf')
 POS_INF = float('inf')
+
+# TT bound type constants
+TT_EXACT = 0        # Exact minimax value (no cutoff)
+TT_LOWER_BOUND = 1  # Score is at least this good (beta cutoff occurred)
+TT_UPPER_BOUND = 2  # Score is at most this good (failed to raise alpha)
 
 # Move ordering piece values (for MVV-LVA)
 # Must match PIECE_VALUES from helpersBitboard.py exactly!
@@ -376,14 +406,14 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
             if score > alpha:
                 alpha = score
             if beta <= alpha:
-                return beta  # Beta cutoff
+                return best_score  # Beta cutoff - return actual best score found
         else:
             # Minimizing player
             best_score = min(best_score, score)
             if score < beta:
                 beta = score
             if beta <= alpha:
-                return alpha  # Alpha cutoff
+                return best_score  # Alpha cutoff - return actual best score found
 
     return best_score
 
@@ -424,12 +454,15 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
     global stats
     stats['nodes_searched'] += 1
 
+    # Save original alpha for bound type determination
+    original_alpha = alpha
+
     # Timeout check
     if time.time() - start_time > TIME_LIMIT:
         return evaluate_bitboard(bb_state, player_is_white)
 
-    # Probe transposition table
-    tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
+    # Probe transposition table with current alpha/beta bounds
+    tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth, alpha, beta)
     if tt_score is not None:
         stats['tt_hits'] += 1
         return tt_score
@@ -509,14 +542,35 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
             stats['cutoffs'] += 1
             break
 
+    # Determine bound type for TT storage
+    # For maximizing player:
+    #   - best_score <= original_alpha: UPPER_BOUND (failed to raise alpha)
+    #   - best_score >= beta: LOWER_BOUND (beta cutoff)
+    #   - otherwise: EXACT
+    # For minimizing player:
+    #   - best_score >= original_beta would be UPPER_BOUND, but we don't track original_beta
+    #   - best_score <= alpha: LOWER_BOUND (alpha cutoff)
+    #   - We simplify: if cutoff happened, it's a bound; otherwise exact
+    if is_maximizing:
+        if best_score <= original_alpha:
+            bound_type = TT_UPPER_BOUND
+        elif best_score >= beta:
+            bound_type = TT_LOWER_BOUND
+        else:
+            bound_type = TT_EXACT
+    else:
+        # For minimizing: if we improved beta, check if cutoff
+        if best_score >= beta:
+            bound_type = TT_UPPER_BOUND
+        elif best_score <= alpha:
+            bound_type = TT_LOWER_BOUND
+        else:
+            bound_type = TT_EXACT
+
     # Store in transposition table
-    if best_move:
-        # Convert BBMove to framework format for TT
-        #from_x, from_y = index_to_xy(best_move.from_sq)
-        #to_x, to_y = index_to_xy(best_move.to_sq)
-        tt_move_tuple = (best_move.from_sq, best_move.to_sq)
-        TRANSPOSITION_TABLE.store(bb_state.zobrist_hash, depth, best_score, tt_move_tuple)
-        stats['tt_stores'] += 1
+    tt_move_tuple = (best_move.from_sq, best_move.to_sq) if best_move else None
+    TRANSPOSITION_TABLE.store(bb_state.zobrist_hash, depth, best_score, bound_type, tt_move_tuple)
+    stats['tt_stores'] += 1
 
     return best_score
 
@@ -592,18 +646,18 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         if LOGGING_ENABLED:
             log_message(f"\n=== Depth {depth} (Quiescence ON) ===")
 
-        # Probe TT for move ordering hint
-        tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
+        # Search all moves at current depth
+        # Root is always maximizing (we're finding our best move)
+        alpha = NEG_INF
+        beta = POS_INF
+
+        # Probe TT for move ordering hint (pass alpha/beta for bound-aware probing)
+        tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth, alpha, beta)
         # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
         tt_best_move_tuple = tt_move if tt_move else None
 
         # Order moves for this depth
         ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
-
-        # Search all moves at current depth
-        # Root is always maximizing (we're finding our best move)
-        alpha = NEG_INF
-        beta = POS_INF
 
         for move in ordered_moves:
             new_state = apply_move(bb_state, move)

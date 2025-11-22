@@ -23,13 +23,7 @@ INTERFACE:
 """
 
 import time
-from typing import List, Optional, Tuple
-from helpersBitboard_gemini import (
-    board_to_bitboard, generate_legal_moves, apply_move, evaluate_bitboard,
-    is_in_check, static_exchange_eval, BitboardState, BBMove, index_to_xy, square_index,
-    PIECE_VALUES, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT
-)
-from helpersT import TranspositionTable
+from typing import List, Optional, Tuple, Dict
 from chessmaker.chess.base.board import Position
 
 """
@@ -117,6 +111,7 @@ For example if white bishops ^ black knight moves = 1 --> There is a capture.
 from dataclasses import dataclass
 from typing import List, Tuple, Optional
 import random
+from functools import lru_cache
 
 # ============================================================================
 # PART 1: CORE INFRASTRUCTURE
@@ -141,37 +136,16 @@ PIECE_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right
 
 # --- Coordinate Mapping Functions ---
 
+# OPTIMIZED: Inline-friendly single expression functions (Fix #5)
+# These are called thousands of times per search, so they need to be as fast as possible
+# Python will inline these automatically due to their simplicity
+
 def square_index(x: int, y: int) -> Square:
-    """
-    Convert (x, y) coordinates to square index.
-
-    Args:
-        x: File (column) coordinate [0-4]
-        y: Rank (row) coordinate [0-4]
-
-    Returns:
-        Square index [0-24] using row-major ordering (y*5 + x)
-        where (0, 0) is top-left and (4, 4) is bottom right.
-
-    Example:
-        square_index(2, 3) → 3*5 + 2 = 17
-    """
+    """Convert (x,y) to square index. Example: square_index(2,3) → 17"""
     return y * 5 + x
 
-
 def index_to_xy(sq: Square) -> Tuple[int, int]:
-    """
-    Convert square index to (x, y) coordinates.
-
-    Args:
-        sq: Square index [0-24]
-
-    Returns:
-        Tuple of (x, y) coordinates
-
-    Example:
-        index_to_xy(17) → (17 % 5, 17 // 5) = (2, 3)
-    """
+    """Convert square index to (x,y). Example: index_to_xy(17) → (2,3)"""
     return (sq % 5, sq // 5)
 
 
@@ -315,7 +289,9 @@ def _generate_knight_attacks() -> List[Bitboard]:
     """
     attacks = []
     for sq in range(25):
-        x, y = index_to_xy(sq)
+        # Inline index_to_xy for performance (Fix #5)
+        x = sq % 5
+        y = sq // 5
         attack_bb = 0
 
         # Try all 8 L-shaped knight moves
@@ -323,8 +299,9 @@ def _generate_knight_attacks() -> List[Bitboard]:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
             if 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = square_index(nx, ny)
-                attack_bb = set_bit(attack_bb, dest_sq)
+                # Inline square_index for performance (Fix #5)
+                dest_sq = ny * 5 + nx
+                attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
 
@@ -343,7 +320,9 @@ def _generate_king_attacks() -> List[Bitboard]:
     """
     attacks = []
     for sq in range(25):
-        x, y = index_to_xy(sq)
+        # Inline index_to_xy for performance (Fix #5)
+        x = sq % 5
+        y = sq // 5
         attack_bb = 0
 
         # Try all 8 adjacent squares
@@ -351,8 +330,9 @@ def _generate_king_attacks() -> List[Bitboard]:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
             if 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = square_index(nx, ny)
-                attack_bb = set_bit(attack_bb, dest_sq)
+                # Inline square_index for performance (Fix #5)
+                dest_sq = ny * 5 + nx
+                attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
 
@@ -364,6 +344,67 @@ KNIGHT_ATTACKS = _generate_knight_attacks()
 KING_ATTACKS = _generate_king_attacks()
 
 
+# --- Precompute Sliding Piece Ray Masks (Optimization Fix #6) ---
+def _generate_rook_rays() -> List[Bitboard]:
+    """
+    Precompute rook ray masks for all 25 squares (ignoring occupancy).
+    These are used as a quick mask before computing actual attacks.
+    
+    Returns:
+        List of 25 bitboards, one for each square
+    """
+    rays = []
+    for sq in range(25):
+        x = sq % 5
+        y = sq // 5
+        attacks = 0
+        
+        # Cast rays in 4 directions without considering occupancy
+        directions = ((0, 1), (0, -1), (1, 0), (-1, 0))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            while 0 <= nx < 5 and 0 <= ny < 5:
+                dest_sq = ny * 5 + nx
+                attacks |= (1 << dest_sq)
+                nx += dx
+                ny += dy
+        
+        rays.append(attacks)
+    return rays
+
+
+def _generate_bishop_rays() -> List[Bitboard]:
+    """
+    Precompute bishop ray masks for all 25 squares (ignoring occupancy).
+    
+    Returns:
+        List of 25 bitboards, one for each square
+    """
+    rays = []
+    for sq in range(25):
+        x = sq % 5
+        y = sq // 5
+        attacks = 0
+        
+        # Cast rays in 4 diagonal directions
+        directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            while 0 <= nx < 5 and 0 <= ny < 5:
+                dest_sq = ny * 5 + nx
+                attacks |= (1 << dest_sq)
+                nx += dx
+                ny += dy
+        
+        rays.append(attacks)
+    return rays
+
+
+# Precompute ray masks for quick checks
+ROOK_RAYS = _generate_rook_rays()
+BISHOP_RAYS = _generate_bishop_rays()
+
+
 # --- Sliding Piece Attacks (Rook, Bishop, Queen, Right) ---
 # NOTE: There is no ROOK piece in this variant, but _get_rook_attacks() is a
 #       helper function used to generate horizontal/vertical moves for Queen and Right
@@ -371,9 +412,10 @@ KING_ATTACKS = _generate_king_attacks()
 def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
     Generate rook attack bitboard from square sq considering occupancy.
+    
+    OPTIMIZED: Uses precomputed ROOK_RAYS for early exit when no blockers present.
 
     A rook attacks along ranks (rows) and files (columns) until blocked.
-    This function uses a simple ray-casting approach.
 
     NOTE: This is a helper function - there is no rook piece in this variant.
           Used by Queen (rook+bishop) and Right (rook+knight) pieces.
@@ -386,25 +428,32 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
         Bitboard of all squares the rook can attack
 
     Algorithm:
-        1. Cast rays in 4 directions (up, down, left, right)
-        2. Stop at first occupied square (include it if capturable)
-        3. Combine all rays with OR
+        1. Check if precomputed ray has any blockers
+        2. If no blockers, return full ray (fast path)
+        3. Otherwise, cast rays per direction until hitting blocker (slow path)
     """
-    x, y = index_to_xy(sq)
+    # Fast path: if no occupancy along rays, return full ray mask
+    ray_mask = ROOK_RAYS[sq]
+    if not (ray_mask & occupancy):
+        return ray_mask
+    
+    # Slow path: there are blockers, need to compute exact attacks
+    x = sq % 5
+    y = sq // 5
     attacks = 0
 
     # Direction vectors: (dx, dy)
-    directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # up, down, right, left
+    directions = ((0, 1), (0, -1), (1, 0), (-1, 0))  # up, down, right, left
 
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
         while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = square_index(nx, ny)
-            attacks = set_bit(attacks, dest_sq)
+            dest_sq = ny * 5 + nx
+            attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square (include the blocker)
-            if test_bit(occupancy, dest_sq):
+            if occupancy & (1 << dest_sq):
                 break
 
             nx += dx
@@ -412,13 +461,13 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
 
     return attacks
 
-
 def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     """
     Generate bishop attack bitboard from square sq considering occupancy.
+    
+    OPTIMIZED: Uses precomputed BISHOP_RAYS for early exit when no blockers present.
 
     A bishop attacks along diagonals until blocked.
-    Uses ray-casting similar to rook.
 
     Args:
         sq: Source square
@@ -426,22 +475,34 @@ def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
 
     Returns:
         Bitboard of all squares the bishop can attack
+        
+    Algorithm:
+        1. Check if precomputed ray has any blockers
+        2. If no blockers, return full ray (fast path)
+        3. Otherwise, cast rays per direction until hitting blocker (slow path)
     """
-    x, y = index_to_xy(sq)
+    # Fast path: if no occupancy along rays, return full ray mask
+    ray_mask = BISHOP_RAYS[sq]
+    if not (ray_mask & occupancy):
+        return ray_mask
+    
+    # Slow path: there are blockers, need to compute exact attacks
+    x = sq % 5
+    y = sq // 5
     attacks = 0
 
     # Diagonal directions: (dx, dy)
-    directions = [(1, 1), (1, -1), (-1, 1), (-1, -1)]  # NE, SE, NW, SW
+    directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))  # NE, SE, NW, SW
 
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
         while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = square_index(nx, ny)
-            attacks = set_bit(attacks, dest_sq)
+            dest_sq = ny * 5 + nx
+            attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square
-            if test_bit(occupancy, dest_sq):
+            if occupancy & (1 << dest_sq):
                 break
 
             nx += dx
@@ -554,7 +615,9 @@ _ZOBRIST = ZobristHasher(seed=42)
 def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
     """
     Determine if the specified side's king is in check.
-
+    
+    FIX #12: Now uses cached implementation for performance.
+    
     Uses "reverse attack generation": From the king's position, generate attacks
     as if the king were each piece type, then check if opponent has that piece
     type on those squares.
@@ -576,30 +639,50 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
         5. Generate bishop attacks from king → check if opponent bishops/queens there
         6. Check pawn attacks (special case - asymmetric)
     """
-    occ = bb_state.occ_all
+    # FIX #12: Delegate to cached version with individual bitboards as args
+    return _is_in_check_cached(
+        check_white,
+        bb_state.WK, bb_state.BK,
+        bb_state.WP, bb_state.BP,
+        bb_state.WN, bb_state.BN,
+        bb_state.WB, bb_state.BB,
+        bb_state.WQ, bb_state.BQ,
+        bb_state.WR, bb_state.BR,
+        bb_state.occ_all
+    )
 
+
+# FIX #12: Cached version of is_in_check for performance
+@lru_cache(maxsize=10000)
+def _is_in_check_cached(
+    check_white: bool,
+    WK: int, BK: int, WP: int, BP: int, WN: int, BN: int,
+    WB: int, BB: int, WQ: int, BQ: int, WR: int, BR: int,
+    occ_all: int
+) -> bool:
+    """
+    Cached implementation of is_in_check using individual bitboards as cache key.
+    All arguments are ints (bitboards) which are hashable for lru_cache.
+    """
     if check_white:
-        # Checking if WHITE king is in check
-        king_bb = bb_state.WK
-        opp_knights = bb_state.BN
-        opp_bishops = bb_state.BB
-        opp_queens = bb_state.BQ
-        opp_rights = bb_state.BR
-        opp_king = bb_state.BK
-        opp_pawns = bb_state.BP
+        king_bb = WK
+        opp_knights = BN
+        opp_bishops = BB
+        opp_queens = BQ
+        opp_rights = BR
+        opp_king = BK
+        opp_pawns = BP
         king_is_white = True
     else:
-        # Checking if BLACK king is in check
-        king_bb = bb_state.BK
-        opp_knights = bb_state.WN
-        opp_bishops = bb_state.WB
-        opp_queens = bb_state.WQ
-        opp_rights = bb_state.WR
-        opp_king = bb_state.WK
-        opp_pawns = bb_state.WP
+        king_bb = BK
+        opp_knights = WN
+        opp_bishops = WB
+        opp_queens = WQ
+        opp_rights = WR
+        opp_king = WK
+        opp_pawns = WP
         king_is_white = False
 
-    # No king on board (shouldn't happen in valid game)
     if king_bb == 0:
         return False
 
@@ -610,31 +693,26 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
     if knight_attacks & (opp_knights | opp_rights):
         return True
 
-    # 2. Check for king adjacency (illegal position)
+    # 2. Check for king adjacency
     if KING_ATTACKS[king_sq] & opp_king:
         return True
 
-    # 3. Check for rook/queen/Right attacks (sliding horizontal/vertical)
-    rook_attacks = _get_rook_attacks(king_sq, occ)
+    # 3. Check for rook/queen/Right attacks
+    rook_attacks = _get_rook_attacks(king_sq, occ_all)
     if rook_attacks & (opp_queens | opp_rights):
         return True
 
-    # 4. Check for bishop/queen attacks (sliding diagonal)
-    bishop_attacks = _get_bishop_attacks(king_sq, occ)
+    # 4. Check for bishop/queen attacks
+    bishop_attacks = _get_bishop_attacks(king_sq, occ_all)
     if bishop_attacks & (opp_bishops | opp_queens):
         return True
 
-    # 5. Check for pawn attacks (SPECIAL CASE - asymmetric)
-    # Pawns attack diagonally forward (direction depends on color)
-    # We check the squares where enemy pawns would attack our king from
+    # 5. Check for pawn attacks
     kx, ky = index_to_xy(king_sq)
 
     if king_is_white:
-        # White king checks diagonals BELOW (black pawns attack downward from white's perspective)
-        # Black pawn at (kx±1, ky-1) would attack white king at (kx, ky)
         pawn_attack_y = ky - 1
     else:
-        # Black king checks diagonals ABOVE (white pawns attack upward)
         pawn_attack_y = ky + 1
 
     if 0 <= pawn_attack_y < 5:
@@ -1501,20 +1579,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
     if total_pieces > 8:  # Middlegame
         # Evaluate white king safety
         if white_king_sq != -1:
-            kx, ky = index_to_xy(white_king_sq)
-            nearby_allies = 0
-
-            # Count white pieces within 1 square of white king
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue  # Skip king's own square
-                    nx, ny = kx + dx, ky + dy
-                    if 0 <= nx < 5 and 0 <= ny < 5:
-                        neighbor_sq = square_index(nx, ny)
-                        # Check if white piece on this square
-                        if test_bit(bb_state.occ_white, neighbor_sq):
-                            nearby_allies += 1
+            # FIX #14: Use precomputed KING_ATTACKS for neighbor squares
+            nearby_allies = count_bits(KING_ATTACKS[white_king_sq] & bb_state.occ_white)
 
             # Apply king safety bonus/penalty
             if nearby_allies >= 2:
@@ -1526,20 +1592,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
 
         # Evaluate black king safety (subtract from score since it's opponent)
         if black_king_sq != -1:
-            kx, ky = index_to_xy(black_king_sq)
-            nearby_allies = 0
-
-            # Count black pieces within 1 square of black king
-            for dx in [-1, 0, 1]:
-                for dy in [-1, 0, 1]:
-                    if dx == 0 and dy == 0:
-                        continue  # Skip king's own square
-                    nx, ny = kx + dx, ky + dy
-                    if 0 <= nx < 5 and 0 <= ny < 5:
-                        neighbor_sq = square_index(nx, ny)
-                        # Check if black piece on this square
-                        if test_bit(bb_state.occ_black, neighbor_sq):
-                            nearby_allies += 1
+            # FIX #14: Use precomputed KING_ATTACKS for neighbor squares
+            nearby_allies = count_bits(KING_ATTACKS[black_king_sq] & bb_state.occ_black)
 
             # Apply king safety bonus/penalty (inverted for black)
             if nearby_allies >= 2:
@@ -1557,23 +1611,168 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
 
 
 
+# ============================================================================
+# BITBOARD-NATIVE TRANSPOSITION TABLE
+# ============================================================================
+
+class BitboardTranspositionTable:
+    """
+    Bitboard-optimized Transposition Table for caching position evaluations.
+
+    This implementation is specifically designed to work with BitboardState
+    and uses the Zobrist hash already computed in the bitboard state.
+
+    STRUCTURE:
+        Dict mapping: zobrist_hash → (depth, score, best_move_tuple)
+
+    REPLACEMENT STRATEGY:
+        - Always-replace with depth preference
+        - If hash exists: only overwrite if new depth >= old depth
+        - If table full: evict oldest entry (FIFO)
+
+    MEMORY EFFICIENCY:
+        Each entry: hash (8B) + depth (4B) + score (4B) + move (16B) ≈ 32 bytes
+        64MB → ~2 million positions
+    """
+
+    def __init__(self, size_mb: int = 64):
+        """
+        Initialize transposition table.
+
+        Args:
+            size_mb: Memory budget in megabytes (default 64MB)
+        """
+        bytes_per_entry = 32
+        self.max_entries = (size_mb * 1024 * 1024) // bytes_per_entry
+        self.table: Dict[int, Tuple[int, int, Optional[Tuple[int, int]]]] = {}
+
+        # Statistics
+        self.hits = 0
+        self.probes = 0
+        self.stores = 0
+        self.evictions = 0
+
+    def store(self, zobrist_hash: int, depth: int, score: int, bound_type: int,
+              best_move_tuple: Optional[Tuple[int, int]] = None):
+        """
+        Store a position evaluation with bound type.
+
+        Args:
+            zobrist_hash: Zobrist hash from BitboardState
+            depth: Search depth
+            score: Evaluation score
+            bound_type: TT_EXACT, TT_LOWER_BOUND, or TT_UPPER_BOUND
+            best_move_tuple: Optional (from_sq, to_sq) for move ordering
+        """
+        # Depth-preferred replacement: only overwrite if deeper or new
+        # Also prefer EXACT scores over bound scores at same depth
+        if zobrist_hash in self.table:
+            old_depth, _, old_bound, _ = self.table[zobrist_hash]
+            if depth < old_depth:
+                return  # Keep deeper result
+            if depth == old_depth and old_bound == 0 and bound_type != 0:
+                return  # Keep exact score over bound score at same depth
+
+        # Evict if table full
+        if len(self.table) >= self.max_entries and zobrist_hash not in self.table:
+            # Remove oldest entry (first item in dict - FIFO)
+            self.table.pop(next(iter(self.table)))
+            self.evictions += 1
+
+        # Store entry: (depth, score, bound_type, best_move)
+        self.table[zobrist_hash] = (depth, score, bound_type, best_move_tuple)
+        self.stores += 1
+
+    def probe(self, zobrist_hash: int, depth: int, alpha: int, beta: int) -> Tuple[Optional[int], Optional[Tuple[int, int]]]:
+        """
+        Probe transposition table for cached evaluation with bound-aware logic.
+
+        Args:
+            zobrist_hash: Zobrist hash from BitboardState
+            depth: Current search depth
+            alpha: Current alpha bound
+            beta: Current beta bound
+
+        Returns:
+            (score, best_move_tuple):
+                - score: Cached score if usable (exact or causes cutoff), else None
+                - best_move_tuple: Best move for ordering, or None
+        """
+        self.probes += 1
+
+        if zobrist_hash not in self.table:
+            return None, None  # Cache miss
+
+        stored_depth, score, bound_type, best_move_tuple = self.table[zobrist_hash]
+
+        # Only use score if searched at >= current depth
+        if stored_depth >= depth:
+            # TT_EXACT = 0, TT_LOWER_BOUND = 1, TT_UPPER_BOUND = 2
+            if bound_type == 0:  # EXACT
+                # Exact score - always usable
+                self.hits += 1
+                return score, best_move_tuple
+            elif bound_type == 1:  # LOWER_BOUND
+                # Score is at least 'score' - usable if score >= beta (causes cutoff)
+                if score >= beta:
+                    self.hits += 1
+                    return score, best_move_tuple
+            elif bound_type == 2:  # UPPER_BOUND
+                # Score is at most 'score' - usable if score <= alpha (causes cutoff)
+                if score <= alpha:
+                    self.hits += 1
+                    return score, best_move_tuple
+
+        # Can't use score, but can still use move for ordering
+        return None, best_move_tuple
+
+    def clear(self):
+        """Clear the transposition table."""
+        self.table.clear()
+        self.hits = 0
+        self.probes = 0
+        self.stores = 0
+        self.evictions = 0
+
+    def get_stats(self) -> Dict[str, any]:
+        """Get TT statistics."""
+        hit_rate = (self.hits / self.probes * 100) if self.probes > 0 else 0
+        return {
+            'size': len(self.table),
+            'max_size': self.max_entries,
+            'hits': self.hits,
+            'probes': self.probes,
+            'stores': self.stores,
+            'evictions': self.evictions,
+            'hit_rate': hit_rate
+        }
+
 
 # ============================================================================
 # GLOBAL CONFIGURATION
 # ============================================================================
 
 # Transposition table (64MB default - adjust based on available memory)
-TRANSPOSITION_TABLE = TranspositionTable(size_mb=64)
+TRANSPOSITION_TABLE = BitboardTranspositionTable(size_mb=64)
 
 # Search configuration
 MAX_DEPTH = 50          # Maximum search depth for iterative deepening
-QUIESCENCE_MAX_DEPTH = 9  # Maximum quiescence search depth
+QUIESCENCE_MAX_DEPTH = 7  # Maximum quiescence search depth
 TIME_LIMIT = 12.5       # Time limit in seconds (leave buffer for move conversion)
 
 # Score constants
 CHECKMATE_SCORE = 999_999
 STALEMATE_SCORE = 0
 DRAW_SCORE = 0
+
+# FIX #16: Precompute infinity constants to avoid repeated float object creation
+NEG_INF = float('-inf')
+POS_INF = float('inf')
+
+# TT bound type constants
+TT_EXACT = 0        # Exact minimax value (no cutoff)
+TT_LOWER_BOUND = 1  # Score is at least this good (beta cutoff occurred)
+TT_UPPER_BOUND = 2  # Score is at most this good (failed to raise alpha)
 
 # Move ordering piece values (for MVV-LVA)
 # Must match PIECE_VALUES from helpersBitboard.py exactly!
@@ -1628,7 +1827,8 @@ def score_move(move: BBMove, bb_state: BitboardState, tt_best_move: Optional[Tup
         base_score = (victim_value * 10) - attacker_value
 
         # Static Exchange Evaluation: analyze if this capture is safe/profitable
-        see_score = static_exchange_eval(bb_state, move)
+        #see_score = static_exchange_eval(bb_state, move)
+        see_score = 0
 
         # Scaled SEE bonus: if SEE > 0 (winning exchange), add SEE value + 500
         # This matches agentT's philosophy: favorable exchanges get significant boost
@@ -1656,7 +1856,9 @@ def order_moves(moves: List[BBMove], bb_state: BitboardState, tt_best_move: Opti
     Returns:
         Sorted list of moves (best moves first)
     """
-    return sorted(moves, key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    # FIX #13: Use in-place sort to avoid creating new list
+    moves.sort(key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    return moves
 
 
 # ============================================================================
@@ -1667,16 +1869,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
                      depth: int, max_depth: int, start_time: float,
                      is_maximizing: bool, player_is_white: bool) -> int:
     """
-    Quiescence search to resolve tactical sequences (captures only).
-
-    STANDARD MINIMAX VERSION (not negamax):
-    - is_maximizing=True: Maximizing player tries to maximize score
-    - is_maximizing=False: Minimizing player tries to minimize score
-    - Evaluation always from player_is_white's perspective
-
-    This prevents the horizon effect where the engine misses tactical blows
-    just beyond the search depth. We search capture sequences until reaching
-    a "quiet" position (no captures available or max depth).
+    Quiescence search to resolve tactical sequences (captures, plus checkmate detection).
 
     Args:
         bb_state: Current bitboard position
@@ -1689,7 +1882,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
         player_is_white: True if evaluating from white's perspective (constant throughout search)
 
     Returns:
-        Static evaluation or best capture sequence score
+        Static evaluation or best capture sequence score, or MATE/STALEMATE score
     """
     global stats
     stats['quiescence_nodes'] += 1
@@ -1698,49 +1891,78 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
     if time.time() - start_time > TIME_LIMIT:
         return evaluate_bitboard(bb_state, player_is_white)
 
-    # Stand-pat score: current position evaluation (always from player's perspective)
-    stand_pat = evaluate_bitboard(bb_state, player_is_white)
+    # --- CHECK FOR TERMINAL STATES (MATE/STALEMATE) ---
+    in_check = is_in_check(bb_state, bb_state.side_to_move == 0)
 
-    # Update alpha/beta bounds with stand-pat, but DON'T return early
-    # We must search at least one ply of captures to avoid tactical blindness
-    if is_maximizing:
-        # Maximizing player: if stand-pat already >= beta, opponent won't allow this
+    # If in check, we must generate all moves to confirm if it's mate.
+    if in_check:
+        # Generate ALL moves (not just captures) to find escapes
+        moves = generate_legal_moves(bb_state, captures_only=False)
+        
+        if not moves:
+            # CHECKMATE DETECTED IN QUIESCENCE!
+            # The current side_to_move is checkmated.
+            # 
+            # CRITICAL: Apply fixed 60,000 penalty to ALL quiescence mates to ensure they score
+            # BELOW the early termination threshold (949,999), preventing false positives.
+            #
+            # Score examples:
+            # - Quiescence mate (any depth): 999,999 - 60,000 = 939,999 (< 949,999 threshold)
+            # - Main search mate at depth 4: -999,999 - 4,000 = -1,003,999 (uses ADDITION in minimax)
+            # 
+            # This ensures only genuine main-search forced mates trigger early termination.
+            mate_score_base = CHECKMATE_SCORE - 60000
 
-        # ========== FİX 4 geri ekledim ========
-        if stand_pat >= beta:
-            return beta
-        # Update alpha with stand-pat (we can always choose not to capture)
-        if stand_pat > alpha:
-            alpha = stand_pat
+            # Determine return score based on whose turn it is
+            if bb_state.side_to_move == 0:  # White is mated
+                return -mate_score_base if player_is_white else mate_score_base
+            else:  # Black is mated
+                return mate_score_base if player_is_white else -mate_score_base
+        
+        # If in check but not mated, we must search the escape moves (which are now the 'captures' set)
+        captures = order_moves(moves, bb_state)
+        # Skip the stand-pat logic below, as standing still in check is illegal.
+
     else:
-        # Update beta with stand-pat (opponent can always choose not to capture)
-        # Minimizing player: if stand-pat already <= alpha, we won't allow this
+        # --- STANDARD QUIESCENCE LOGIC (Only if NOT in check) ---
+        
+        # 1. Stand-pat score: current position evaluation
+        stand_pat = evaluate_bitboard(bb_state, player_is_white)
 
-        # ========== FİX 4 geri ekledim ========
-        if stand_pat <= alpha:
-            return alpha
-
-        if stand_pat < beta:
-            beta = stand_pat
+        # 2. Update alpha/beta bounds with stand-pat (can always choose not to capture)
+        if is_maximizing:
+            if stand_pat >= beta:
+                return beta
+            if stand_pat > alpha:
+                alpha = stand_pat
+            best_score = stand_pat # Initialize best score
+        else:
+            if stand_pat <= alpha:
+                return alpha
+            if stand_pat < beta:
+                beta = stand_pat
+            best_score = stand_pat # Initialize best score
+            
+        # 3. Generate captures only for search
+        captures = generate_legal_moves(bb_state, captures_only=True)
+        captures = order_moves(captures, bb_state)
 
     # Max depth reached: return static evaluation
     if depth >= max_depth:
-        return stand_pat
+        # If we reached max depth, return the most recent static evaluation (stand_pat or current evaluation)
+        return evaluate_bitboard(bb_state, player_is_white)
+    
+    # If not in check, best_score is already initialized to stand_pat.
+    # If in check, initialize best_score to alpha/beta bounds to handle the first move.
+    if in_check:
+        best_score = NEG_INF if is_maximizing else POS_INF
 
-    # Generate captures only
-    captures = generate_legal_moves(bb_state, captures_only=True)
 
-    # No captures available: quiet position
-    if not captures:
-        return stand_pat
+    # No captures/forcing moves available: quiet position
+    if not captures and not in_check:
+        return stand_pat # Only reached if not in check, and no captures
 
-    # Order captures by MVV-LVA + SEE
-    captures = order_moves(captures, bb_state)
-
-    # Initialize best score based on whose turn it is
-    best_score = stand_pat
-
-    # Search captures (STANDARD MINIMAX - no negation)
+    # Search forcing moves (captures or check escapes)
     for move in captures:
         new_state = apply_move(bb_state, move)
 
@@ -1755,14 +1977,14 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
             if score > alpha:
                 alpha = score
             if beta <= alpha:
-                return beta  # Beta cutoff
+                return best_score  # Beta cutoff - return actual best score found
         else:
             # Minimizing player
             best_score = min(best_score, score)
             if score < beta:
                 beta = score
             if beta <= alpha:
-                return alpha  # Alpha cutoff
+                return best_score  # Alpha cutoff - return actual best score found
 
     return best_score
 
@@ -1803,12 +2025,15 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
     global stats
     stats['nodes_searched'] += 1
 
+    # Save original alpha for bound type determination
+    original_alpha = alpha
+
     # Timeout check
     if time.time() - start_time > TIME_LIMIT:
         return evaluate_bitboard(bb_state, player_is_white)
 
-    # Probe transposition table
-    tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
+    # Probe transposition table with current alpha/beta bounds
+    tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth, alpha, beta)
     if tt_score is not None:
         stats['tt_hits'] += 1
         return tt_score
@@ -1826,8 +2051,11 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
         in_check = is_in_check(bb_state, bb_state.side_to_move == 0)
         if in_check:
             # Checkmate: the current side_to_move is checkmated
-            # Determine if that's good or bad for player_is_white
-            mate_bonus = (root_depth - depth) * 1000
+            
+            # --- FIX START ---
+            # Use depth directly. Higher depth = closer to root = faster mate = higher score.
+            mate_bonus = depth * 1000  
+            # --- FIX END ---
 
             # If white is in checkmate
             if bb_state.side_to_move == 0:  # white to move but checkmated
@@ -1849,20 +2077,13 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
             return STALEMATE_SCORE
 
     # Extract TT move for ordering (if available)
-    tt_best_move_tuple = None
-    if tt_move:
-        # Convert from framework format (((x1,y1), (x2,y2))) to (from_sq, to_sq)
-        if isinstance(tt_move, tuple) and len(tt_move) == 2:
-            from_pos, to_pos = tt_move
-            if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                from_sq = square_index(from_pos[0], from_pos[1])
-                to_sq = square_index(to_pos[0], to_pos[1])
-                tt_best_move_tuple = (from_sq, to_sq)
+    # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+    tt_best_move_tuple = tt_move if tt_move else None
 
     # Order moves
     moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
-    best_score = -float('inf') if is_maximizing else float('inf')
+    best_score = NEG_INF if is_maximizing else POS_INF
     best_move = None
 
     # STANDARD MINIMAX: No negation of scores or bounds
@@ -1892,14 +2113,35 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
             stats['cutoffs'] += 1
             break
 
+    # Determine bound type for TT storage
+    # For maximizing player:
+    #   - best_score <= original_alpha: UPPER_BOUND (failed to raise alpha)
+    #   - best_score >= beta: LOWER_BOUND (beta cutoff)
+    #   - otherwise: EXACT
+    # For minimizing player:
+    #   - best_score >= original_beta would be UPPER_BOUND, but we don't track original_beta
+    #   - best_score <= alpha: LOWER_BOUND (alpha cutoff)
+    #   - We simplify: if cutoff happened, it's a bound; otherwise exact
+    if is_maximizing:
+        if best_score <= original_alpha:
+            bound_type = TT_UPPER_BOUND
+        elif best_score >= beta:
+            bound_type = TT_LOWER_BOUND
+        else:
+            bound_type = TT_EXACT
+    else:
+        # For minimizing: if we improved beta, check if cutoff
+        if best_score >= beta:
+            bound_type = TT_UPPER_BOUND
+        elif best_score <= alpha:
+            bound_type = TT_LOWER_BOUND
+        else:
+            bound_type = TT_EXACT
+
     # Store in transposition table
-    if best_move:
-        # Convert BBMove to framework format for TT
-        from_x, from_y = index_to_xy(best_move.from_sq)
-        to_x, to_y = index_to_xy(best_move.to_sq)
-        tt_move_tuple = ((from_x, from_y), (to_x, to_y))
-        TRANSPOSITION_TABLE.store(bb_state.zobrist_hash, depth, best_score, tt_move_tuple)
-        stats['tt_stores'] += 1
+    tt_move_tuple = (best_move.from_sq, best_move.to_sq) if best_move else None
+    TRANSPOSITION_TABLE.store(bb_state.zobrist_hash, depth, best_score, bound_type, tt_move_tuple)
+    stats['tt_stores'] += 1
 
     return best_score
 
@@ -1935,52 +2177,58 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     global stats
     start_time = time.time()
     best_move = None
-    best_score = -float('inf')
+    best_score = NEG_INF
 
     # Get all legal moves
     moves = generate_legal_moves(bb_state)
     if not moves:
         return None  # No legal moves (checkmate or stalemate)
 
+    # Check for immediate checkmate in 1 move (mate-in-1 detection)
+    # If any move leaves opponent with no legal moves AND in check, play it immediately
+    for move in moves:
+        new_state = apply_move(bb_state, move)
+        opponent_moves = generate_legal_moves(new_state)
+        
+        if not opponent_moves:
+            # Opponent has no legal moves - check if it's checkmate or stalemate
+            opponent_in_check = is_in_check(new_state, new_state.side_to_move == 0)
+            
+            if opponent_in_check:
+                # CHECKMATE IN 1! Play this move immediately
+                if LOGGING_ENABLED:
+                    log_message(f"Immediate checkmate detected! Playing winning move.")
+                print(f"Immediate checkmate detected! Playing winning move.")
+                stats['depth_reached'] = 1
+                return move
+            # If not in check, it's stalemate - avoid this move, continue searching
+
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
         # Check if we have time for this depth
         elapsed = time.time() - start_time
-        if elapsed > time_limit * 0.9:  # Reserve 10% buffer
-            if LOGGING_ENABLED:
-                pass
-                #log_message(f"Time limit approaching, stopping at depth {depth-1}")
-            print(f"Time limit approaching, stopping at depth {depth-1}")
-            break
 
         depth_start_time = time.time()
         depth_nodes_before = stats['nodes_searched']
         depth_best_move = None
-        depth_best_score = -float('inf')
+        depth_best_score = NEG_INF
 
         # Removed verbose depth start logging - only show completion
         if LOGGING_ENABLED:
-            pass
-            #log_message(f"\n=== Depth {depth} (Quiescence ON) ===")
-
-        # Probe TT for move ordering hint
-        tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth)
-        tt_best_move_tuple = None
-        if tt_move:
-            if isinstance(tt_move, tuple) and len(tt_move) == 2:
-                from_pos, to_pos = tt_move
-                if isinstance(from_pos, tuple) and isinstance(to_pos, tuple):
-                    from_sq = square_index(from_pos[0], from_pos[1])
-                    to_sq = square_index(to_pos[0], to_pos[1])
-                    tt_best_move_tuple = (from_sq, to_sq)
-
-        # Order moves for this depth
-        ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
+            log_message(f"\n=== Depth {depth} (Quiescence ON) ===")
 
         # Search all moves at current depth
         # Root is always maximizing (we're finding our best move)
-        alpha = -float('inf')
-        beta = float('inf')
+        alpha = NEG_INF
+        beta = POS_INF
+
+        # Probe TT for move ordering hint (pass alpha/beta for bound-aware probing)
+        tt_score, tt_move = TRANSPOSITION_TABLE.probe(bb_state.zobrist_hash, depth, alpha, beta)
+        # FIX #10: tt_move is already (from_sq, to_sq) as integers - use directly!
+        tt_best_move_tuple = tt_move if tt_move else None
+
+        # Order moves for this depth
+        ordered_moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
         for move in ordered_moves:
             new_state = apply_move(bb_state, move)
@@ -1998,11 +2246,11 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             # Timeout check
             if time.time() - start_time > time_limit:
                 if LOGGING_ENABLED:
-                    #log_message(f"Timeout during depth {depth}, using previous depth result")
-                    pass
+                    log_message(f"Timeout during depth {depth}, using previous depth result")
+                print(f"Timeout during depth {depth}, keeping previous depth's best move")
                 return best_move if best_move else depth_best_move
 
-        # Update best move
+        # Depth completed successfully - update best move
         best_move = depth_best_move
         best_score = depth_best_score
         stats['depth_reached'] = depth
@@ -2011,15 +2259,33 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         depth_nodes = stats['nodes_searched'] - depth_nodes_before
 
         # Simple depth completion logging
-        print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
+        if best_move:
+            from_x, from_y = index_to_xy(best_move.from_sq)
+            to_x, to_y = index_to_xy(best_move.to_sq)
+            piece_names = ['Pawn', 'Knight', 'Bishop', 'Queen', 'King', 'Right']
+            piece_name = piece_names[best_move.piece_type]
+            move_str = f"{piece_name} ({from_x},{from_y}) to ({to_x},{to_y})"
+        else:
+            move_str = "None"
+        print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
         if LOGGING_ENABLED:
-            #log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}")
-            pass
-        # Early termination: found forced checkmate
-        if abs(best_score) >= CHECKMATE_SCORE - 10000:
+            log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
+
+        # Early termination: found forced checkmate FOR US (positive score only!)
+        # 
+        # Requirements:
+        # 1. Minimum depth 6 to ensure sufficient search (not just quiescence discoveries)
+        # 2. Score >= 949,999 (only main-search mates, not quiescence mates @ 939,999)
+        # 3. Positive score only (we're winning, not losing)
+        #
+        # Score ranges:
+        # - Main search mate: 999,999 to ~1,050,000 (uses ADDITION of mate_bonus)
+        # - Quiescence mate: 939,999 (fixed penalty, below threshold)
+        # - Normal position: -50,000 to +50,000 (typical eval range)
+        if depth >= 6 and best_score >= CHECKMATE_SCORE - 50000:
             if LOGGING_ENABLED:
-                pass
-                #log_message(f"Checkmate found at depth {depth}, stopping search")
+                log_message(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")
+            print(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")
             break
 
     return best_move
@@ -2082,20 +2348,20 @@ def log_message(message: str):
 def log_search_statistics():
     """Log search statistics to the game log."""
     if LOGGING_ENABLED:
-        #log_message("\n" + "="*60)
-        #log_message("BITBOARD SEARCH STATISTICS")
-        #log_message("="*60)
-        #log_message(f"Depth reached: {stats['depth_reached']}")
-        #log_message(f"Nodes searched: {stats['nodes_searched']:,}")
-        #log_message(f"Quiescence nodes: {stats['quiescence_nodes']:,}")
-        #log_message(f"Total nodes: {stats['nodes_searched'] + stats['quiescence_nodes']:,}")
-        #log_message(f"TT hits: {stats['tt_hits']:,}")
-        #log_message(f"TT stores: {stats['tt_stores']:,}")
-        #log_message(f"Alpha-beta cutoffs: {stats['cutoffs']:,}")
+        log_message("\n" + "="*60)
+        log_message("BITBOARD SEARCH STATISTICS")
+        log_message("="*60)
+        log_message(f"Depth reached: {stats['depth_reached']}")
+        log_message(f"Nodes searched: {stats['nodes_searched']:,}")
+        log_message(f"Quiescence nodes: {stats['quiescence_nodes']:,}")
+        log_message(f"Total nodes: {stats['nodes_searched'] + stats['quiescence_nodes']:,}")
+        log_message(f"TT hits: {stats['tt_hits']:,}")
+        log_message(f"TT stores: {stats['tt_stores']:,}")
+        log_message(f"Alpha-beta cutoffs: {stats['cutoffs']:,}")
         if stats['nodes_searched'] > 0:
             tt_hit_rate = (stats['tt_hits'] / stats['nodes_searched']) * 100
-            #log_message(f"TT hit rate: {tt_hit_rate:.1f}%")
-        #log_message("="*60 + "\n")
+            log_message(f"TT hit rate: {tt_hit_rate:.1f}%")
+        log_message("="*60 + "\n")
 
 
 def reset_statistics():
@@ -2134,11 +2400,12 @@ def agent(board, player, var):
     """
     reset_statistics()
 
+    TRANSPOSITION_TABLE.clear()
+
     if LOGGING_ENABLED:
-        #log_message("\n" + "="*60)
-        #log_message(f"BITBOARD AGENT MOVE - {player.name}")
-        #log_message("="*60)
-        pass
+        log_message("\n" + "="*60)
+        log_message(f"BITBOARD AGENT MOVE - {player.name}")
+        log_message("="*60)
 
     start_time = time.time()
 
@@ -2148,7 +2415,7 @@ def agent(board, player, var):
 
     if LOGGING_ENABLED:
         initial_eval = evaluate_bitboard(bb_state, player_is_white)
-        #log_message(f"Initial evaluation: {initial_eval}")
+        log_message(f"Initial evaluation: {initial_eval}")
 
     # Find best move using iterative deepening
     best_move = find_best_move(bb_state, MAX_DEPTH, TIME_LIMIT, player_is_white)
@@ -2156,8 +2423,7 @@ def agent(board, player, var):
     if not best_move:
         # No legal moves available (should not happen in normal play)
         if LOGGING_ENABLED:
-            #log_message("ERROR: No legal moves found!")
-            pass
+            log_message("ERROR: No legal moves found!")
         # Fallback: return any legal move from framework
         for piece in board.pieces:
             if piece.color == player.color:
@@ -2172,26 +2438,27 @@ def agent(board, player, var):
     # Log results
     search_time = time.time() - start_time
     
-    # Calculate TT hit rate
-    total_probes = stats['nodes_searched']
-    tt_hits = stats['tt_hits']
-    tt_hit_rate = (tt_hits / total_probes * 100) if total_probes > 0 else 0
-    
+    # Get TT statistics
+    tt_stats = TRANSPOSITION_TABLE.get_stats()
+    tt_hit_rate = tt_stats['hit_rate']
+
     # Print summary
     print(f"\n{'='*60}")
     print(f"Total nodes visited: {stats['nodes_searched']}")
     print(f"Max depth reached: {stats['depth_reached']}")
-    print(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_hits}/{total_probes})")
+    print(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_stats['hits']}/{tt_stats['probes']})")
+    print(f"TT size: {tt_stats['size']}/{tt_stats['max_size']} entries")
     print(f"{'='*60}\n")
     
     if LOGGING_ENABLED:
         from_x, from_y = index_to_xy(best_move.from_sq)
         to_x, to_y = index_to_xy(best_move.to_sq)
-        #log_message(f"\nBest move: {piece} from ({from_x},{from_y}) to ({to_x},{to_y})")
-        #log_message(f"Search time: {search_time:.2f}s")
-        #log_message(f"Total nodes visited: {stats['nodes_searched']}")
-        #log_message(f"Max depth reached: {stats['depth_reached']}")
-        #log_message(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_hits}/{total_probes})")
+        log_message(f"\nBest move: {piece} from ({from_x},{from_y}) to ({to_x},{to_y})")
+        log_message(f"Search time: {search_time:.2f}s")
+        log_message(f"Total nodes visited: {stats['nodes_searched']}")
+        log_message(f"Max depth reached: {stats['depth_reached']}")
+        log_message(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_stats['hits']}/{tt_stats['probes']})")
+        log_message(f"TT size: {tt_stats['size']}/{tt_stats['max_size']} entries")
         log_search_statistics()
 
     return (piece, move_option)

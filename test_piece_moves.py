@@ -6,7 +6,7 @@ This test creates simple board positions and verifies that:
 2. Right moves like rook + knight (horizontal/vertical + L-shapes)
 """
 
-from helpersBitboard import (
+from helpersBitboard_gemini import (
     BitboardState, _get_queen_attacks, _get_right_attacks,
     _get_rook_attacks, _get_bishop_attacks, KNIGHT_ATTACKS,
     square_index, index_to_xy, test_bit, iter_bits

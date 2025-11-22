@@ -6,11 +6,11 @@ GAME START - Initial Position
 
 Initial Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 R B K Q N 
+4 B N K Q R 
 
 
 ============================================================
@@ -19,23 +19,23 @@ MOVE 0 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 R B K Q N 
+4 B N K Q R 
 
 
-*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
+*** MOVE EXECUTED: Pawn from (3,3) to (3,2) ***
 
 
 Board State After Move 0:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
-2 P . . . . 
-3 . P P P P 
-4 R B K Q N 
+2 . . . P . 
+3 P P P . P 
+4 B N K Q R 
 
 
 ============================================================
@@ -44,11 +44,11 @@ MOVE 1 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p p 
-2 P . . . . 
-3 . P P P P 
-4 R B K Q N 
+2 . . . P . 
+3 P P P . P 
+4 B N K Q R 
 
 
 *** MOVE EXECUTED: Pawn from (4,1) to (4,2) ***
@@ -56,11 +56,11 @@ Current Board State:
 
 Board State After Move 1:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p . 
-2 P . . . p 
-3 . P P P P 
-4 R B K Q N 
+2 . . . P p 
+3 P P P . P 
+4 B N K Q R 
 
 
 ============================================================
@@ -69,24 +69,24 @@ MOVE 2 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
+0 r q k n b 
 1 p p p p . 
-2 P . . . p 
-3 . P P P P 
-4 R B K Q N 
+2 . . . P p 
+3 P P P . P 
+4 B N K Q R 
 
 
-*** MOVE EXECUTED: Pawn from (3,3) to (4,2) ***
-*** CAPTURES at: (4,2) ***
+*** MOVE EXECUTED: Pawn from (3,2) to (2,1) ***
+*** CAPTURES at: (2,1) ***
 
 
 Board State After Move 2:
   0 1 2 3 4
-0 n q k b r 
-1 p p p p . 
-2 P . . . P 
-3 . P P . P 
-4 R B K Q N 
+0 r q k n b 
+1 p p P p . 
+2 . . . . p 
+3 P P P . P 
+4 B N K Q R 
 
 
 ============================================================
@@ -95,24 +95,24 @@ MOVE 3 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b r 
-1 p p p p . 
-2 P . . . P 
-3 . P P . P 
-4 R B K Q N 
+0 r q k n b 
+1 p p P p . 
+2 . . . . p 
+3 P P P . P 
+4 B N K Q R 
 
 
-*** MOVE EXECUTED: Right from (4,0) to (4,2) ***
-*** CAPTURES at: (4,2) ***
+*** MOVE EXECUTED: Queen from (1,0) to (2,1) ***
+*** CAPTURES at: (2,1) ***
 
 
 Board State After Move 3:
   0 1 2 3 4
-0 n q k b . 
-1 p p p p . 
-2 P . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p q p . 
+2 . . . . p 
+3 P P P . P 
+4 B N K Q R 
 
 
 ============================================================
@@ -121,24 +121,23 @@ MOVE 4 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b . 
-1 p p p p . 
-2 P . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p q p . 
+2 . . . . p 
+3 P P P . P 
+4 B N K Q R 
 
 
-*** MOVE EXECUTED: Pawn from (0,2) to (1,1) ***
-*** CAPTURES at: (1,1) ***
+*** MOVE EXECUTED: Right from (4,4) to (3,2) ***
 
 
 Board State After Move 4:
   0 1 2 3 4
-0 n q k b . 
-1 p P p p . 
-2 . . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p q p . 
+2 . . . R p 
+3 P P P . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -147,24 +146,24 @@ MOVE 5 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n q k b . 
-1 p P p p . 
-2 . . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p q p . 
+2 . . . R p 
+3 P P P . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: Queen from (1,0) to (1,1) ***
-*** CAPTURES at: (1,1) ***
+*** MOVE EXECUTED: Queen from (2,1) to (3,2) ***
+*** CAPTURES at: (3,2) ***
 
 
 Board State After Move 5:
   0 1 2 3 4
-0 n . k b . 
-1 p q p p . 
-2 . . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p . p . 
+2 . . . q p 
+3 P P P . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -173,23 +172,24 @@ MOVE 6 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p q p p . 
-2 . . . . r 
-3 . P P . P 
-4 R B K Q N 
+0 r . k n b 
+1 p p . p . 
+2 . . . q p 
+3 P P P . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: Queen from (3,4) to (3,3) ***
+*** MOVE EXECUTED: Queen from (3,4) to (3,2) ***
+*** CAPTURES at: (3,2) ***
 
 
 Board State After Move 6:
   0 1 2 3 4
-0 n . k b . 
-1 p q p p . 
-2 . . . . r 
-3 . P P Q P 
-4 R B K . N 
+0 r . k n b 
+1 p p . p . 
+2 . . . Q p 
+3 P P P . P 
+4 B N K . . 
 
 
 ============================================================
@@ -198,24 +198,23 @@ MOVE 7 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p q p p . 
-2 . . . . r 
-3 . P P Q P 
-4 R B K . N 
+0 r . k n b 
+1 p p . p . 
+2 . . . Q p 
+3 P P P . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Queen from (1,1) to (3,3) ***
-*** CAPTURES at: (3,3) ***
+*** MOVE EXECUTED: Right from (0,0) to (2,1) ***
 
 
 Board State After Move 7:
   0 1 2 3 4
-0 n . k b . 
-1 p . p p . 
-2 . . . . r 
-3 . P P q P 
-4 R B K . N 
+0 . . k n b 
+1 p p r p . 
+2 . . . Q p 
+3 P P P . P 
+4 B N K . . 
 
 
 ============================================================
@@ -224,24 +223,23 @@ MOVE 8 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p . p p . 
-2 . . . . r 
-3 . P P q P 
-4 R B K . N 
+0 . . k n b 
+1 p p r p . 
+2 . . . Q p 
+3 P P P . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (2,4) to (3,3) ***
-*** CAPTURES at: (3,3) ***
+*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
 
 
 Board State After Move 8:
   0 1 2 3 4
-0 n . k b . 
-1 p . p p . 
-2 . . . . r 
-3 . P P K P 
-4 R B . . N 
+0 . . k n b 
+1 p p r p . 
+2 P . . Q p 
+3 . P P . P 
+4 B N K . . 
 
 
 ============================================================
@@ -250,23 +248,23 @@ MOVE 9 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p . p p . 
-2 . . . . r 
-3 . P P K P 
-4 R B . . N 
+0 . . k n b 
+1 p p r p . 
+2 P . . Q p 
+3 . P P . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Pawn from (2,1) to (2,2) ***
+*** MOVE EXECUTED: Pawn from (1,1) to (1,2) ***
 
 
 Board State After Move 9:
   0 1 2 3 4
-0 n . k b . 
-1 p . . p . 
-2 . . p . r 
-3 . P P K P 
-4 R B . . N 
+0 . . k n b 
+1 p . r p . 
+2 P p . Q p 
+3 . P P . P 
+4 B N K . . 
 
 
 ============================================================
@@ -275,24 +273,23 @@ MOVE 10 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p . . p . 
-2 . . p . r 
-3 . P P K P 
-4 R B . . N 
+0 . . k n b 
+1 p . r p . 
+2 P p . Q p 
+3 . P P . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Pawn from (1,3) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Pawn from (2,3) to (2,2) ***
 
 
 Board State After Move 10:
   0 1 2 3 4
-0 n . k b . 
-1 p . . p . 
-2 . . P . r 
-3 . . P K P 
-4 R B . . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -301,23 +298,23 @@ MOVE 11 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 n . k b . 
-1 p . . p . 
-2 . . P . r 
-3 . . P K P 
-4 R B . . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Knight from (0,0) to (2,1) ***
+*** MOVE EXECUTED: King from (2,0) to (1,0) ***
 
 
 Board State After Move 11:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . r 
-3 . . P K P 
-4 R B . . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -326,23 +323,23 @@ MOVE 12 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . r 
-3 . . P K P 
-4 R B . . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (3,3) to (2,4) ***
+*** MOVE EXECUTED: King from (2,4) to (3,4) ***
 
 
 Board State After Move 12:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . r 
-3 . . P . P 
-4 R B K . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
 ============================================================
@@ -351,24 +348,23 @@ MOVE 13 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . r 
-3 . . P . P 
-4 R B K . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
-*** MOVE EXECUTED: Right from (4,2) to (4,3) ***
-*** CAPTURES at: (4,3) ***
+*** MOVE EXECUTED: King from (1,0) to (2,0) ***
 
 
 Board State After Move 13:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B K . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
 ============================================================
@@ -377,23 +373,23 @@ MOVE 14 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B K . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
-*** MOVE EXECUTED: King from (2,4) to (3,4) ***
+*** MOVE EXECUTED: King from (3,4) to (2,4) ***
 
 
 Board State After Move 14:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -402,23 +398,23 @@ MOVE 15 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Right from (4,3) to (3,3) ***
+*** MOVE EXECUTED: King from (2,0) to (1,0) ***
 
 
 Board State After Move 15:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P r . 
-4 R B . K N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -427,23 +423,23 @@ MOVE 16 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P r . 
-4 R B . K N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (3,4) to (2,4) ***
+*** MOVE EXECUTED: King from (2,4) to (3,4) ***
 
 
 Board State After Move 16:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P r . 
-4 R B K . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
 ============================================================
@@ -452,23 +448,23 @@ MOVE 17 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P r . 
-4 R B K . N 
+0 . k . n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
-*** MOVE EXECUTED: Right from (3,3) to (4,3) ***
+*** MOVE EXECUTED: King from (1,0) to (2,0) ***
 
 
 Board State After Move 17:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B K . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
 ============================================================
@@ -477,23 +473,23 @@ MOVE 18 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B K . N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N . K . 
 
 
-*** MOVE EXECUTED: King from (2,4) to (3,4) ***
+*** MOVE EXECUTED: King from (3,4) to (2,4) ***
 
 
 Board State After Move 18:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -502,23 +498,24 @@ MOVE 19 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k n b 
+1 p . r p . 
+2 P p P Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (2,0) to (1,0) ***
+*** MOVE EXECUTED: Knight from (3,0) to (2,2) ***
+*** CAPTURES at: (2,2) ***
 
 
 Board State After Move 19:
   0 1 2 3 4
-0 . k . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k . b 
+1 p . r p . 
+2 P p n Q p 
+3 . P . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -527,24 +524,24 @@ MOVE 20 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . k . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . r 
-4 R B . K N 
+0 . . k . b 
+1 p . r p . 
+2 P p n Q p 
+3 . P . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (3,4) to (4,3) ***
-*** CAPTURES at: (4,3) ***
+*** MOVE EXECUTED: Pawn from (1,3) to (2,2) ***
+*** CAPTURES at: (2,2) ***
 
 
 Board State After Move 20:
   0 1 2 3 4
-0 . k . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . K 
-4 R B . . N 
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -553,23 +550,23 @@ MOVE 21 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . k . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . K 
-4 R B . . N 
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: King from (1,0) to (0,0) ***
+*** MOVE EXECUTED: King from (2,0) to (3,0) ***
 
 
 Board State After Move 21:
   0 1 2 3 4
-0 k . . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . K 
-4 R B . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
 
 
 ============================================================
@@ -578,23 +575,23 @@ MOVE 22 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . n p . 
-2 . . P . . 
-3 . . P . K 
-4 R B . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
 
 
-*** MOVE EXECUTED: Bishop from (1,4) to (0,3) ***
+*** MOVE EXECUTED: Bishop from (0,4) to (1,3) ***
 
 
 Board State After Move 22:
   0 1 2 3 4
-0 k . . b . 
-1 p . n p . 
-2 . . P . . 
-3 B . P . K 
-4 R . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
 
 
 ============================================================
@@ -603,24 +600,23 @@ MOVE 23 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . n p . 
-2 . . P . . 
-3 B . P . K 
-4 R . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
 
 
-*** MOVE EXECUTED: Pawn from (3,1) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Right from (2,1) to (2,0) ***
 
 
 Board State After Move 23:
   0 1 2 3 4
-0 k . . b . 
-1 p . n . . 
-2 . . p . . 
-3 B . P . K 
-4 R . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
 
 
 ============================================================
@@ -629,23 +625,23 @@ MOVE 24 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . n . . 
-2 . . p . . 
-3 B . P . K 
-4 R . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
 
 
-*** MOVE EXECUTED: Right from (0,4) to (1,4) ***
+*** MOVE EXECUTED: Queen from (3,2) to (3,4) ***
 
 
 Board State After Move 24:
   0 1 2 3 4
-0 k . . b . 
-1 p . n . . 
-2 . . p . . 
-3 B . P . K 
-4 . R . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
 ============================================================
@@ -654,23 +650,23 @@ MOVE 25 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . n . . 
-2 . . p . . 
-3 B . P . K 
-4 . R . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
-*** MOVE EXECUTED: Knight from (2,1) to (3,3) ***
+*** MOVE EXECUTED: Right from (2,0) to (2,1) ***
 
 
 Board State After Move 25:
   0 1 2 3 4
-0 k . . b . 
-1 p . . . . 
-2 . . p . . 
-3 B . P n K 
-4 . R . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
 ============================================================
@@ -679,24 +675,23 @@ MOVE 26 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . . . . 
-2 . . p . . 
-3 B . P n K 
-4 . R . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
-*** MOVE EXECUTED: Right from (1,4) to (2,2) ***
-*** CAPTURES at: (2,2) ***
+*** MOVE EXECUTED: Bishop from (1,3) to (0,4) ***
 
 
 Board State After Move 26:
   0 1 2 3 4
-0 k . . b . 
-1 p . . . . 
-2 . . R . . 
-3 B . P n K 
-4 . . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -705,24 +700,23 @@ MOVE 27 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . b . 
-1 p . . . . 
-2 . . R . . 
-3 B . P n K 
-4 . . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: Bishop from (3,0) to (0,3) ***
-*** CAPTURES at: (0,3) ***
+*** MOVE EXECUTED: Right from (2,1) to (2,0) ***
 
 
 Board State After Move 27:
   0 1 2 3 4
-0 k . . . . 
-1 p . . . . 
-2 . . R . . 
-3 b . P n K 
-4 . . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -731,23 +725,23 @@ MOVE 28 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . . . . 
-1 p . . . . 
-2 . . R . . 
-3 b . P n K 
-4 . . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: Right from (2,2) to (2,0) ***
+*** MOVE EXECUTED: Bishop from (0,4) to (1,3) ***
 
 
 Board State After Move 28:
   0 1 2 3 4
-0 k . R . . 
-1 p . . . . 
-2 . . . . . 
-3 b . P n K 
-4 . . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
 ============================================================
@@ -756,23 +750,23 @@ MOVE 29 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 k . R . . 
-1 p . . . . 
-2 . . . . . 
-3 b . P n K 
-4 . . . . N 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
-*** MOVE EXECUTED: King from (0,0) to (1,1) ***
+*** MOVE EXECUTED: Right from (2,0) to (2,1) ***
 
 
 Board State After Move 29:
   0 1 2 3 4
-0 . . R . . 
-1 p k . . . 
-2 . . . . . 
-3 b . P n K 
-4 . . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
 ============================================================
@@ -781,23 +775,23 @@ MOVE 30 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . R . . 
-1 p k . . . 
-2 . . . . . 
-3 b . P n K 
-4 . . . . N 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
 
 
-*** MOVE EXECUTED: Knight from (4,4) to (3,2) ***
+*** MOVE EXECUTED: Bishop from (1,3) to (0,4) ***
 
 
 Board State After Move 30:
   0 1 2 3 4
-0 . . R . . 
-1 p k . . . 
-2 . . . N . 
-3 b . P n K 
-4 . . . . . 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -806,23 +800,23 @@ MOVE 31 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . R . . 
-1 p k . . . 
-2 . . . N . 
-3 b . P n K 
-4 . . . . . 
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: King from (1,1) to (0,2) ***
+*** MOVE EXECUTED: Right from (2,1) to (2,0) ***
 
 
 Board State After Move 31:
   0 1 2 3 4
-0 . . R . . 
-1 p . . . . 
-2 k . . N . 
-3 b . P n K 
-4 . . . . . 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
 ============================================================
@@ -831,23 +825,881 @@ MOVE 32 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . R . . 
-1 p . . . . 
-2 k . . N . 
-3 b . P n K 
-4 . . . . . 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
 
 
-*** MOVE EXECUTED: Right from (2,0) to (1,0) ***
+*** MOVE EXECUTED: Bishop from (0,4) to (1,3) ***
 
 
 Board State After Move 32:
   0 1 2 3 4
-0 . R . . . 
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
+
+
+============================================================
+MOVE 33 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . r k b 
+1 p . . p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
+
+
+*** MOVE EXECUTED: Right from (2,0) to (2,1) ***
+
+
+Board State After Move 33:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
+
+
+============================================================
+MOVE 34 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . B . . P 
+4 . N K Q . 
+
+
+*** MOVE EXECUTED: Bishop from (1,3) to (0,4) ***
+
+
+Board State After Move 34:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
+
+
+============================================================
+MOVE 35 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
+
+
+*** MOVE EXECUTED: King from (3,0) to (4,1) ***
+
+
+Board State After Move 35:
+  0 1 2 3 4
+0 . . . . b 
+1 p . r p k 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
+
+
+============================================================
+MOVE 36 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . . b 
+1 p . r p k 
+2 P p P . p 
+3 . . . . P 
+4 B N K Q . 
+
+
+*** MOVE EXECUTED: Queen from (3,4) to (3,2) ***
+
+
+Board State After Move 36:
+  0 1 2 3 4
+0 . . . . b 
+1 p . r p k 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+============================================================
+MOVE 37 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . . b 
+1 p . r p k 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+*** MOVE EXECUTED: King from (4,1) to (3,0) ***
+
+
+Board State After Move 37:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+============================================================
+MOVE 38 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+*** MOVE EXECUTED: Bishop from (0,4) to (1,3) ***
+
+
+Board State After Move 38:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 39 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . . k b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: King from (3,0) to (2,0) ***
+
+
+Board State After Move 39:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 40 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . B . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: Bishop from (1,3) to (0,4) ***
+
+
+Board State After Move 40:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+============================================================
+MOVE 41 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r p . 
+2 P p P Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+*** MOVE EXECUTED: Pawn from (3,1) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 41:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r . . 
+2 P p p Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+============================================================
+MOVE 42 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r . . 
+2 P p p Q p 
+3 . . . . P 
+4 B N K . . 
+
+
+*** MOVE EXECUTED: Bishop from (0,4) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 42:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r . . 
+2 P p B Q p 
+3 . . . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 43 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . b 
+1 p . r . . 
+2 P p B Q p 
+3 . . . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: Bishop from (4,0) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 43:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P p b Q p 
+3 . . . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 44 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P p b Q p 
+3 . . . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: Queen from (3,2) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 44:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P p Q . p 
+3 . . . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 45 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P p Q . p 
+3 . . . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: Pawn from (1,2) to (1,3) ***
+
+
+Board State After Move 45:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P . Q . p 
+3 . p . . P 
+4 . N K . . 
+
+
+============================================================
+MOVE 46 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P . Q . p 
+3 . p . . P 
+4 . N K . . 
+
+
+*** MOVE EXECUTED: King from (2,4) to (2,3) ***
+
+
+Board State After Move 46:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P . Q . p 
+3 . p K . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 47 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . r . . 
+2 P . Q . p 
+3 . p K . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: Right from (2,1) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 47:
+  0 1 2 3 4
+0 . . k . . 
 1 p . . . . 
-2 k . . N . 
-3 b . P n K 
+2 P . r . p 
+3 . p K . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 48 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . r . p 
+3 . p K . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: Knight from (1,4) to (2,2) ***
+*** CAPTURES at: (2,2) ***
+
+
+Board State After Move 48:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . N . p 
+3 . p K . P 
 4 . . . . . 
+
+
+============================================================
+MOVE 49 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . N . p 
+3 . p K . P 
+4 . . . . . 
+
+
+*** MOVE EXECUTED: Pawn from (1,3) to (1,4) ***
+
+
+Board State After Move 49:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . N . p 
+3 . . K . P 
+4 . q . . . 
+
+
+============================================================
+MOVE 50 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . N . p 
+3 . . K . P 
+4 . q . . . 
+
+
+*** MOVE EXECUTED: Knight from (2,2) to (1,4) ***
+*** CAPTURES at: (1,4) ***
+
+
+Board State After Move 50:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . . . p 
+3 . . K . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 51 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . . k . . 
+1 p . . . . 
+2 P . . . p 
+3 . . K . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (2,0) to (1,0) ***
+
+
+Board State After Move 51:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . . p 
+3 . . K . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 52 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . . p 
+3 . . K . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (2,3) to (2,2) ***
+
+
+Board State After Move 52:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . K . p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 53 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . K . p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (1,0) to (0,0) ***
+
+
+Board State After Move 53:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . K . p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 54 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . K . p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (2,2) to (3,2) ***
+
+
+Board State After Move 54:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . . K p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 55 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . . K p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (0,0) to (1,0) ***
+
+
+Board State After Move 55:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . K p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 56 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . K p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (3,2) to (3,1) ***
+
+
+Board State After Move 56:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 57 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (1,0) to (0,0) ***
+
+
+Board State After Move 57:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . p 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 58 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . p 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (3,1) to (4,2) ***
+*** CAPTURES at: (4,2) ***
+
+
+Board State After Move 58:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . . . K 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 59 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . . . 
+2 P . . . K 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (0,0) to (1,0) ***
+
+
+Board State After Move 59:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . . K 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 60 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . . . 
+2 P . . . K 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (4,2) to (3,1) ***
+
+
+Board State After Move 60:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . . 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 61 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . . 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (1,0) to (0,0) ***
+
+
+Board State After Move 61:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . . 
+3 . . . . P 
+4 . N . . . 
+
+
+============================================================
+MOVE 62 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . . 
+3 . . . . P 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: Pawn from (4,3) to (4,2) ***
+
+
+Board State After Move 62:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . P 
+3 . . . . . 
+4 . N . . . 
+
+
+============================================================
+MOVE 63 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K . 
+2 P . . . P 
+3 . . . . . 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (0,0) to (1,0) ***
+
+
+Board State After Move 63:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . P 
+3 . . . . . 
+4 . N . . . 
+
+
+============================================================
+MOVE 64 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K . 
+2 P . . . P 
+3 . . . . . 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: Pawn from (4,2) to (4,1) ***
+
+
+Board State After Move 64:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K P 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
+
+
+============================================================
+MOVE 65 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . . K P 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: King from (1,0) to (0,0) ***
+
+
+Board State After Move 65:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K P 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
+
+
+============================================================
+MOVE 66 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 k . . . . 
+1 p . . K P 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
+
+
+*** MOVE EXECUTED: Pawn from (4,1) to (4,0) ***
+
+
+Board State After Move 66:
+  0 1 2 3 4
+0 k . . . Q 
+1 p . . K . 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
 
 
 ============================================================
@@ -856,9 +1708,1736 @@ Board State After Move 32:
 
 Final Board State:
   0 1 2 3 4
-0 . R . . . 
-1 p . . . . 
-2 k . . N . 
-3 b . P n K 
-4 . . . . . 
+0 k . . . Q 
+1 p . . K . 
+2 P . . . . 
+3 . . . . . 
+4 . N . . . 
+
+==========================================
+Initial evaluation: -610
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 2.92s, nodes visited: 14454
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 5.47s, nodes visited: 21625
+
+=== Depth 12 (Quiescence ON) ===
+Timeout during depth 12, using previous depth result
+
+Best move: King (Player (black)) from (4,1) to (3,0)
+Search time: 12.50s
+Total nodes visited: 60405
+Max depth reached: 11
+TT cache hit rate: 6.9% (64448/940137)
+TT size: 231593/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 11
+Nodes searched: 60,405
+Quiescence nodes: 99,673
+Total nodes: 160,078
+TT hits: 6,270
+TT stores: 20,970
+Alpha-beta cutoffs: 14,769
+TT hit rate: 10.4%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -640
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 8
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 8
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 8
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 8
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 8
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 8
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 8
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 8
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 8
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 1.04s, nodes visited: 4970
+
+=== Depth 11 (Quiescence ON) ===
+Timeout during depth 11, using previous depth result
+
+Best move: King (Player (black)) from (3,0) to (2,0)
+Search time: 12.50s
+Total nodes visited: 57135
+Max depth reached: 10
+TT cache hit rate: 7.1% (70642/997244)
+TT size: 249309/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 10
+Nodes searched: 57,135
+Quiescence nodes: 87,274
+Total nodes: 144,409
+TT hits: 6,185
+TT stores: 26,424
+Alpha-beta cutoffs: 20,208
+TT hit rate: 10.8%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -600
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 10
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 10
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 10
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 10
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 10
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 10
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 10
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 10
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 10
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 3.03s, nodes visited: 13977
+
+=== Depth 11 (Quiescence ON) ===
+Timeout during depth 11, using previous depth result
+
+Best move: Pawn (Player (black)) from (3,1) to (2,2)
+Search time: 12.50s
+Total nodes visited: 57422
+Max depth reached: 10
+TT cache hit rate: 7.2% (75767/1054642)
+TT size: 265892/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 10
+Nodes searched: 57,422
+Quiescence nodes: 87,354
+Total nodes: 144,776
+TT hits: 5,116
+TT stores: 23,633
+Alpha-beta cutoffs: 17,468
+TT hit rate: 8.9%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -640
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 12
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 12
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 12
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 12
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 12
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 12
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 12
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 12
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 12
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 12.00s, nodes visited: 62266
+Time limit approaching, stopping at depth 10
+
+Best move: Bishop (Player (black)) from (4,0) to (2,2)
+Search time: 12.01s
+Total nodes visited: 62374
+Max depth reached: 10
+TT cache hit rate: 7.3% (81010/1117026)
+TT size: 274827/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 10
+Nodes searched: 62,374
+Quiescence nodes: 110,647
+Total nodes: 173,021
+TT hits: 5,234
+TT stores: 15,648
+Alpha-beta cutoffs: 9,334
+TT hit rate: 8.4%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -625
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 4
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 4
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 4
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 4
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 4
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 4
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 4
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 4
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.28s, nodes visited: 2840
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.36s, nodes visited: 5303
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 1.96s, nodes visited: 16811
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 1.35s, nodes visited: 19899
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 1.99s, nodes visited: 22260
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 3.89s, nodes visited: 56652
+
+=== Depth 15 (Quiescence ON) ===
+Timeout during depth 15, using previous depth result
+
+Best move: Pawn (Player (black)) from (1,2) to (1,3)
+Search time: 12.50s
+Total nodes visited: 150426
+Max depth reached: 14
+TT cache hit rate: 10.0% (126548/1267425)
+TT size: 303345/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 14
+Nodes searched: 150,426
+Quiescence nodes: 83,856
+Total nodes: 234,282
+TT hits: 45,530
+TT stores: 53,903
+Alpha-beta cutoffs: 35,062
+TT hit rate: 30.3%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -645
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 3
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 3
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 3
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 3
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 3
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 3
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 3
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 3
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 3
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 3
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 3
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 3
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.74s, nodes visited: 5624
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 1.68s, nodes visited: 20901
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 3.47s, nodes visited: 31701
+
+=== Depth 16 (Quiescence ON) ===
+Timeout during depth 16, using previous depth result
+
+Best move: Right (Player (black)) from (2,1) to (2,2)
+Search time: 12.51s
+Total nodes visited: 146903
+Max depth reached: 15
+TT cache hit rate: 12.0% (170363/1414324)
+TT size: 325789/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 15
+Nodes searched: 146,903
+Quiescence nodes: 80,609
+Total nodes: 227,512
+TT hits: 43,803
+TT stores: 49,439
+Alpha-beta cutoffs: 29,939
+TT hit rate: 29.8%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -215
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 3
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 3
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 3
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 3
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 3
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 3
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 3
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 3
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 3
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 3
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 3
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 3
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 3
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 3
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 2.74s, nodes visited: 45076
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 5.18s, nodes visited: 81736
+
+=== Depth 17 (Quiescence ON) ===
+Timeout during depth 17, using previous depth result
+
+Best move: Pawn (Player (black)) from (1,3) to (1,4)
+Search time: 12.50s
+Total nodes visited: 200227
+Max depth reached: 16
+TT cache hit rate: 15.8% (255659/1614517)
+TT size: 354182/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 16
+Nodes searched: 200,227
+Quiescence nodes: 71,928
+Total nodes: 272,155
+TT hits: 85,282
+TT stores: 61,702
+Alpha-beta cutoffs: 43,879
+TT hit rate: 42.6%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -315
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 4
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 4
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 4
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 4
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 4
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 4
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 4
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 4
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 4
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 4
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 4
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 4
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 4
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 4
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 4
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 3.37s, nodes visited: 56329
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 3.71s, nodes visited: 64572
+
+=== Depth 18 (Quiescence ON) ===
+Timeout during depth 18, using previous depth result
+
+Best move: King (Player (black)) from (2,0) to (1,0)
+Search time: 12.51s
+Total nodes visited: 201728
+Max depth reached: 17
+TT cache hit rate: 18.7% (340018/1816221)
+TT size: 373402/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 17
+Nodes searched: 201,728
+Quiescence nodes: 94,760
+Total nodes: 296,488
+TT hits: 84,344
+TT stores: 48,531
+Alpha-beta cutoffs: 32,332
+TT hit rate: 41.8%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -310
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 2
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 2
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 2
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 2
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 2
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 2
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 2
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 2
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 2
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 2
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 2
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 2
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 2
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 2.18s, nodes visited: 22655
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 2.75s, nodes visited: 33055
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 5.55s, nodes visited: 66140
+
+=== Depth 17 (Quiescence ON) ===
+Timeout during depth 17, using previous depth result
+
+Best move: King (Player (black)) from (1,0) to (0,0)
+Search time: 12.51s
+Total nodes visited: 139948
+Max depth reached: 16
+TT cache hit rate: 20.2% (394792/1956156)
+TT size: 398006/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 16
+Nodes searched: 139,948
+Quiescence nodes: 77,560
+Total nodes: 217,508
+TT hits: 54,759
+TT stores: 44,551
+Alpha-beta cutoffs: 31,692
+TT hit rate: 39.1%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -310
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.49s, nodes visited: 10143
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 1.94s, nodes visited: 32529
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 3.28s, nodes visited: 54202
+
+=== Depth 18 (Quiescence ON) ===
+Timeout during depth 18, using previous depth result
+
+Best move: King (Player (black)) from (0,0) to (1,0)
+Search time: 12.50s
+Total nodes visited: 191381
+Max depth reached: 17
+TT cache hit rate: 21.9% (470329/2147494)
+TT size: 416003/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 17
+Nodes searched: 191,381
+Quiescence nodes: 101,656
+Total nodes: 293,037
+TT hits: 75,523
+TT stores: 43,444
+Alpha-beta cutoffs: 29,458
+TT hit rate: 39.5%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -305
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 1
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 0.41s, nodes visited: 7923
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 1.17s, nodes visited: 21014
+
+=== Depth 18 (Quiescence ON) ===
+Depth 18 complete, in 3.42s, nodes visited: 53997
+
+=== Depth 19 (Quiescence ON) ===
+Depth 19 complete, in 5.65s, nodes visited: 91234
+
+=== Depth 20 (Quiescence ON) ===
+Timeout during depth 20, using previous depth result
+
+Best move: King (Player (black)) from (1,0) to (0,0)
+Search time: 12.50s
+Total nodes visited: 196156
+Max depth reached: 19
+TT cache hit rate: 23.6% (553998/2343594)
+TT size: 441416/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 19
+Nodes searched: 196,156
+Quiescence nodes: 76,392
+Total nodes: 272,548
+TT hits: 83,654
+TT stores: 53,878
+Alpha-beta cutoffs: 38,932
+TT hit rate: 42.6%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -415
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 1
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 0.00s, nodes visited: 1
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 0.00s, nodes visited: 1
+
+=== Depth 18 (Quiescence ON) ===
+Timeout during depth 18, using previous depth result
+
+Best move: King (Player (black)) from (0,0) to (1,0)
+Search time: 12.50s
+Total nodes visited: 205605
+Max depth reached: 17
+TT cache hit rate: 24.3% (620338/2549143)
+TT size: 459816/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 17
+Nodes searched: 205,605
+Quiescence nodes: 132,351
+Total nodes: 337,956
+TT hits: 66,323
+TT stores: 35,210
+Alpha-beta cutoffs: 21,960
+TT hit rate: 32.3%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -410
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 1
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 2.12s, nodes visited: 30153
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 3.69s, nodes visited: 57926
+
+=== Depth 18 (Quiescence ON) ===
+Timeout during depth 18, using previous depth result
+
+Best move: King (Player (black)) from (1,0) to (0,0)
+Search time: 12.51s
+Total nodes visited: 188419
+Max depth reached: 17
+TT cache hit rate: 25.2% (689226/2737524)
+TT size: 476492/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 17
+Nodes searched: 188,419
+Quiescence nodes: 103,111
+Total nodes: 291,530
+TT hits: 68,873
+TT stores: 38,958
+Alpha-beta cutoffs: 26,470
+TT hit rate: 36.6%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -415
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 1
+
+=== Depth 16 (Quiescence ON) ===
+Depth 16 complete, in 0.00s, nodes visited: 1
+
+=== Depth 17 (Quiescence ON) ===
+Depth 17 complete, in 12.03s, nodes visited: 201002
+Time limit approaching, stopping at depth 17
+
+Best move: King (Player (black)) from (0,0) to (1,0)
+Search time: 12.04s
+Total nodes visited: 201018
+Max depth reached: 17
+TT cache hit rate: 26.6% (780503/2938559)
+TT size: 516376/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 17
+Nodes searched: 201,018
+Quiescence nodes: 47,658
+Total nodes: 248,676
+TT hits: 91,261
+TT stores: 62,332
+Alpha-beta cutoffs: 51,585
+TT hit rate: 45.4%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -415
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 0.00s, nodes visited: 1
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 0.00s, nodes visited: 1
+
+=== Depth 12 (Quiescence ON) ===
+Depth 12 complete, in 0.00s, nodes visited: 1
+
+=== Depth 13 (Quiescence ON) ===
+Depth 13 complete, in 0.00s, nodes visited: 1
+
+=== Depth 14 (Quiescence ON) ===
+Depth 14 complete, in 0.00s, nodes visited: 1
+
+=== Depth 15 (Quiescence ON) ===
+Depth 15 complete, in 0.00s, nodes visited: 1
+
+=== Depth 16 (Quiescence ON) ===
+Timeout during depth 16, using previous depth result
+
+Best move: King (Player (black)) from (1,0) to (0,0)
+Search time: 12.50s
+Total nodes visited: 178175
+Max depth reached: 15
+TT cache hit rate: 27.3% (850665/3116666)
+TT size: 524365/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 15
+Nodes searched: 178,175
+Quiescence nodes: 108,306
+Total nodes: 286,481
+TT hits: 70,147
+TT stores: 28,309
+Alpha-beta cutoffs: 16,477
+TT hit rate: 39.4%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -5
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 7
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.08s, nodes visited: 29
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.05s, nodes visited: 97
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.26s, nodes visited: 334
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 1.07s, nodes visited: 1154
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 2.89s, nodes visited: 3597
+
+=== Depth 7 (Quiescence ON) ===
+Timeout during depth 7, using previous depth result
+
+Best move: Pawn (Player (black)) from (1,1) to (0,2)
+Search time: 12.51s
+Total nodes visited: 15354
+Max depth reached: 6
+TT cache hit rate: 1.0% (148/15356)
+TT size: 3623/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 6
+Nodes searched: 15,354
+Quiescence nodes: 89,486
+Total nodes: 104,840
+TT hits: 148
+TT stores: 4,886
+Alpha-beta cutoffs: 3,635
+TT hit rate: 1.0%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -5
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 9
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 9
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 9
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 9
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 9
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 4.60s, nodes visited: 7220
+
+=== Depth 7 (Quiescence ON) ===
+Timeout during depth 7, using previous depth result
+
+Best move: Queen (Player (black)) from (1,0) to (1,1)
+Search time: 12.51s
+Total nodes visited: 18262
+Max depth reached: 6
+TT cache hit rate: 1.7% (582/33595)
+TT size: 9002/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 6
+Nodes searched: 18,262
+Quiescence nodes: 86,645
+Total nodes: 104,907
+TT hits: 429
+TT stores: 6,858
+Alpha-beta cutoffs: 5,424
+TT hit rate: 2.3%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -5
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 11
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 11
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 11
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 11
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 1.15s, nodes visited: 1813
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 2.11s, nodes visited: 3833
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 7.17s, nodes visited: 13338
+
+=== Depth 8 (Quiescence ON) ===
+Timeout during depth 8, using previous depth result
+
+Best move: Pawn (Player (black)) from (3,1) to (3,2)
+Search time: 12.51s
+Total nodes visited: 24577
+Max depth reached: 7
+TT cache hit rate: 2.0% (1140/58154)
+TT size: 15022/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 7
+Nodes searched: 24,577
+Quiescence nodes: 85,987
+Total nodes: 110,564
+TT hits: 554
+TT stores: 8,688
+Alpha-beta cutoffs: 6,169
+TT hit rate: 2.3%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: 0
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 11
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 11
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 11
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 11
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 11
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 3.27s, nodes visited: 4725
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 7.67s, nodes visited: 13215
+
+=== Depth 8 (Quiescence ON) ===
+Timeout during depth 8, using previous depth result
+
+Best move: Pawn (Player (black)) from (3,2) to (2,3)
+Search time: 12.50s
+Total nodes visited: 20884
+Max depth reached: 7
+TT cache hit rate: 2.0% (1565/79007)
+TT size: 19778/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 7
+Nodes searched: 20,884
+Quiescence nodes: 91,054
+Total nodes: 111,938
+TT hits: 420
+TT stores: 6,648
+Alpha-beta cutoffs: 4,608
+TT hit rate: 2.0%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -10
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 11
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 11
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 11
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 11
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 11
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.65s, nodes visited: 1358
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 5.57s, nodes visited: 11027
+
+=== Depth 8 (Quiescence ON) ===
+Timeout during depth 8, using previous depth result
+
+Best move: Knight (Player (black)) from (0,0) to (1,2)
+Search time: 12.50s
+Total nodes visited: 27541
+Max depth reached: 7
+TT cache hit rate: 2.0% (2091/106530)
+TT size: 25810/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 7
+Nodes searched: 27,541
+Quiescence nodes: 99,089
+Total nodes: 126,630
+TT hits: 520
+TT stores: 8,148
+Alpha-beta cutoffs: 5,789
+TT hit rate: 1.9%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -335
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 12
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 12
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 12
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 12
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 12
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 1.29s, nodes visited: 3953
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 2.26s, nodes visited: 6240
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 8.10s, nodes visited: 27338
+Time limit approaching, stopping at depth 8
+
+Best move: Pawn (Player (black)) from (0,1) to (1,2)
+Search time: 11.65s
+Total nodes visited: 37591
+Max depth reached: 8
+TT cache hit rate: 2.3% (3267/144129)
+TT size: 32880/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 8
+Nodes searched: 37,591
+Quiescence nodes: 93,586
+Total nodes: 131,177
+TT hits: 1,171
+TT stores: 10,817
+Alpha-beta cutoffs: 7,048
+TT hit rate: 3.1%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -10
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 6
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 6
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 6
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 6
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 6
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 6
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 4.70s, nodes visited: 12568
+
+=== Depth 8 (Quiescence ON) ===
+Timeout during depth 8, using previous depth result
+
+Best move: Queen (Player (black)) from (1,1) to (0,0)
+Search time: 12.51s
+Total nodes visited: 34877
+Max depth reached: 7
+TT cache hit rate: 2.9% (5148/178989)
+TT size: 41184/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 7
+Nodes searched: 34,877
+Quiescence nodes: 97,348
+Total nodes: 132,225
+TT hits: 1,875
+TT stores: 11,020
+Alpha-beta cutoffs: 8,211
+TT hit rate: 5.4%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -130
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 8
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 8
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 8
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 8
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 8
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 8
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 3.39s, nodes visited: 10150
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 7.59s, nodes visited: 32217
+
+=== Depth 9 (Quiescence ON) ===
+Timeout during depth 9, using previous depth result
+
+Best move: Right (Player (black)) from (4,0) to (3,2)
+Search time: 12.50s
+Total nodes visited: 50167
+Max depth reached: 8
+TT cache hit rate: 3.5% (8051/229131)
+TT size: 51074/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 8
+Nodes searched: 50,167
+Quiescence nodes: 97,465
+Total nodes: 147,632
+TT hits: 2,897
+TT stores: 14,690
+Alpha-beta cutoffs: 9,776
+TT hit rate: 5.8%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -630
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 1.20s, nodes visited: 5183
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 3.13s, nodes visited: 17035
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 3.43s, nodes visited: 17193
+
+=== Depth 10 (Quiescence ON) ===
+Timeout during depth 10, using previous depth result
+
+Best move: Pawn (Player (black)) from (4,1) to (3,2)
+Search time: 12.50s
+Total nodes visited: 67963
+Max depth reached: 9
+TT cache hit rate: 4.3% (12702/297056)
+TT size: 66841/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 9
+Nodes searched: 67,963
+Quiescence nodes: 95,234
+Total nodes: 163,197
+TT hits: 4,645
+TT stores: 24,084
+Alpha-beta cutoffs: 16,689
+TT hit rate: 6.8%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -290
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 2
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 2
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 2
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 2
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 2
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 2
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 2
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 3.00s, nodes visited: 18319
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 1.50s, nodes visited: 8962
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 2.92s, nodes visited: 23278
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 4.43s, nodes visited: 30701
+Time limit approaching, stopping at depth 11
+
+Best move: Queen (Player (black)) from (0,0) to (0,2)
+Search time: 11.85s
+Total nodes visited: 81274
+Max depth reached: 11
+TT cache hit rate: 6.0% (22692/378341)
+TT size: 85187/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 11
+Nodes searched: 81,274
+Quiescence nodes: 99,461
+Total nodes: 180,735
+TT hits: 9,983
+TT stores: 29,777
+Alpha-beta cutoffs: 22,003
+TT hit rate: 12.3%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -260
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 1
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 1
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 1
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.00s, nodes visited: 1
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.00s, nodes visited: 1
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.00s, nodes visited: 1
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.00s, nodes visited: 1
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.00s, nodes visited: 1
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.00s, nodes visited: 1
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 4.22s, nodes visited: 36006
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 6.75s, nodes visited: 49934
+
+=== Depth 12 (Quiescence ON) ===
+Timeout during depth 12, using previous depth result
+
+Best move: Bishop (Player (black)) from (3,0) to (4,1)
+Search time: 12.50s
+Total nodes visited: 102561
+Max depth reached: 11
+TT cache hit rate: 9.1% (43803/480880)
+TT size: 103421/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 11
+Nodes searched: 102,561
+Quiescence nodes: 106,774
+Total nodes: 209,335
+TT hits: 21,102
+TT stores: 33,793
+Alpha-beta cutoffs: 24,762
+TT hit rate: 20.6%
+============================================================
+
+
+============================================================
+BITBOARD AGENT MOVE - black
+============================================================
+Initial evaluation: -320
+
+=== Depth 1 (Quiescence ON) ===
+Depth 1 complete, in 0.00s, nodes visited: 3
+
+=== Depth 2 (Quiescence ON) ===
+Depth 2 complete, in 0.00s, nodes visited: 7
+
+=== Depth 3 (Quiescence ON) ===
+Depth 3 complete, in 0.00s, nodes visited: 25
+
+=== Depth 4 (Quiescence ON) ===
+Depth 4 complete, in 0.01s, nodes visited: 132
+
+=== Depth 5 (Quiescence ON) ===
+Depth 5 complete, in 0.03s, nodes visited: 199
+
+=== Depth 6 (Quiescence ON) ===
+Depth 6 complete, in 0.10s, nodes visited: 958
+
+=== Depth 7 (Quiescence ON) ===
+Depth 7 complete, in 0.24s, nodes visited: 1384
+
+=== Depth 8 (Quiescence ON) ===
+Depth 8 complete, in 0.09s, nodes visited: 872
+
+=== Depth 9 (Quiescence ON) ===
+Depth 9 complete, in 0.31s, nodes visited: 1276
+
+=== Depth 10 (Quiescence ON) ===
+Depth 10 complete, in 6.23s, nodes visited: 50535
+
+=== Depth 11 (Quiescence ON) ===
+Depth 11 complete, in 5.26s, nodes visited: 37420
+Time limit approaching, stopping at depth 11
+
+Best move: Pawn (Player (black)) from (2,1) to (2,2)
+Search time: 12.28s
+Total nodes visited: 92811
+Max depth reached: 11
+TT cache hit rate: 10.1% (57836/573702)
+TT size: 122530/2097152 entries
+
+============================================================
+BITBOARD SEARCH STATISTICS
+============================================================
+Depth reached: 11
+Nodes searched: 92,811
+Quiescence nodes: 112,244
+Total nodes: 205,055
+TT hits: 14,024
+TT stores: 27,640
+Alpha-beta cutoffs: 20,706
+TT hit rate: 15.1%
+============================================================
 

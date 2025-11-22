@@ -169,6 +169,10 @@ CHECKMATE_SCORE = 999_999
 STALEMATE_SCORE = 0
 DRAW_SCORE = 0
 
+# FIX #16: Precompute infinity constants to avoid repeated float object creation
+NEG_INF = float('-inf')
+POS_INF = float('inf')
+
 # Move ordering piece values (for MVV-LVA)
 # Must match PIECE_VALUES from helpersBitboard.py exactly!
 MVV_LVA_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right (indices 0-5)
@@ -251,7 +255,9 @@ def order_moves(moves: List[BBMove], bb_state: BitboardState, tt_best_move: Opti
     Returns:
         Sorted list of moves (best moves first)
     """
-    return sorted(moves, key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    # FIX #13: Use in-place sort to avoid creating new list
+    moves.sort(key=lambda m: score_move(m, bb_state, tt_best_move), reverse=True)
+    return moves
 
 
 # ============================================================================
@@ -348,7 +354,7 @@ def quiescence_search(bb_state: BitboardState, alpha: int, beta: int,
     # If not in check, best_score is already initialized to stand_pat.
     # If in check, initialize best_score to alpha/beta bounds to handle the first move.
     if in_check:
-        best_score = -float('inf') if is_maximizing else float('inf')
+        best_score = NEG_INF if is_maximizing else POS_INF
 
 
     # No captures/forcing moves available: quiet position
@@ -473,7 +479,7 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
     # Order moves
     moves = order_moves(moves, bb_state, tt_best_move_tuple)
 
-    best_score = -float('inf') if is_maximizing else float('inf')
+    best_score = NEG_INF if is_maximizing else POS_INF
     best_move = None
 
     # STANDARD MINIMAX: No negation of scores or bounds
@@ -546,7 +552,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     global stats
     start_time = time.time()
     best_move = None
-    best_score = -float('inf')
+    best_score = NEG_INF
 
     # Get all legal moves
     moves = generate_legal_moves(bb_state)
@@ -580,7 +586,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         depth_start_time = time.time()
         depth_nodes_before = stats['nodes_searched']
         depth_best_move = None
-        depth_best_score = -float('inf')
+        depth_best_score = NEG_INF
 
         # Removed verbose depth start logging - only show completion
         if LOGGING_ENABLED:
@@ -596,8 +602,8 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
 
         # Search all moves at current depth
         # Root is always maximizing (we're finding our best move)
-        alpha = -float('inf')
-        beta = float('inf')
+        alpha = NEG_INF
+        beta = POS_INF
 
         for move in ordered_moves:
             new_state = apply_move(bb_state, move)
