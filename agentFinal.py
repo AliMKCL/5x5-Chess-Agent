@@ -186,7 +186,7 @@ TRANSPOSITION_TABLE = BitboardTranspositionTable(size_mb=64)
 
 # Search configuration
 MAX_DEPTH = 50          # Maximum search depth for iterative deepening
-QUIESCENCE_MAX_DEPTH = 7  # Maximum quiescence search depth
+QUIESCENCE_MAX_DEPTH = 5  # Maximum quiescence search depth
 TIME_LIMIT = 12.5       # Time limit in seconds (leave buffer for move conversion)
 
 # Score constants
@@ -618,11 +618,11 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     for move in moves:
         new_state = apply_move(bb_state, move)
         opponent_moves = generate_legal_moves(new_state)
-        
+
         if not opponent_moves:
             # Opponent has no legal moves - check if it's checkmate or stalemate
             opponent_in_check = is_in_check(new_state, new_state.side_to_move == 0)
-            
+
             if opponent_in_check:
                 # CHECKMATE IN 1! Play this move immediately
                 if LOGGING_ENABLED:
@@ -631,6 +631,10 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
                 stats['depth_reached'] = 1
                 return move
             # If not in check, it's stalemate - avoid this move, continue searching
+
+    # Move stability tracking for early termination
+    # Track last 4 best moves to detect when search has converged
+    move_history = []  # List of (from_sq, to_sq) tuples from recent depths
 
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
@@ -699,6 +703,21 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
         if LOGGING_ENABLED:
             log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
+
+        # Track move history for stability detection (only from depth 3 onwards)
+        if best_move and depth >= 5:
+            move_tuple = (best_move.from_sq, best_move.to_sq)
+            move_history.append(move_tuple)
+
+            # Check for move stability: same move for 4 consecutive depths (3,4,5,6 or 4,5,6,7, etc.)
+            if len(move_history) >= 4:
+                # Check if the last 4 moves are all identical
+                last_4_moves = move_history[-4:]
+                if all(m == last_4_moves[0] for m in last_4_moves):
+                    if LOGGING_ENABLED:
+                        log_message(f"Move stability detected at depth {depth}: same move for 4 consecutive depths (starting from depth {depth-3}), stopping search")
+                    print(f"Move stability detected at depth {depth}: same move for 4 consecutive depths (starting from depth {depth-3}), stopping search")
+                    break
 
         # Early termination: found forced checkmate FOR US (positive score only!)
         # 

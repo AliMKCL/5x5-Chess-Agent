@@ -4,22 +4,6 @@ Bitboard-Based Chess Agent with Minimax Search
 This agent uses the bitboard infrastructure from helpersBitboard.py to achieve
 dramatically faster move generation and position evaluation.
 
-FEATURES:
-- Minimax search with alpha-beta pruning
-- Iterative deepening (depth 1-12)
-- Transposition table (TT) for position caching
-- Quiescence search for tactical sequences
-- MVV-LVA move ordering
-- Time management with fallback
-
-EXPECTED PERFORMANCE:
-- 50,000-200,000 nodes/second (vs 1,000-20,000 without bitboards)
-- Effective search depth: 8-12 plies (vs 2-3 without bitboards)
-- TT hit rate: 30-60% at depth 8
-
-INTERFACE:
-- agent(board, player, time_remaining) → (piece, move_option)
-  Main entry point compatible with chessmaker framework
 """
 
 import time

@@ -12,9 +12,10 @@ import agentT
 from opponent import opponent
 import agentBitboard as agentB
 import agentP 
-import agentFinal as agentBG
-from agentBitboard_optimized import agent as agentNUMBERS
+import agentFinal as agentF
+import agentBitboard_optimized as agentNUMBERS
 import agentBB_initial as agentBI
+import agentBitboard_gemini as agentBG
 
 # Global move counter for logging
 global_move_counter = 0
@@ -181,7 +182,7 @@ def testgame_timeout(p_white, p_black, board_sample):
     agentT.LOG_FILE = GAME_LOG_FILE
     agentB.LOG_FILE = GAME_LOG_FILE
     agentP.LOG_FILE = GAME_LOG_FILE
-    agentBG.LOG_FILE = GAME_LOG_FILE
+    agentF.LOG_FILE = GAME_LOG_FILE
     
     init_moves_log()
 
@@ -314,4 +315,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentBG.agent, p_black=agentBI.agent, board_sample=sample1)
+    testgame_timeout(p_white=agentF.agent, p_black=agentNUMBERS.agent, board_sample=sample1)
