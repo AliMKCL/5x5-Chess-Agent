@@ -24,7 +24,7 @@ INTERFACE:
 
 import time
 from typing import List, Optional, Tuple, Dict
-from helpersBitboard_gemini import (
+from helpersFinal import (
     board_to_bitboard, generate_legal_moves, apply_move, evaluate_bitboard,
     is_in_check, static_exchange_eval, BitboardState, BBMove, index_to_xy, square_index,
     PIECE_VALUES, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT

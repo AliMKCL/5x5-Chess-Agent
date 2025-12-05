@@ -9,7 +9,7 @@ from old_agents.agent import agent
 from old_agents.agentS import agent as agentS
 from old_agents.agentQ import agent as agentQ
 from agentE import agent as agentE
-from agentBitboard_gemini import agent as agentBG
+from agentFinal import agent as agentBG
 from opponent import opponent
 from agentP import agent as agentP
 from agentBitboard import agent as agentB

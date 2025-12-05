@@ -12,7 +12,7 @@ import agentT
 from opponent import opponent
 import agentBitboard as agentB
 import agentP 
-import agentBitboard_gemini as agentBG
+import agentFinal as agentBG
 from agentBitboard_optimized import agent as agentNUMBERS
 import agentBB_initial as agentBI
 

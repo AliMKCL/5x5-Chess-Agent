@@ -10,7 +10,7 @@ This tests that:
 import sys
 sys.path.insert(0, '/Users/alimuratkeceli/Desktop/University/Artificial Intelligence/CW-COMP2321')
 
-from helpersBitboard_gemini import BBMove, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT, PIECE_VALUES
+from helpersFinal import BBMove, PAWN, KNIGHT, BISHOP, QUEEN, KING, RIGHT, PIECE_VALUES
 
 # Import score_move directly from agentBitboard
 # We'll copy the MVV_LVA_VALUES here to avoid module import issues
