@@ -208,6 +208,7 @@ class BitboardState:
         occ_all: Bitboard of all pieces (occ_white | occ_black)
         side_to_move: 0=white, 1=black
         zobrist_hash: Hash of this position for transposition table
+        en_passant_square: Square index where en passant capture can land, or -1 if none
     """
     # White pieces
     WP: Bitboard  # White pawns
@@ -233,6 +234,7 @@ class BitboardState:
     # Game state
     side_to_move: Color  # 0=white to move, 1=black to move
     zobrist_hash: int    # Zobrist hash for transposition table
+    en_passant_square: int = -1  # Square where en passant capture can land, or -1 if none
 
 
 # ============================================================================
@@ -1152,6 +1154,26 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
                         if not is_in_check(child, is_white):
                             moves.append(move)
 
+        # --- En Passant captures ---
+        # Check if there's an en passant square available and we can capture it
+        if bb_state.en_passant_square != -1:
+            ep_sq = bb_state.en_passant_square
+            ep_x, ep_y = index_to_xy(ep_sq)
+
+            # Check if our pawn is adjacent to the en passant square and can capture
+            if ep_y == y + dir_y and abs(ep_x - x) == 1:
+                # This is a valid en passant capture
+                # The captured pawn is on the same rank as our pawn, not on ep_sq
+                captured_pawn_sq = square_index(ep_x, y)
+
+                # Create en passant move (moves to ep_sq, captures pawn at captured_pawn_sq)
+                move = BBMove(from_sq, ep_sq, PAWN, PAWN, 0)
+
+                # Test legality
+                child = apply_move(bb_state, move)
+                if not is_in_check(child, is_white):
+                    moves.append(move)
+
     return moves
 
 
@@ -1198,11 +1220,12 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
     Algorithm:
     1. Copy all piece bitboards to a list
     2. Remove piece from origin square
-    3. If capture, remove captured piece from destination
+    3. If capture, remove captured piece from destination (or en passant square)
     4. Add piece to destination (or promoted piece if promotion)
     5. Rebuild occupancy masks
     6. Toggle side to move
-    7. Compute new Zobrist hash incrementally
+    7. Update en passant square if pawn moved 2 squares
+    8. Compute new Zobrist hash incrementally
 
     Args:
         bb_state: Current state
@@ -1232,15 +1255,32 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
     # Update hash: XOR out piece at origin
     new_hash ^= _ZOBRIST.piece_keys[(move.piece_type, bb_state.side_to_move, move.from_sq)]
 
-    # 2. Handle capture (remove opponent piece from destination)
+    # 2. Handle capture (remove opponent piece from destination or en passant square)
     if move.captured_type != -1:
         opp_color_offset = 6 if stm_white else 0
         captured_idx = opp_color_offset + move.captured_type
-        to_mask = 1 << move.to_sq
-        pieces[captured_idx] &= ~to_mask
-        # Update hash: XOR out captured piece
-        opp_color = 1 if stm_white else 0
-        new_hash ^= _ZOBRIST.piece_keys[(move.captured_type, opp_color, move.to_sq)]
+
+        # Check if this is an en passant capture
+        # En passant: pawn moves to en_passant_square but captures pawn on different square
+        if move.piece_type == PAWN and move.to_sq == bb_state.en_passant_square and bb_state.en_passant_square != -1:
+            # En passant capture: captured pawn is on the same rank as from_sq
+            from_x, from_y = index_to_xy(move.from_sq)
+            to_x, to_y = index_to_xy(move.to_sq)
+            captured_pawn_sq = square_index(to_x, from_y)
+
+            # Remove captured pawn from its actual position (not to_sq)
+            captured_mask = 1 << captured_pawn_sq
+            pieces[captured_idx] &= ~captured_mask
+            # Update hash: XOR out captured pawn at its actual position
+            opp_color = 1 if stm_white else 0
+            new_hash ^= _ZOBRIST.piece_keys[(PAWN, opp_color, captured_pawn_sq)]
+        else:
+            # Normal capture: remove piece from destination square
+            to_mask = 1 << move.to_sq
+            pieces[captured_idx] &= ~to_mask
+            # Update hash: XOR out captured piece
+            opp_color = 1 if stm_white else 0
+            new_hash ^= _ZOBRIST.piece_keys[(move.captured_type, opp_color, move.to_sq)]
 
     # 3. Add piece to destination (or promoted piece)
     to_mask = 1 << move.to_sq
@@ -1266,7 +1306,20 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
     # Update hash: toggle side-to-move (XOR is self-inverse, so this flips the bit)
     new_hash ^= _ZOBRIST.black_to_move_key
 
-    # 6. Create new state
+    # 6. Determine new en passant square
+    new_en_passant_square = -1
+
+    if move.piece_type == PAWN:
+        from_x, from_y = index_to_xy(move.from_sq)
+        to_x, to_y = index_to_xy(move.to_sq)
+
+        # Check if pawn moved 2 squares (only possible from starting rank)
+        if abs(to_y - from_y) == 2:
+            # Set en passant square to the square the pawn "jumped over"
+            ep_y = (from_y + to_y) // 2  # Midpoint
+            new_en_passant_square = square_index(to_x, ep_y)
+
+    # 7. Create new state
     return BitboardState(
         WP=pieces[0], WN=pieces[1], WB=pieces[2], WQ=pieces[3], WK=pieces[4], WR=pieces[5],
         BP=pieces[6], BN=pieces[7], BB=pieces[8], BQ=pieces[9], BK=pieces[10], BR=pieces[11],
@@ -1274,7 +1327,8 @@ def apply_move(bb_state: BitboardState, move: BBMove) -> BitboardState:
         occ_black=new_occ_black,
         occ_all=new_occ_all,
         side_to_move=new_side_to_move,
-        zobrist_hash=new_hash
+        zobrist_hash=new_hash,
+        en_passant_square=new_en_passant_square
     )
 
 
@@ -1337,7 +1391,7 @@ def board_to_bitboard(board, player) -> BitboardState:
     # Determine side to move
     side_to_move = 0 if player.name == "white" else 1
 
-    # Create state
+    # Create state (en_passant_square starts as -1 since we don't track game history)
     bb_state = BitboardState(
         WP=piece_bitboards['WP'], WN=piece_bitboards['WN'], WB=piece_bitboards['WB'],
         WQ=piece_bitboards['WQ'], WK=piece_bitboards['WK'], WR=piece_bitboards['WR'],
@@ -1347,7 +1401,8 @@ def board_to_bitboard(board, player) -> BitboardState:
         occ_black=occ_black,
         occ_all=occ_all,
         side_to_move=side_to_move,
-        zobrist_hash=0  # Will be computed below
+        zobrist_hash=0,  # Will be computed below
+        en_passant_square=-1  # No en passant at game start
     )
 
     # Compute Zobrist hash
@@ -1360,7 +1415,8 @@ def board_to_bitboard(board, player) -> BitboardState:
         occ_black=bb_state.occ_black,
         occ_all=bb_state.occ_all,
         side_to_move=bb_state.side_to_move,
-        zobrist_hash=_ZOBRIST.compute_hash(bb_state)
+        zobrist_hash=_ZOBRIST.compute_hash(bb_state),
+        en_passant_square=-1
     )
 
     return bb_state

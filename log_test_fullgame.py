@@ -4,7 +4,7 @@ from itertools import cycle
 from chessmaker.chess.base import Board
 from extension.board_utils import print_board_ascii, copy_piece_move
 from extension.board_rules import get_result, thinking_with_timeout, THINKING_TIME_BUDGET, GAME_TIME_BUDGET
-from samples import white, black, sample0, sample1, sample2, sample3
+from samples import white, black, sample0, sample1, sample2, sample3, sample4
 import old_agents.agentS as agentS
 import old_agents.agentQ as agentQ
 import agentE
@@ -315,4 +315,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentF.agent, p_black=agentNUMBERS.agent, board_sample=sample0)
+    testgame_timeout(p_white=agentF.agent, p_black=agentNUMBERS.agent, board_sample=sample1)

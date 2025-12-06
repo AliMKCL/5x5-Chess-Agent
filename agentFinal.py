@@ -2,10 +2,9 @@
 STATE FLAG BEFORE ADDING PINS !!!!!!!!!!!!!!!!!!!!!!!!!!
 IMPROVEMENTS LEFT:
 - LMR (better pruning) (Added but not tested/controlled)
-- Add double pawn move
 - Stalemate detection (Maybe)
 
-- PİÇLİK: If losing by enough, use the full 12.5 seconds to make a move to make shared time run out.
+- If move selected due to timeout, select best ranked move among last x completed depths instead of last depth
 
 
 Bitboard-Based Chess Agent with Minimax Search
@@ -190,6 +189,11 @@ TRANSPOSITION_TABLE = BitboardTranspositionTable(size_mb=64)
 MAX_DEPTH = 50          # Maximum search depth for iterative deepening
 QUIESCENCE_MAX_DEPTH = 7  # Maximum quiescence search depth
 TIME_LIMIT = 10       # Time limit in seconds (leave buffer for move conversion)
+
+# Timeout strategy configuration
+ENABLE_TIMEOUT_STRATEGY = True  # Set to False to disable timeout drawing strategy
+TIMEOUT_STRATEGY_THRESHOLD = -600  # If losing by more than this (e.g., -300), use timeout strategy
+TIMEOUT_STRATEGY_DELAY = 13.0  # Delay move until this many seconds have elapsed
 
 # Score constants
 CHECKMATE_SCORE = 999_999
@@ -879,6 +883,7 @@ def agent(board, player, var):
     1. Converts the board to bitboard representation
     2. Runs bitboard-based search
     3. Converts the best move back to framework format
+    4. Applies timeout strategy if losing badly (optional)
 
     Args:
         board: Chessmaker board object
@@ -911,26 +916,53 @@ def agent(board, player, var):
     best_move = find_best_move(bb_state, MAX_DEPTH, TIME_LIMIT, player_is_white)
 
     if not best_move:
-        # No legal moves available (should not happen in normal play)
+        # No legal moves available - this means checkmate or stalemate
+        # The game framework should have already detected this, so this is an edge case
         if LOGGING_ENABLED:
-            log_message("ERROR: No legal moves found!")
-        # Fallback: return any legal move from framework
-        for piece in board.pieces:
-            if piece.color == player.color:
-                moves = piece.get_move_options(board)
-                if moves:
-                    return (piece, moves[0])
-        raise ValueError("No legal moves available")
+            log_message("ERROR: No legal moves found - game should be over (checkmate/stalemate)")
+
+        # This should never happen in practice because the game engine checks for
+        # terminal positions before calling the agent. If we reach here, something
+        # went wrong with the game state.
+        raise ValueError("No legal moves available - position is checkmate or stalemate")
 
     # Convert to framework format
     piece, move_option = bbmove_to_framework_move(best_move, board)
 
     # Log results
     search_time = time.time() - start_time
-    
+
     # Get TT statistics
     tt_stats = TRANSPOSITION_TABLE.get_stats()
     tt_hit_rate = tt_stats['hit_rate']
+
+    # --- TIMEOUT STRATEGY: If losing badly, delay move to burn opponent's time ---
+    if ENABLE_TIMEOUT_STRATEGY:
+        # Apply the best move to see the resulting position's evaluation
+        child_state = apply_move(bb_state, best_move)
+        # Evaluate from our perspective AFTER we make the move
+        eval_after_move = evaluate_bitboard(child_state, player_is_white)
+
+        # If we're still losing badly after our best move, use timeout strategy
+        if eval_after_move <= TIMEOUT_STRATEGY_THRESHOLD:
+            elapsed = time.time() - start_time
+            remaining_delay = TIMEOUT_STRATEGY_DELAY - elapsed
+
+            if remaining_delay > 0:
+                print(f"\n{'='*60}")
+                print(f"TIMEOUT STRATEGY ACTIVATED")
+                print(f"Position evaluation: {eval_after_move} (threshold: {TIMEOUT_STRATEGY_THRESHOLD})")
+                print(f"Delaying move for {remaining_delay:.2f} more seconds to burn opponent's time...")
+                print(f"{'='*60}\n")
+
+                if LOGGING_ENABLED:
+                    log_message(f"TIMEOUT STRATEGY: Losing position ({eval_after_move}), delaying move by {remaining_delay:.2f}s")
+
+                # Sleep until we've burned the target time
+                time.sleep(remaining_delay)
+
+                # Update search time for logging
+                search_time = time.time() - start_time
 
     # Print summary
     print(f"\n{'='*60}")
@@ -939,7 +971,7 @@ def agent(board, player, var):
     print(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_stats['hits']}/{tt_stats['probes']})")
     print(f"TT size: {tt_stats['size']}/{tt_stats['max_size']} entries")
     print(f"{'='*60}\n")
-    
+
     if LOGGING_ENABLED:
         from_x, from_y = index_to_xy(best_move.from_sq)
         to_x, to_y = index_to_xy(best_move.to_sq)

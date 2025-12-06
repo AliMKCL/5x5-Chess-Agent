@@ -38,3 +38,11 @@ sample3 = [
     [Square(), Square(), Square(), Square(), Square()],
     [Square(), Square(), Square(King(white)), Square(Right(white)), Square()],
 ]
+
+sample4 = [
+    [Square(), Square(King(black)), Square(), Square(), Square()],
+    [Square(Queen(black)), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(King(white)), Square(), Square()],
+]
