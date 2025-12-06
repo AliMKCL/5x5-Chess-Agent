@@ -1,9 +1,11 @@
 """
+STATE FLAG BEFORE ADDING PINS !!!!!!!!!!!!!!!!!!!!!!!!!!
 IMPROVEMENTS LEFT:
-- LMR (better pruning)
-- Add double pawn move (currently not available)
-- Stalemate detection
-- Possible 32-Bit architecture --> 64 bit
+- LMR (better pruning) (Added but not tested/controlled)
+- Add double pawn move
+- Stalemate detection (Maybe)
+
+- PİÇLİK: If losing by enough, use the full 12.5 seconds to make a move to make shared time run out.
 
 
 Bitboard-Based Chess Agent with Minimax Search
@@ -186,8 +188,8 @@ TRANSPOSITION_TABLE = BitboardTranspositionTable(size_mb=64)
 
 # Search configuration
 MAX_DEPTH = 50          # Maximum search depth for iterative deepening
-QUIESCENCE_MAX_DEPTH = 5  # Maximum quiescence search depth
-TIME_LIMIT = 12.5       # Time limit in seconds (leave buffer for move conversion)
+QUIESCENCE_MAX_DEPTH = 7  # Maximum quiescence search depth
+TIME_LIMIT = 10       # Time limit in seconds (leave buffer for move conversion)
 
 # Score constants
 CHECKMATE_SCORE = 999_999
@@ -515,13 +517,53 @@ def minimax(bb_state: BitboardState, depth: int, alpha: int, beta: int,
     best_score = NEG_INF if is_maximizing else POS_INF
     best_move = None
 
-    # STANDARD MINIMAX: No negation of scores or bounds
-    for move in moves:
+    # Check if current side is in check (for LMR safety)
+    in_check_now = is_in_check(bb_state, bb_state.side_to_move == 0)
+
+    # STANDARD MINIMAX with Late Move Reduction (LMR)
+    for move_index, move in enumerate(moves):
         new_state = apply_move(bb_state, move)
 
-        # Recursive call with flipped is_maximizing (NO negation!)
-        score = minimax(new_state, depth - 1, alpha, beta, not is_maximizing,
-                       start_time, root_depth, player_is_white)
+        # === LATE MOVE REDUCTION (LMR) ===
+        # Reduce search depth for later, non-tactical moves to save time
+        # Conditions for reduction:
+        # 1. Not in first 3 moves (already well-ordered by TT + MVV-LVA)
+        # 2. Sufficient depth (>= 3)
+        # 3. Not a capture (tactical moves need full search)
+        # 4. Not in check (all moves critical when escaping check)
+        can_reduce = (
+            move_index >= 3 and                # Skip first 3 well-ordered moves
+            depth >= 3 and                     # Need sufficient depth to reduce
+            move.captured_type == -1 and       # Don't reduce captures
+            not in_check_now                   # Don't reduce when in check
+        )
+
+        if can_reduce:
+            # Calculate reduction amount based on move index
+            if move_index < 6:
+                reduction = 1                   # Mild reduction for moves 4-6
+            elif move_index < 10:
+                reduction = 2                   # Moderate reduction for moves 7-10
+            else:
+                reduction = min(3, depth - 2)   # Aggressive but capped for moves 11+
+
+            # Search with reduced depth
+            score = minimax(new_state, depth - 1 - reduction, alpha, beta, not is_maximizing,
+                           start_time, root_depth, player_is_white)
+
+            # Re-search at full depth if reduced search shows move is promising
+            if is_maximizing and score > alpha:
+                # Maximizing: re-search if we beat alpha
+                score = minimax(new_state, depth - 1, alpha, beta, not is_maximizing,
+                               start_time, root_depth, player_is_white)
+            elif not is_maximizing and score < beta:
+                # Minimizing: re-search if we beat beta
+                score = minimax(new_state, depth - 1, alpha, beta, not is_maximizing,
+                               start_time, root_depth, player_is_white)
+        else:
+            # Full depth search for important moves (first 3, captures, checks, shallow depth)
+            score = minimax(new_state, depth - 1, alpha, beta, not is_maximizing,
+                           start_time, root_depth, player_is_white)
 
         # Update best score based on whose turn it is
         if is_maximizing:

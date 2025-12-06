@@ -1,4 +1,5 @@
 """
+STATE FLAG BEFORE ADDING PINS !!!!!!!!!!!!!!!!!!!!!!!!!!
 Bitboard Helper Functions for 5x5 Chess Variant
 
 This module provides a complete bitboard implementation for efficient move generation
