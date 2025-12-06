@@ -747,7 +747,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
 
         # Track move history for stability detection (only from depth 3 onwards)
-        if best_move and depth >= 5:
+        if best_move and depth >= 4:
             move_tuple = (best_move.from_sq, best_move.to_sq)
             move_history.append(move_tuple)
 

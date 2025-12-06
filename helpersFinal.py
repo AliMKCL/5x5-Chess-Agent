@@ -1083,6 +1083,7 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
 
     Pawns:
     - Move forward one square if unoccupied
+    - Move forward two squares if on starting rank and path is clear (first move)
     - Capture diagonally forward
     - Promote to queen when reaching back rank (y=0 for white, y=4 for black)
 
@@ -1098,11 +1099,12 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
     """
     moves = []
     dir_y = -1 if is_white else 1  # White pawns move up (y decreases), black down
+    starting_rank = 3 if is_white else 1  # White pawns start at y=3, black at y=1
 
     for from_sq in iter_bits(pawn_bb):
         x, y = index_to_xy(from_sq)
 
-        # --- Forward move ---
+        # --- Forward move (1 square) ---
         if not captures_only:
             to_y = y + dir_y
             if 0 <= to_y < 5:
@@ -1117,6 +1119,21 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
                     child = apply_move(bb_state, move)
                     if not is_in_check(child, is_white):
                         moves.append(move)
+
+                    # --- Forward move (2 squares) - only from starting rank ---
+                    if y == starting_rank:
+                        to_y_2 = y + (2 * dir_y)
+                        if 0 <= to_y_2 < 5:
+                            to_sq_2 = square_index(x, to_y_2)
+                            # Can only move 2 squares if both intermediate and destination are unoccupied
+                            if not test_bit(occ_all, to_sq_2):
+                                # No promotion on 2-square move (can't reach back rank in one 2-square move)
+                                move_2 = BBMove(from_sq, to_sq_2, PAWN, -1, 0)
+
+                                # Test legality
+                                child_2 = apply_move(bb_state, move_2)
+                                if not is_in_check(child_2, is_white):
+                                    moves.append(move_2)
 
         # --- Diagonal captures ---
         to_y = y + dir_y

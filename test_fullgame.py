@@ -16,6 +16,7 @@ from agentBitboard import agent as agentB
 from agentBitboard_optimized import agent as agentNUMBERS
 from agentBB_initial import agent as agentBI
 from agentSubmit import agent as agentSUB
+from agentFinal import agent as agentF
 
 
 
@@ -97,4 +98,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentSUB, p_black=agentBI, board_sample=sample0)
+    testgame_timeout(p_white=agentF, p_black=agentNUMBERS, board_sample=sample0)

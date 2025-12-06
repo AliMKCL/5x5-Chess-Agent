@@ -24,7 +24,7 @@ sample1 = [
     ]
 
 sample2 = [
-    [Square(), Square(King(black)), Square(), Square(), Square()],
+    [Square(King(black)), Square(), Square(), Square(), Square()],
     [Square(), Square(), Square(), Square(), Square()],
     [Square(), Square(), Square(), Square(), Square()],
     [Square(), Square(), Square(), Square(Pawn_Q(white)), Square()],

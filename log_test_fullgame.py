@@ -315,4 +315,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agentNUMBERS.agent, p_black=agentF.agent, board_sample=sample1)
+    testgame_timeout(p_white=agentF.agent, p_black=agentNUMBERS.agent, board_sample=sample0)

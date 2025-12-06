@@ -6,11 +6,11 @@ GAME START - Initial Position
 
 Initial Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 B N K Q R 
+4 R B K Q N 
 
 
 ============================================================
@@ -19,23 +19,23 @@ MOVE 0 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
 2 . . . . . 
 3 P P P P P 
-4 B N K Q R 
+4 R B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (3,3) to (3,2) ***
+*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
 
 
 Board State After Move 0:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
-2 . . . P . 
-3 P P P . P 
-4 B N K Q R 
+2 P . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
 ============================================================
@@ -44,23 +44,24 @@ MOVE 1 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k n b 
+0 n q k b r 
 1 p p p p p 
-2 . . . P . 
-3 P P P . P 
-4 B N K Q R 
+2 P . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
-*** MOVE EXECUTED: Knight from (3,0) to (4,2) ***
+*** MOVE EXECUTED: Pawn from (1,1) to (0,2) ***
+*** CAPTURES at: (0,2) ***
 
 
 Board State After Move 1:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P . P 
-4 B N K Q R 
+0 n q k b r 
+1 p . p p p 
+2 p . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
 ============================================================
@@ -69,23 +70,23 @@ MOVE 2 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P . P 
-4 B N K Q R 
+0 n q k b r 
+1 p . p p p 
+2 p . . . . 
+3 . P P P P 
+4 R B K Q N 
 
 
-*** MOVE EXECUTED: Queen from (3,4) to (3,3) ***
+*** MOVE EXECUTED: Right from (0,4) to (0,3) ***
 
 
 Board State After Move 2:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p . p p p 
+2 p . . . . 
+3 R P P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -94,24 +95,23 @@ MOVE 3 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p p p p 
-2 . . . P n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p . p p p 
+2 p . . . . 
+3 R P P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (2,1) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: Pawn from (4,1) to (4,2) ***
 
 
 Board State After Move 3:
   0 1 2 3 4
-0 r q k . b 
-1 p p . p p 
-2 . . . p n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 p . . . p 
+3 R P P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -120,24 +120,23 @@ MOVE 4 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p . p p 
-2 . . . p n 
-3 P P P Q P 
-4 B N K . R 
+0 n q k b r 
+1 p . p p . 
+2 p . . . p 
+3 R P P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (4,3) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: Pawn from (1,3) to (1,1) ***
 
 
 Board State After Move 4:
   0 1 2 3 4
-0 r q k . b 
-1 p p . p p 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n q k b r 
+1 p P p p . 
+2 p . . . p 
+3 R . P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -146,23 +145,24 @@ MOVE 5 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p p . p p 
-2 . . . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n q k b r 
+1 p P p p . 
+2 p . . . p 
+3 R . P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (1,1) to (1,2) ***
+*** MOVE EXECUTED: Queen from (1,0) to (1,1) ***
+*** CAPTURES at: (1,1) ***
 
 
 Board State After Move 5:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 . p . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n . k b r 
+1 p q p p . 
+2 p . . . p 
+3 R . P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -171,23 +171,24 @@ MOVE 6 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 . p . P n 
-3 P P P Q . 
-4 B N K . R 
+0 n . k b r 
+1 p q p p . 
+2 p . . . p 
+3 R . P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (0,3) to (0,2) ***
+*** MOVE EXECUTED: Right from (0,3) to (1,1) ***
+*** CAPTURES at: (1,1) ***
 
 
 Board State After Move 6:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P p . P n 
-3 . P P Q . 
-4 B N K . R 
+0 n . k b r 
+1 p R p p . 
+2 p . . . p 
+3 . . P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -196,24 +197,24 @@ MOVE 7 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P p . P n 
-3 . P P Q . 
-4 B N K . R 
+0 n . k b r 
+1 p R p p . 
+2 p . . . p 
+3 . . P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (1,2) to (2,3) ***
-*** CAPTURES at: (2,3) ***
+*** MOVE EXECUTED: King from (2,0) to (1,1) ***
+*** CAPTURES at: (1,1) ***
 
 
 Board State After Move 7:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P n 
-3 . P p Q . 
-4 B N K . R 
+0 n . . b r 
+1 p k p p . 
+2 p . . . p 
+3 . . P P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -222,24 +223,23 @@ MOVE 8 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P n 
-3 . P p Q . 
-4 B N K . R 
+0 n . . b r 
+1 p k p p . 
+2 p . . . p 
+3 . . P P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Right from (4,4) to (2,3) ***
-*** CAPTURES at: (2,3) ***
+*** MOVE EXECUTED: Pawn from (2,3) to (2,2) ***
 
 
 Board State After Move 8:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P n 
-3 . P R Q . 
-4 B N K . . 
+0 n . . b r 
+1 p k p p . 
+2 p . P . p 
+3 . . . P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -248,24 +248,24 @@ MOVE 9 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P n 
-3 . P R Q . 
-4 B N K . . 
+0 n . . b r 
+1 p k p p . 
+2 p . P . p 
+3 . . . P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Knight from (4,2) to (2,3) ***
-*** CAPTURES at: (2,3) ***
+*** MOVE EXECUTED: Pawn from (3,1) to (2,2) ***
+*** CAPTURES at: (2,2) ***
 
 
 Board State After Move 9:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P . 
-3 . P n Q . 
-4 B N K . . 
+0 n . . b r 
+1 p k p . . 
+2 p . p . p 
+3 . . . P P 
+4 . B K Q N 
 
 
 ============================================================
@@ -274,24 +274,23 @@ MOVE 10 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P . 
-3 . P n Q . 
-4 B N K . . 
+0 n . . b r 
+1 p k p . . 
+2 p . p . p 
+3 . . . P P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Queen from (3,3) to (2,3) ***
-*** CAPTURES at: (2,3) ***
+*** MOVE EXECUTED: Pawn from (3,3) to (3,1) ***
 
 
 Board State After Move 10:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b r 
+1 p k p P . 
+2 p . p . p 
+3 . . . . P 
+4 . B K Q N 
 
 
 ============================================================
@@ -300,23 +299,23 @@ MOVE 11 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r q k . b 
-1 p . . p p 
-2 P . . P . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b r 
+1 p k p P . 
+2 p . p . p 
+3 . . . . P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Queen from (1,0) to (2,1) ***
+*** MOVE EXECUTED: Right from (4,0) to (4,1) ***
 
 
 Board State After Move 11:
   0 1 2 3 4
-0 r . k . b 
-1 p . q p p 
-2 P . . P . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 p . p . p 
+3 . . . . P 
+4 . B K Q N 
 
 
 ============================================================
@@ -325,24 +324,23 @@ MOVE 12 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . k . b 
-1 p . q p p 
-2 P . . P . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 p . p . p 
+3 . . . . P 
+4 . B K Q N 
 
 
-*** MOVE EXECUTED: Pawn from (3,2) to (2,1) ***
-*** CAPTURES at: (2,1) ***
+*** MOVE EXECUTED: Knight from (4,4) to (2,3) ***
 
 
 Board State After Move 12:
   0 1 2 3 4
-0 r . k . b 
-1 p . P p p 
-2 P . . . . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 p . p . p 
+3 . . N . P 
+4 . B K Q . 
 
 
 ============================================================
@@ -351,24 +349,23 @@ MOVE 13 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 r . k . b 
-1 p . P p p 
-2 P . . . . 
-3 . P Q . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 p . p . p 
+3 . . N . P 
+4 . B K Q . 
 
 
-*** MOVE EXECUTED: Right from (0,0) to (2,1) ***
-*** CAPTURES at: (2,1) ***
+*** MOVE EXECUTED: King from (1,1) to (1,0) ***
 
 
 Board State After Move 13:
   0 1 2 3 4
-0 . . k . b 
-1 p . r p p 
-2 P . . . . 
-3 . P Q . . 
-4 B N K . . 
+0 n k . b . 
+1 p . p P r 
+2 p . p . p 
+3 . . N . P 
+4 . B K Q . 
 
 
 ============================================================
@@ -377,24 +374,24 @@ MOVE 14 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k . b 
-1 p . r p p 
-2 P . . . . 
-3 . P Q . . 
-4 B N K . . 
+0 n k . b . 
+1 p . p P r 
+2 p . p . p 
+3 . . N . P 
+4 . B K Q . 
 
 
-*** MOVE EXECUTED: Queen from (2,3) to (2,1) ***
-*** CAPTURES at: (2,1) ***
+*** MOVE EXECUTED: Knight from (2,3) to (0,2) ***
+*** CAPTURES at: (0,2) ***
 
 
 Board State After Move 14:
   0 1 2 3 4
-0 . . k . b 
-1 p . Q p p 
-2 P . . . . 
-3 . P . . . 
-4 B N K . . 
+0 n k . b . 
+1 p . p P r 
+2 N . p . p 
+3 . . . . P 
+4 . B K Q . 
 
 
 ============================================================
@@ -403,24 +400,23 @@ MOVE 15 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k . b 
-1 p . Q p p 
-2 P . . . . 
-3 . P . . . 
-4 B N K . . 
+0 n k . b . 
+1 p . p P r 
+2 N . p . p 
+3 . . . . P 
+4 . B K Q . 
 
 
-*** MOVE EXECUTED: King from (2,0) to (2,1) ***
-*** CAPTURES at: (2,1) ***
+*** MOVE EXECUTED: King from (1,0) to (1,1) ***
 
 
 Board State After Move 15:
   0 1 2 3 4
-0 . . . . b 
-1 p . k p p 
-2 P . . . . 
-3 . P . . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 N . p . p 
+3 . . . . P 
+4 . B K Q . 
 
 
 ============================================================
@@ -429,23 +425,24 @@ MOVE 16 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . . b 
-1 p . k p p 
-2 P . . . . 
-3 . P . . . 
-4 B N K . . 
+0 n . . b . 
+1 p k p P r 
+2 N . p . p 
+3 . . . . P 
+4 . B K Q . 
 
 
-*** MOVE EXECUTED: Knight from (1,4) to (3,3) ***
+*** MOVE EXECUTED: Bishop from (1,4) to (4,1) ***
+*** CAPTURES at: (4,1) ***
 
 
 Board State After Move 16:
   0 1 2 3 4
-0 . . . . b 
-1 p . k p p 
-2 P . . . . 
-3 . P . N . 
-4 B . K . . 
+0 n . . b . 
+1 p k p P B 
+2 N . p . p 
+3 . . . . P 
+4 . . K Q . 
 
 
 ============================================================
@@ -454,23 +451,23 @@ MOVE 17 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . . b 
-1 p . k p p 
-2 P . . . . 
-3 . P . N . 
-4 B . K . . 
+0 n . . b . 
+1 p k p P B 
+2 N . p . p 
+3 . . . . P 
+4 . . K Q . 
 
 
-*** MOVE EXECUTED: King from (2,1) to (3,0) ***
+*** MOVE EXECUTED: Knight from (0,0) to (1,2) ***
 
 
 Board State After Move 17:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p p 
-2 P . . . . 
-3 . P . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N n p . p 
+3 . . . . P 
+4 . . K Q . 
 
 
 ============================================================
@@ -479,23 +476,23 @@ MOVE 18 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p p 
-2 P . . . . 
-3 . P . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N n p . p 
+3 . . . . P 
+4 . . K Q . 
 
 
-*** MOVE EXECUTED: Pawn from (1,3) to (1,2) ***
+*** MOVE EXECUTED: King from (2,4) to (1,4) ***
 
 
 Board State After Move 18:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p p 
-2 P P . . . 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N n p . p 
+3 . . . . P 
+4 . K . Q . 
 
 
 ============================================================
@@ -504,23 +501,23 @@ MOVE 19 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p p 
-2 P P . . . 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N n p . p 
+3 . . . . P 
+4 . K . Q . 
 
 
-*** MOVE EXECUTED: Pawn from (4,1) to (4,2) ***
+*** MOVE EXECUTED: Knight from (1,2) to (3,3) ***
 
 
 Board State After Move 19:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p . 
-2 P P . . p 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N . p . p 
+3 . . . n P 
+4 . K . Q . 
 
 
 ============================================================
@@ -529,24 +526,23 @@ MOVE 20 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 p . . p . 
-2 P P . . p 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N . p . p 
+3 . . . n P 
+4 . K . Q . 
 
 
-*** MOVE EXECUTED: Pawn from (1,2) to (0,1) ***
-*** CAPTURES at: (0,1) ***
+*** MOVE EXECUTED: King from (1,4) to (0,3) ***
 
 
 Board State After Move 20:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . p 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N . p . p 
+3 K . . n P 
+4 . . . Q . 
 
 
 ============================================================
@@ -555,24 +551,24 @@ MOVE 21 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . p 
-3 . . . N . 
-4 B . K . . 
+0 . . . b . 
+1 p k p P B 
+2 N . p . p 
+3 K . . n P 
+4 . . . Q . 
 
 
-*** MOVE EXECUTED: Pawn from (4,2) to (3,3) ***
-*** CAPTURES at: (3,3) ***
+*** MOVE EXECUTED: Bishop from (3,0) to (4,1) ***
+*** CAPTURES at: (4,1) ***
 
 
 Board State After Move 21:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . . 
-3 . . . p . 
-4 B . K . . 
+0 . . . . . 
+1 p k p P b 
+2 N . p . p 
+3 K . . n P 
+4 . . . Q . 
 
 
 ============================================================
@@ -581,24 +577,23 @@ MOVE 22 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . . 
-3 . . . p . 
-4 B . K . . 
+0 . . . . . 
+1 p k p P b 
+2 N . p . p 
+3 K . . n P 
+4 . . . Q . 
 
 
-*** MOVE EXECUTED: King from (2,4) to (3,3) ***
-*** CAPTURES at: (3,3) ***
+*** MOVE EXECUTED: Knight from (0,2) to (2,3) ***
 
 
 Board State After Move 22:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . . 
-3 . . . K . 
-4 B . . . . 
+0 . . . . . 
+1 p k p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . . Q . 
 
 
 ============================================================
@@ -607,23 +602,23 @@ MOVE 23 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 P . . p . 
-2 P . . . . 
-3 . . . K . 
-4 B . . . . 
+0 . . . . . 
+1 p k p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . . Q . 
 
 
-*** MOVE EXECUTED: Pawn from (3,1) to (3,2) ***
+*** MOVE EXECUTED: King from (1,1) to (1,0) ***
 
 
 Board State After Move 23:
   0 1 2 3 4
-0 . . . k b 
-1 P . . . . 
-2 P . . p . 
-3 . . . K . 
-4 B . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . . Q . 
 
 
 ============================================================
@@ -632,24 +627,23 @@ MOVE 24 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k b 
-1 P . . . . 
-2 P . . p . 
-3 . . . K . 
-4 B . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . . Q . 
 
 
-*** MOVE EXECUTED: Bishop from (0,4) to (4,0) ***
-*** CAPTURES at: (4,0) ***
+*** MOVE EXECUTED: Queen from (3,4) to (2,4) ***
 
 
 Board State After Move 24:
   0 1 2 3 4
-0 . . . k B 
-1 P . . . . 
-2 P . . p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . Q . . 
 
 
 ============================================================
@@ -658,23 +652,23 @@ MOVE 25 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k B 
-1 P . . . . 
-2 P . . p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . . p . p 
+3 K . N n P 
+4 . . Q . . 
 
 
-*** MOVE EXECUTED: King from (3,0) to (4,1) ***
+*** MOVE EXECUTED: Knight from (3,3) to (1,2) ***
 
 
 Board State After Move 25:
   0 1 2 3 4
-0 . . . . B 
-1 P . . . k 
-2 P . . p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . n p . p 
+3 K . N . P 
+4 . . Q . . 
 
 
 ============================================================
@@ -683,22 +677,22 @@ MOVE 26 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . . B 
-1 P . . . k 
-2 P . . p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 . n p . p 
+3 K . N . P 
+4 . . Q . . 
 
 
-*** MOVE EXECUTED: Bishop from (4,0) to (2,2) ***
+*** MOVE EXECUTED: Queen from (2,4) to (0,2) ***
 
 
 Board State After Move 26:
   0 1 2 3 4
-0 . . . . . 
-1 P . . . k 
-2 P . B p . 
-3 . . . K . 
+0 . k . . . 
+1 p . p P b 
+2 Q n p . p 
+3 K . N . P 
 4 . . . . . 
 
 
@@ -708,23 +702,23 @@ MOVE 27 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . . . 
-1 P . . . k 
-2 P . B p . 
-3 . . . K . 
+0 . k . . . 
+1 p . p P b 
+2 Q n p . p 
+3 K . N . P 
 4 . . . . . 
 
 
-*** MOVE EXECUTED: King from (4,1) to (3,0) ***
+*** MOVE EXECUTED: Knight from (1,2) to (2,4) ***
 
 
 Board State After Move 27:
   0 1 2 3 4
-0 . . . k . 
-1 P . . . . 
-2 P . B p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 K . N . P 
+4 . . n . . 
 
 
 ============================================================
@@ -733,24 +727,23 @@ MOVE 28 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k . 
-1 P . . . . 
-2 P . B p . 
-3 . . . K . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 K . N . P 
+4 . . n . . 
 
 
-*** MOVE EXECUTED: King from (3,3) to (3,2) ***
-*** CAPTURES at: (3,2) ***
+*** MOVE EXECUTED: King from (0,3) to (1,4) ***
 
 
 Board State After Move 28:
   0 1 2 3 4
-0 . . . k . 
-1 P . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 . . N . P 
+4 . K n . . 
 
 
 ============================================================
@@ -759,23 +752,24 @@ MOVE 29 - BLACK's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . . k . 
-1 P . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 . . N . P 
+4 . K n . . 
 
 
-*** MOVE EXECUTED: King from (3,0) to (2,0) ***
+*** MOVE EXECUTED: Bishop from (4,1) to (2,3) ***
+*** CAPTURES at: (2,3) ***
 
 
 Board State After Move 29:
   0 1 2 3 4
-0 . . k . . 
-1 P . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P . 
+2 Q . p . p 
+3 . . b . P 
+4 . K n . . 
 
 
 ============================================================
@@ -784,23 +778,74 @@ MOVE 30 - WHITE's turn
 
 Current Board State:
   0 1 2 3 4
-0 . . k . . 
-1 P . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P . 
+2 Q . p . p 
+3 . . b . P 
+4 . K n . . 
 
 
-*** MOVE EXECUTED: Pawn from (0,1) to (0,0) ***
+*** MOVE EXECUTED: King from (1,4) to (2,4) ***
+*** CAPTURES at: (2,4) ***
 
 
 Board State After Move 30:
   0 1 2 3 4
-0 Q . k . . 
-1 . . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k . . . 
+1 p . p P . 
+2 Q . p . p 
+3 . . b . P 
+4 . . K . . 
+
+
+============================================================
+MOVE 31 - BLACK's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . p P . 
+2 Q . p . p 
+3 . . b . P 
+4 . . K . . 
+
+
+*** MOVE EXECUTED: Bishop from (2,3) to (4,1) ***
+
+
+Board State After Move 31:
+  0 1 2 3 4
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 . . . . P 
+4 . . K . . 
+
+
+============================================================
+MOVE 32 - WHITE's turn
+============================================================
+
+Current Board State:
+  0 1 2 3 4
+0 . k . . . 
+1 p . p P b 
+2 Q . p . p 
+3 . . . . P 
+4 . . K . . 
+
+
+*** MOVE EXECUTED: Queen from (0,2) to (2,0) ***
+
+
+Board State After Move 32:
+  0 1 2 3 4
+0 . k Q . . 
+1 p . p P b 
+2 . . p . p 
+3 . . . . P 
+4 . . K . . 
 
 
 ============================================================
@@ -809,9 +854,9 @@ Board State After Move 30:
 
 Final Board State:
   0 1 2 3 4
-0 Q . k . . 
-1 . . . . . 
-2 P . B K . 
-3 . . . . . 
-4 . . . . . 
+0 . k Q . . 
+1 p . p P b 
+2 . . p . p 
+3 . . . . P 
+4 . . K . . 
 
