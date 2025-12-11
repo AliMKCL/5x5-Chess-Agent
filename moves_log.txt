@@ -84,229 +84,229 @@ Move 7 - BLACK: Queen from (1,0) to (0,0)
 4 B N K . R 
 
 
-Move 8 - WHITE: Pawn from (0,2) to (1,1)
+Move 8 - WHITE: Bishop from (0,4) to (3,1)
   0 1 2 3 4
 0 q . k . b 
-1 r P p p P 
-2 . . . . n 
-3 P . P Q P 
-4 B N K . R 
-
-
-Move 9 - BLACK: Right from (0,1) to (1,1)
-  0 1 2 3 4
-0 q . k . b 
-1 . r p p P 
-2 . . . . n 
-3 P . P Q P 
-4 B N K . R 
-
-
-Move 10 - WHITE: Bishop from (0,4) to (3,1)
-  0 1 2 3 4
-0 q . k . b 
-1 . r p B P 
-2 . . . . n 
+1 r p p B P 
+2 P . . . n 
 3 P . P Q P 
 4 . N K . R 
 
 
-Move 11 - BLACK: Bishop from (4,0) to (3,1)
+Move 9 - BLACK: Bishop from (4,0) to (3,1)
   0 1 2 3 4
 0 q . k . . 
-1 . r p b P 
-2 . . . . n 
+1 r p p b P 
+2 P . . . n 
 3 P . P Q P 
 4 . N K . R 
 
 
-Move 12 - WHITE: Pawn from (4,1) to (4,0)
+Move 10 - WHITE: Pawn from (4,1) to (4,0)
   0 1 2 3 4
 0 q . k . Q 
-1 . r p b . 
-2 . . . . n 
+1 r p p b . 
+2 P . . . n 
 3 P . P Q P 
 4 . N K . R 
 
 
-Move 13 - BLACK: Bishop from (3,1) to (4,0)
+Move 11 - BLACK: Bishop from (3,1) to (4,0)
   0 1 2 3 4
 0 q . k . b 
-1 . r p . . 
-2 . . . . n 
+1 r p p . . 
+2 P . . . n 
 3 P . P Q P 
 4 . N K . R 
 
 
-Move 14 - WHITE: Queen from (3,3) to (4,2)
+Move 12 - WHITE: Queen from (3,3) to (4,2)
   0 1 2 3 4
 0 q . k . b 
-1 . r p . . 
-2 . . . . Q 
+1 r p p . . 
+2 P . . . Q 
 3 P . P . P 
 4 . N K . R 
 
 
-Move 15 - BLACK: Bishop from (4,0) to (3,1)
+Move 13 - BLACK: Bishop from (4,0) to (3,1)
   0 1 2 3 4
 0 q . k . . 
-1 . r p b . 
-2 . . . . Q 
+1 r p p b . 
+2 P . . . Q 
 3 P . P . P 
 4 . N K . R 
 
 
-Move 16 - WHITE: Queen from (4,2) to (3,1)
+Move 14 - WHITE: Queen from (4,2) to (3,3)
   0 1 2 3 4
 0 q . k . . 
-1 . r p Q . 
-2 . . . . . 
-3 P . P . P 
+1 r p p b . 
+2 P . . . . 
+3 P . P Q P 
 4 . N K . R 
 
 
-Move 17 - BLACK: King from (2,0) to (3,1)
+Move 15 - BLACK: Right from (0,1) to (0,2)
   0 1 2 3 4
-0 q . . . . 
-1 . r p k . 
-2 . . . . . 
-3 P . P . P 
+0 q . k . . 
+1 . p p b . 
+2 r . . . . 
+3 P . P Q P 
 4 . N K . R 
 
 
-Move 18 - WHITE: Pawn from (2,3) to (2,2)
+Move 16 - WHITE: Knight from (1,4) to (0,2)
   0 1 2 3 4
-0 q . . . . 
-1 . r p k . 
-2 . . P . . 
-3 P . . . P 
-4 . N K . R 
+0 q . k . . 
+1 . p p b . 
+2 N . . . . 
+3 P . P Q P 
+4 . . K . R 
 
 
-Move 19 - BLACK: King from (3,1) to (4,0)
-  0 1 2 3 4
-0 q . . . k 
-1 . r p . . 
-2 . . P . . 
-3 P . . . P 
-4 . N K . R 
-
-
-Move 20 - WHITE: Pawn from (2,2) to (1,1)
-  0 1 2 3 4
-0 q . . . k 
-1 . P p . . 
-2 . . . . . 
-3 P . . . P 
-4 . N K . R 
-
-
-Move 21 - BLACK: Queen from (0,0) to (1,1)
-  0 1 2 3 4
-0 . . . . k 
-1 . q p . . 
-2 . . . . . 
-3 P . . . P 
-4 . N K . R 
-
-
-Move 22 - WHITE: Right from (4,4) to (2,3)
-  0 1 2 3 4
-0 . . . . k 
-1 . q p . . 
-2 . . . . . 
-3 P . R . P 
-4 . N K . . 
-
-
-Move 23 - BLACK: Queen from (1,1) to (2,0)
-  0 1 2 3 4
-0 . . q . k 
-1 . . p . . 
-2 . . . . . 
-3 P . R . P 
-4 . N K . . 
-
-
-Move 24 - WHITE: Pawn from (0,3) to (0,1)
-  0 1 2 3 4
-0 . . q . k 
-1 P . p . . 
-2 . . . . . 
-3 . . R . P 
-4 . N K . . 
-
-
-Move 25 - BLACK: Queen from (2,0) to (0,0)
-  0 1 2 3 4
-0 q . . . k 
-1 P . p . . 
-2 . . . . . 
-3 . . R . P 
-4 . N K . . 
-
-
-Move 26 - WHITE: Right from (2,3) to (2,1)
-  0 1 2 3 4
-0 q . . . k 
-1 P . R . . 
-2 . . . . . 
-3 . . . . P 
-4 . N K . . 
-
-
-Move 27 - BLACK: King from (4,0) to (3,0)
-  0 1 2 3 4
-0 q . . k . 
-1 P . R . . 
-2 . . . . . 
-3 . . . . P 
-4 . N K . . 
-
-
-Move 28 - WHITE: Knight from (1,4) to (3,3)
-  0 1 2 3 4
-0 q . . k . 
-1 P . R . . 
-2 . . . . . 
-3 . . . N P 
-4 . . K . . 
-
-
-Move 29 - BLACK: Queen from (0,0) to (3,3)
-  0 1 2 3 4
-0 . . . k . 
-1 P . R . . 
-2 . . . . . 
-3 . . . q P 
-4 . . K . . 
-
-
-Move 30 - WHITE: Right from (2,1) to (3,3)
-  0 1 2 3 4
-0 . . . k . 
-1 P . . . . 
-2 . . . . . 
-3 . . . R P 
-4 . . K . . 
-
-
-Move 31 - BLACK: King from (3,0) to (2,0)
+Move 17 - BLACK: Queen from (0,0) to (0,2)
   0 1 2 3 4
 0 . . k . . 
-1 P . . . . 
-2 . . . . . 
-3 . . . R P 
-4 . . K . . 
+1 . p p b . 
+2 q . . . . 
+3 P . P Q P 
+4 . . K . R 
 
 
-Move 32 - WHITE: Pawn from (0,1) to (0,0)
+Move 18 - WHITE: King from (2,4) to (3,4)
   0 1 2 3 4
-0 Q . k . . 
-1 . . . . . 
-2 . . . . . 
-3 . . . R P 
-4 . . K . . 
+0 . . k . . 
+1 . p p b . 
+2 q . . . . 
+3 P . P Q P 
+4 . . . K R 
+
+
+Move 19 - BLACK: Bishop from (3,1) to (2,2)
+  0 1 2 3 4
+0 . . k . . 
+1 . p p . . 
+2 q . b . . 
+3 P . P Q P 
+4 . . . K R 
+
+
+Move 20 - WHITE: Pawn from (4,3) to (4,1)
+  0 1 2 3 4
+0 . . k . . 
+1 . p p . P 
+2 q . b . . 
+3 P . P Q . 
+4 . . . K R 
+
+
+Move 21 - BLACK: King from (2,0) to (1,0)
+  0 1 2 3 4
+0 . k . . . 
+1 . p p . P 
+2 q . b . . 
+3 P . P Q . 
+4 . . . K R 
+
+
+Move 22 - WHITE: Pawn from (4,1) to (4,0)
+  0 1 2 3 4
+0 . k . . Q 
+1 . p p . . 
+2 q . b . . 
+3 P . P Q . 
+4 . . . K R 
+
+
+Move 23 - BLACK: King from (1,0) to (0,1)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p . . 
+2 q . b . . 
+3 P . P Q . 
+4 . . . K R 
+
+
+Move 24 - WHITE: Right from (4,4) to (4,1)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p . R 
+2 q . b . . 
+3 P . P Q . 
+4 . . . K . 
+
+
+Move 25 - BLACK: Bishop from (2,2) to (3,1)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p b R 
+2 q . . . . 
+3 P . P Q . 
+4 . . . K . 
+
+
+Move 26 - WHITE: Right from (4,1) to (3,1)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p R . 
+2 q . . . . 
+3 P . P Q . 
+4 . . . K . 
+
+
+Move 27 - BLACK: Queen from (0,2) to (3,2)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p R . 
+2 . . . q . 
+3 P . P Q . 
+4 . . . K . 
+
+
+Move 28 - WHITE: Pawn from (2,3) to (3,2)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p p R . 
+2 . . . P . 
+3 P . . Q . 
+4 . . . K . 
+
+
+Move 29 - BLACK: Pawn from (2,1) to (2,2)
+  0 1 2 3 4
+0 . . . . Q 
+1 k p . R . 
+2 . . p P . 
+3 P . . Q . 
+4 . . . K . 
+
+
+Move 30 - WHITE: Queen from (4,0) to (1,0)
+  0 1 2 3 4
+0 . Q . . . 
+1 k p . R . 
+2 . . p P . 
+3 P . . Q . 
+4 . . . K . 
+
+
+Move 31 - BLACK: King from (0,1) to (0,2)
+  0 1 2 3 4
+0 . Q . . . 
+1 . p . R . 
+2 k . p P . 
+3 P . . Q . 
+4 . . . K . 
+
+
+Move 32 - WHITE: Queen from (1,0) to (0,0)
+  0 1 2 3 4
+0 Q . . . . 
+1 . p . R . 
+2 k . p P . 
+3 P . . Q . 
+4 . . . K . 
 
 
 ============================================================
@@ -314,9 +314,9 @@ GAME ENDED: Checkmate - black loses
 ============================================================
 Final Board State:
   0 1 2 3 4
-0 Q . k . . 
-1 . . . . . 
-2 . . . . . 
-3 . . . R P 
-4 . . K . . 
+0 Q . . . . 
+1 . p . R . 
+2 k . p P . 
+3 P . . Q . 
+4 . . . K . 
 

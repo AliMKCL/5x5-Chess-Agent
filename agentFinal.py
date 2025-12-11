@@ -682,6 +682,10 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
     # Track last 4 best moves to detect when search has converged
     move_history = []  # List of (from_sq, to_sq) tuples from recent depths
 
+    # Depth history tracking for timeout move selection
+    # Stores (depth, best_move, best_score) for each completed depth
+    depth_history = []
+
     # Iterative deepening loop
     for depth in range(1, max_depth + 1):
         # Check if we have time for this depth
@@ -725,14 +729,35 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             # Timeout check
             if time.time() - start_time > time_limit:
                 if LOGGING_ENABLED:
-                    log_message(f"Timeout during depth {depth}, using previous depth result")
-                print(f"Timeout during depth {depth}, keeping previous depth's best move")
-                return best_move if best_move else depth_best_move
+                    log_message(f"Timeout during depth {depth}")
+
+                # Smart timeout move selection: use best scored move from last 3 depths if >= 7 depths completed
+                if len(depth_history) >= 7:
+                    # Take last 3 completed depths
+                    last_3_depths = depth_history[-3:]
+                    # Find the move with the best score among them
+                    best_from_last_3 = max(last_3_depths, key=lambda x: x[2])  # x[2] is the score
+                    selected_depth, selected_move, selected_score = best_from_last_3
+
+                    print(f"Timeout during depth {depth}. Using best move from last 3 depths (depths {depth_history[-3][0]}-{depth_history[-1][0]})")
+                    print(f"Selected move from depth {selected_depth} with score {selected_score}")
+
+                    if LOGGING_ENABLED:
+                        log_message(f"Selected best move from depth {selected_depth} (score: {selected_score}) among last 3 depths")
+
+                    return selected_move
+                else:
+                    # Less than 7 depths completed, use last completed depth's move
+                    print(f"Timeout during depth {depth}, using last completed depth's best move")
+                    return best_move if best_move else depth_best_move
 
         # Depth completed successfully - update best move
         best_move = depth_best_move
         best_score = depth_best_score
         stats['depth_reached'] = depth
+
+        # Store this depth's result in history for timeout move selection
+        depth_history.append((depth, best_move, best_score))
 
         depth_time = time.time() - depth_start_time
         depth_nodes = stats['nodes_searched'] - depth_nodes_before
@@ -755,7 +780,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             move_tuple = (best_move.from_sq, best_move.to_sq)
             move_history.append(move_tuple)
 
-            # Check for move stability: same move for 4 consecutive depths (3,4,5,6 or 4,5,6,7, etc.)
+            # Check for move stability: same move for 4 consecutive depths (4,5,6,7, etc.)
             if len(move_history) >= 4:
                 # Check if the last 4 moves are all identical
                 last_4_moves = move_history[-4:]

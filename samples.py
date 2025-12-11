@@ -46,3 +46,27 @@ sample4 = [
     [Square(), Square(), Square(), Square(), Square()],
     [Square(), Square(), Square(King(white)), Square(), Square()],
 ]
+
+sample5 = [
+    [Square(King(black)), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square(Pawn_Q(black))],
+    [Square(King(white)), Square(), Square(), Square(), Square(Pawn_Q(white))],
+    [Square(), Square(), Square(), Square(Pawn_Q(white)), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+]
+
+sample6 = [
+    [Square(King(black)), Square(Bishop(black)), Square(), Square(), Square()],
+    [Square(), Square(), Square(), Square(), Square(Pawn_Q(black))],
+    [Square(King(white)), Square(), Square(), Square(), Square(Pawn_Q(white))],
+    [Square(), Square(Pawn_Q(white)), Square(), Square(Pawn_Q(white)), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+]
+
+sample7 = [
+    [Square(King(black)), Square(), Square(), Square(), Square()],
+    [Square(Pawn_Q(black)), Square(), Square(), Square(), Square(Pawn_Q(black))],
+    [Square(Pawn_Q(white)), Square(), Square(), Square(), Square()],
+    [Square(), Square(), Square(King(white)), Square(Pawn_Q(white)), Square()],
+    [Square(), Square(), Square(), Square(), Square()],
+]

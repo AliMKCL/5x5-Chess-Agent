@@ -1175,6 +1175,67 @@ def board_to_bitboard(board, player) -> BitboardState:
 
     return bb_state
 
+
+# === Testing / Debugging Utilities ===
+
+def print_bitboard(bb: Bitboard, label: str = ""):
+    """
+    Pretty-print a bitboard for debugging.
+
+    Args:
+        bb: Bitboard to print
+        label: Optional label to print before the board
+    """
+    if label:
+        print(f"\n{label}:")
+
+    print("  0 1 2 3 4")
+    for y in range(5):
+        print(f"{y} ", end="")
+        for x in range(5):
+            sq = square_index(x, y)
+            print("X " if test_bit(bb, sq) else ". ", end="")
+        print()
+    print()
+
+
+def print_board_state(bb_state: BitboardState):
+    """
+    Pretty-print entire board state for debugging.
+
+    Shows piece placement similar to chess notation.
+    """
+    print("\nBoard State:")
+    print("  0 1 2 3 4")
+
+    for y in range(5):
+        print(f"{y} ", end="")
+        for x in range(5):
+            sq = square_index(x, y)
+            piece_char = '.'
+
+            # Check each piece type
+            if test_bit(bb_state.WP, sq): piece_char = 'P'
+            elif test_bit(bb_state.WN, sq): piece_char = 'N'
+            elif test_bit(bb_state.WB, sq): piece_char = 'B'
+            elif test_bit(bb_state.WQ, sq): piece_char = 'Q'
+            elif test_bit(bb_state.WK, sq): piece_char = 'K'
+            elif test_bit(bb_state.WR, sq): piece_char = 'R'  # R for Right (custom piece)
+            elif test_bit(bb_state.BP, sq): piece_char = 'p'
+            elif test_bit(bb_state.BN, sq): piece_char = 'n'
+            elif test_bit(bb_state.BB, sq): piece_char = 'b'
+            elif test_bit(bb_state.BQ, sq): piece_char = 'q'
+            elif test_bit(bb_state.BK, sq): piece_char = 'k'
+            elif test_bit(bb_state.BR, sq): piece_char = 'r'
+
+            print(f"{piece_char} ", end="")
+        print()
+
+    print(f"Side to move: {'White' if bb_state.side_to_move == 0 else 'Black'}")
+    print(f"Zobrist hash: {bb_state.zobrist_hash}")
+    print()
+
+
 # === Evaluation Function ===
 
 # Piece-square tables (from white's perspective, flip for black)
@@ -1963,7 +2024,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
                 # CHECKMATE IN 1! Play this move immediately
                 if LOGGING_ENABLED:
                     log_message(f"Immediate checkmate detected! Playing winning move.")
-                #print(f"Immediate checkmate detected! Playing winning move.")
+                print(f"Immediate checkmate detected! Playing winning move.")
                 stats['depth_reached'] = 1
                 return move
             # If not in check, it's stalemate - avoid this move, continue searching
@@ -2029,8 +2090,8 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
                     best_from_last_3 = max(last_3_depths, key=lambda x: x[2])  # x[2] is the score
                     selected_depth, selected_move, selected_score = best_from_last_3
 
-                    #print(f"Timeout during depth {depth}. Using best move from last 3 depths (depths {depth_history[-3][0]}-{depth_history[-1][0]})")
-                    #print(f"Selected move from depth {selected_depth} with score {selected_score}")
+                    print(f"Timeout during depth {depth}. Using best move from last 3 depths (depths {depth_history[-3][0]}-{depth_history[-1][0]})")
+                    print(f"Selected move from depth {selected_depth} with score {selected_score}")
 
                     if LOGGING_ENABLED:
                         log_message(f"Selected best move from depth {selected_depth} (score: {selected_score}) among last 3 depths")
@@ -2038,7 +2099,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
                     return selected_move
                 else:
                     # Less than 7 depths completed, use last completed depth's move
-                    #print(f"Timeout during depth {depth}, using last completed depth's best move")
+                    print(f"Timeout during depth {depth}, using last completed depth's best move")
                     return best_move if best_move else depth_best_move
 
         # Depth completed successfully - update best move
@@ -2061,7 +2122,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
             move_str = f"{piece_name} ({from_x},{from_y}) to ({to_x},{to_y})"
         else:
             move_str = "None"
-        #print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
+        print(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
         if LOGGING_ENABLED:
             log_message(f"Depth {depth} complete, in {depth_time:.2f}s, nodes visited: {depth_nodes}, best move: {move_str}, score: {best_score}")
 
@@ -2077,7 +2138,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
                 if all(m == last_4_moves[0] for m in last_4_moves):
                     if LOGGING_ENABLED:
                         log_message(f"Move stability detected at depth {depth}: same move for 4 consecutive depths (starting from depth {depth-3}), stopping search")
-                    #print(f"Move stability detected at depth {depth}: same move for 4 consecutive depths (starting from depth {depth-3}), stopping search")
+                    print(f"Move stability detected at depth {depth}: same move for 4 consecutive depths (starting from depth {depth-3}), stopping search")
                     break
 
         # Early termination: found forced checkmate FOR US (positive score only!)
@@ -2094,7 +2155,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         if depth >= 6 and best_score >= CHECKMATE_SCORE - 50000:
             if LOGGING_ENABLED:
                 log_message(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")
-            #print(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")
+            print(f"Forced checkmate found at depth {depth} (score: {best_score}), stopping search")
             break
 
     return best_move
@@ -2264,13 +2325,11 @@ def agent(board, player, var):
             remaining_delay = TIMEOUT_STRATEGY_DELAY - elapsed
 
             if remaining_delay > 0:
-                """
                 print(f"\n{'='*60}")
                 print(f"TIMEOUT STRATEGY ACTIVATED")
                 print(f"Position evaluation: {eval_after_move} (threshold: {TIMEOUT_STRATEGY_THRESHOLD})")
                 print(f"Delaying move for {remaining_delay:.2f} more seconds to burn opponent's time...")
                 print(f"{'='*60}\n")
-                """
 
                 if LOGGING_ENABLED:
                     log_message(f"TIMEOUT STRATEGY: Losing position ({eval_after_move}), delaying move by {remaining_delay:.2f}s")
@@ -2282,15 +2341,12 @@ def agent(board, player, var):
                 search_time = time.time() - start_time
 
     # Print summary
-    """
     print(f"\n{'='*60}")
     print(f"Total nodes visited: {stats['nodes_searched']}")
     print(f"Max depth reached: {stats['depth_reached']}")
     print(f"TT cache hit rate: {tt_hit_rate:.1f}% ({tt_stats['hits']}/{tt_stats['probes']})")
     print(f"TT size: {tt_stats['size']}/{tt_stats['max_size']} entries")
     print(f"{'='*60}\n")
-    """
-    
 
     if LOGGING_ENABLED:
         from_x, from_y = index_to_xy(best_move.from_sq)
@@ -2304,4 +2360,25 @@ def agent(board, player, var):
         log_search_statistics()
 
     return (piece, move_option)
+
+
+# ============================================================================
+# MODULE TEST
+# ============================================================================
+
+if __name__ == "__main__":
+    print("agentBitboard.py - Bitboard-based chess agent")
+    print("="*60)
+    print("This module provides a high-performance chess agent using bitboards.")
+    print("\nKey features:")
+    print("  - Minimax with alpha-beta pruning")
+    print("  - Iterative deepening (depth 1-12)")
+    print("  - Transposition table (64MB)")
+    print("  - Quiescence search (depth 7)")
+    print("  - MVV-LVA move ordering")
+    print("\nExpected performance:")
+    print("  - 50,000-200,000 nodes/second")
+    print("  - Search depth: 8-12 plies")
+    print("  - TT hit rate: 30-60%")
+    print("="*60)
 
