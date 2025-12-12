@@ -2,7 +2,6 @@ import time
 from typing import List, Optional, Tuple, Dict
 from chessmaker.chess.base.board import Position
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
 import random
 from functools import lru_cache
 
