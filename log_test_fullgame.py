@@ -5,17 +5,7 @@ from chessmaker.chess.base import Board
 from extension.board_utils import print_board_ascii, copy_piece_move
 from extension.board_rules import get_result, thinking_with_timeout, THINKING_TIME_BUDGET, GAME_TIME_BUDGET
 from samples import white, black, sample0, sample1, sample2, sample3, sample4
-import old_agents.agentS as agentS
-import old_agents.agentQ as agentQ
-import agentE
-import agentT
 from opponent import opponent
-import agentBitboard as agentB
-import agentP 
-import agentFinal as agentF
-import agentBitboard_optimized as agentNUMBERS
-import agentBB_initial as agentBI
-import agentBitboard_gemini as agentBG
 import agent
 
 # Global move counter for logging
@@ -102,10 +92,6 @@ def close_all_logs():
     if GAME_LOG_FILE:
         GAME_LOG_FILE.close()
         GAME_LOG_FILE = None
-        # Clear agent log file handles
-        agentS.LOG_FILE = None
-        agentQ.LOG_FILE = None
-        agentB.LOG_FILE = None
 
 def log_board_to_moves_file(board, title=""):
     """Write the current board state to moves_log.txt."""
@@ -175,15 +161,7 @@ def testgame_timeout(p_white, p_black, board_sample):
     GAME_LOG_FILE = open("game_log.txt", "w")
     GAME_LOG_FILE.write("=== GAME LOG (Multi-Agent) ===\n\n")
     GAME_LOG_FILE.flush()
-    
-    # Share the same file handle across all agent modules
-    agentS.LOG_FILE = GAME_LOG_FILE
-    agentQ.LOG_FILE = GAME_LOG_FILE
-    agentE.LOG_FILE = GAME_LOG_FILE
-    agentT.LOG_FILE = GAME_LOG_FILE
-    agentB.LOG_FILE = GAME_LOG_FILE
-    agentP.LOG_FILE = GAME_LOG_FILE
-    agentF.LOG_FILE = GAME_LOG_FILE
+
     
     init_moves_log()
 
@@ -316,4 +294,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agent.agent, p_black=agentNUMBERS.agent, board_sample=sample1)
+    testgame_timeout(p_white=agent.agent, p_black=agent.agent, board_sample=sample1)
