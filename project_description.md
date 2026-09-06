@@ -1,5 +1,5 @@
-# COMP2321: Coursework Overview – “CHESS FRAGMENTS”
-*(Parts 1–5 only — up to but not including Section 6: Assessment)*
+# Project Overview
+* This is a coursework assignment from my University.
 
 This game consists of two players: **Agent** (your designed algorithm) and **Opponent** (predefined baseline algorithms).  
 Agent and Opponent compete on a **5×5 grid** in a turn-based strategy game inspired by chess.
@@ -85,22 +85,3 @@ A **draw** occurs under any of the following:
 - **Game timeout**: neither player achieves a win/loss **within the overall time limit**.
 
 ---
-
-## 5) Preparing Your Agent (`agent.py`) for Submission
-
-You must design an **Agent** (in `agent.py`) following the required format.  
-Initial board positions and the **Opponent** are predefined; in Moodle there are multiple **difficulty levels** and **board setups**.  
-Design your Agent to be **as strong and efficient as possible** across different settings.
-
-**Recommended approach**
-- Start with a simple baseline to validate the interface and rules.
-- Progressively add stronger decision-making (e.g., **minimax**, **alpha–beta pruning**, improved evaluation).
-
-**Performance & timing**
-- Track **computational cost** (e.g., **nodes expanded**) and respect the **thinking time limit**.
-- Control search by adjusting **depth**, using **pruning**, and other **optimizations** to avoid timeouts.
-
-**Support package**
-- Includes a **basic Agent** and **Opponent** for reference and testing the required format.
-- The sample Agent is **not competitive**; you must implement your own and save it as:
-  - `agent1.py` (final submission format).
