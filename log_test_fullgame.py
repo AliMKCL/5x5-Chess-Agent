@@ -1,4 +1,5 @@
 # Python 3.11+
+import Pagent
 import sys, time
 from itertools import cycle
 from chessmaker.chess.base import Board
@@ -294,4 +295,4 @@ def testgame_timeout(p_white, p_black, board_sample):
             sys.exit()
 
 if __name__ == "__main__":
-    testgame_timeout(p_white=agent.agent, p_black=agent.agent, board_sample=sample1)
+    testgame_timeout(p_white=agent.agent, p_black=Pagent.agent, board_sample=sample1)

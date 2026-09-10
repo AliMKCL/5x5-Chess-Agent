@@ -1,0 +1,3 @@
+performance.bin: https://raw.githubusercontent.com/niklasf/python-chess/master/data/polyglot/performance.bin
+(bundled in the python-chess test suite; originally sourced from http://wbec-ridderkerk.nl/html/download.htm,
+a long-standing free/community Polyglot opening book collection used for chess engine testing.)

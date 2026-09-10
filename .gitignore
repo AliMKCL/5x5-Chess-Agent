@@ -1,3 +1,9 @@
 .claude
 
 __pycache__
+
+.venv
+
+Pagent.py
+
+.vscode
