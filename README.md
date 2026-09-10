@@ -1,15 +1,15 @@
-# 5x5 Chess Agent
+# 8x8 Chess Agent
 
-A high-performance chess engine and AI agent tailored for a 5×5 chess variant featuring custom piece dynamics (such as the *Right* piece). Built from the ground up in Python with a 25-square bitboard architecture, precomputed ray attacks, Zobrist hashing, iterative deepening, transposition tables, late move reduction (LMR), move ordering heuristics, and quiescence search.
+A high-performance chess engine and AI agent for standard 8×8 chess. Built from the ground up in Python with a 64-square bitboard architecture, precomputed ray attacks, Zobrist hashing, iterative deepening, transposition tables, late move reduction (LMR), move ordering heuristics, and quiescence search.
 
-* Check the file "project_description.md" for the rules of the game.
+* Check the file "project_description.md" for the original rules reference (written for the 5×5 variant this engine was ported from; core piece movement rules are unchanged for standard chess).
 
 ---
 
 ## Performance Overview
 
-- **Search Depth:** Consistently reaches **6–8+ depths** in the standard 10-second thinking budget, with an additional **quiescence search up to depth 7**.
-- **Node Throughput:** High-speed node evaluation facilitated by native 25-bit integer bitboards and hardware-mapped bit manipulation (`POPCNT`, LSB bit extraction).
+- **Search Depth:** Depth reached in the standard 10-second thinking budget depends on position complexity, with an additional **quiescence search up to depth 7**.
+- **Node Throughput:** High-speed node evaluation facilitated by native 64-bit integer bitboards and hardware-mapped bit manipulation (`POPCNT`, LSB bit extraction).
 - **Branch Pruning:** Alpha-Beta pruning augmented with Transposition Table move ordering, MVV-LVA, and Late Move Reductions (LMR).
 
 ---
@@ -20,13 +20,12 @@ A high-performance chess engine and AI agent tailored for a 5×5 chess variant f
 ├── agent.py               # Core AI Agent: Bitboard engine, search algorithms, evaluation & heuristics
 ├── test_fullgame.py       # Game execution harness: Simulates complete matches with time controls
 ├── log_test_fullgame.py   # Instrumented match runner: Full game tracking, state export, and logging
-├── samples.py             # Preconfigured 5x5 board scenarios and piece layouts (sample0 - sample7)
+├── samples.py             # Preconfigured 8x8 board scenarios and piece layouts (sample0 - sample7)
 ├── opponent.py            # Baseline opponent player implementation for benchmarking
-├── extension/             # Framework utilities and custom piece definitions
+├── extension/             # Framework utilities
 │   ├── board_rules.py     # Move timeouts, repetition counters, and terminal condition detectors
 │   ├── board_utils.py     # ASCII board visualization and framework-to-agent mapping helpers
-│   ├── piece_pawn.py      # Custom pawn promotion configurations
-│   └── piece_right.py     # Custom piece movement definitions
+│   └── piece_pawn.py      # Custom pawn promotion configurations
 └── README.md              # Project documentation
 ```
 
@@ -34,7 +33,7 @@ A high-performance chess engine and AI agent tailored for a 5×5 chess variant f
 
 ## Technical Algorithms & Implementation Details
 
-The AI engine is implemented entirely in [`agent.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/5x5-Chess-Agent/agent.py). It operates via a dedicated bitboard representation isolated from framework overhead during search operations.
+The AI engine is implemented entirely in [`agent.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/8x8-Chess-Agent/agent.py). It operates via a dedicated bitboard representation isolated from framework overhead during search operations.
 
 ```
        Chessmaker Framework Board State
@@ -67,8 +66,8 @@ The AI engine is implemented entirely in [`agent.py`](file:///Users/alimuratkece
            Executed Engine Move
 ```
 
-### 1. 25-Square Bitboard Representation
-- **Bitboard Structure (`BitboardState`):** Uses 25-bit integers to represent square occupancy on a 5×5 grid ($[0 \dots 24]$).
+### 1. 64-Square Bitboard Representation
+- **Bitboard Structure (`BitboardState`):** Uses 64-bit integers to represent square occupancy on a standard 8×8 grid ($[0 \dots 63]$).
 - **12 Discrete Piece Bitboards:** `WP`, `WN`, `WB`, `WQ`, `WK`, `WR` for White; `BP`, `BN`, `BB`, `BQ`, `BK`, `BR` for Black, along with combined occupancy masks `occ_white`, `occ_black`, and `occ_all`.
 - **Fast Bit Manipulation:**
   - `pop_lsb(bb)`: Isolates the least significant bit using `bb & -bb` and computes the index via `.bit_length() - 1`.
@@ -82,7 +81,7 @@ The AI engine is implemented entirely in [`agent.py`](file:///Users/alimuratkece
   - Results are memoized with an `@lru_cache` keyed on individual bitboards.
 
 ### 2. Zobrist Hashing
-- **Incremental State Fingerprinting (`ZobristHasher`):** Precomputes 64-bit random integers for all $(PieceType \times Color \times Square)$ permutations ($6 \times 2 \times 25 = 300$ keys) plus a side-to-move key.
+- **Incremental State Fingerprinting (`ZobristHasher`):** Precomputes 64-bit random integers for all $(PieceType \times Color \times Square)$ permutations ($6 \times 2 \times 64 = 768$ keys) plus a side-to-move key.
 - **$O(1)$ Hash Updates:** Inside `apply_move()`, the board state hash is updated incrementally by XORing out origin squares/captured pieces and XORing in destinations and promotion pieces.
 
 ### 3. Iterative Deepening & Root Management
@@ -121,11 +120,11 @@ Moves are scored and sorted in-place before branching (`order_moves`, `score_mov
   - Pawn: $100$
   - Knight: $330$
   - Bishop: $320$
-  - Right: $500$
+  - Rook: $500$
   - Queen: $900$
   - King: $20000$
-- **Piece-Square Tables (PST):** Position-specific matrices for each piece type encouraging center dominance, pawn advancement, and piece coordination.
-- **Middlegame King Safety:** When more than 8 pieces remain on the board, the evaluator calculates adjacent friendly shield pieces using `KING_ATTACKS` bitboard masks, penalizing exposed or isolated kings.
+- **Piece-Square Tables (PST):** 8×8 position-specific matrices for each piece type encouraging center dominance, pawn advancement, and piece coordination.
+- **Middlegame King Safety:** When more than 13 pieces remain on the board, the evaluator calculates adjacent friendly shield pieces using `KING_ATTACKS` bitboard masks, penalizing exposed or isolated kings.
 
 ### 9. Clock Management & Timeout Strategy
 - **Time Limits:** Searches with an active time limit per turn (`TIME_LIMIT = 10` seconds) leaving safety margins within the 14-second engine move budget.
@@ -135,7 +134,7 @@ Moves are scored and sorted in-place before branching (`order_moves`, `score_mov
 
 ## Configuration & Tuning Parameters
 
-Key settings in [`agent.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/5x5-Chess-Agent/agent.py):
+Key settings in [`agent.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/8x8-Chess-Agent/agent.py):
 
 | Parameter | Default | Description |
 | :--- | :--- | :--- |
@@ -152,18 +151,18 @@ Key settings in [`agent.py`](file:///Users/alimuratkeceli/Desktop/Projects/Pytho
 ## How to Run & Use
 
 ### Prerequisites
-- Python 3.11+
+- Python 3.11+ (chessmaker's `@classmethod @property` piece-naming pattern requires Python ≤3.12; it is broken by the classmethod/property chaining removal in Python 3.13+)
 - `chessmaker` framework installed / available in your Python environment
 
 ### Running a Match
-To execute a game between the agent and an opponent or baseline player, run [`test_fullgame.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/5x5-Chess-Agent/test_fullgame.py):
+To execute a game between the agent and an opponent or baseline player, run [`test_fullgame.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/8x8-Chess-Agent/test_fullgame.py):
 
 ```bash
 python test_fullgame.py
 ```
 
 ### Configuring Match Settings
-In [`test_fullgame.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/5x5-Chess-Agent/test_fullgame.py):
+In [`test_fullgame.py`](file:///Users/alimuratkeceli/Desktop/Projects/Python/8x8-Chess-Agent/test_fullgame.py):
 - **Select Board Setup:** Choose starting positions from `samples.py` (`sample0` through `sample7`):
   ```python
   testgame_timeout(p_white=agent, p_black=opponent, board_sample=sample0)

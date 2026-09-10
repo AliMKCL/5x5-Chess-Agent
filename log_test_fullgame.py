@@ -33,10 +33,10 @@ def log_board_state(board, title=""):
         GAME_LOG_FILE.write(f"\n{title}\n")
     
     # Write board representation
-    GAME_LOG_FILE.write("  0 1 2 3 4\n")
-    for y in range(5):
+    GAME_LOG_FILE.write("  0 1 2 3 4 5 6 7\n")
+    for y in range(8):
         GAME_LOG_FILE.write(f"{y} ")
-        for x in range(5):
+        for x in range(8):
             piece = None
             for p in board.get_pieces():
                 if p.position.x == x and p.position.y == y:
@@ -53,7 +53,7 @@ def log_board_state(board, title=""):
                     symbol = 'q'
                 elif piece_name_lower == "bishop":
                     symbol = 'b'
-                elif piece_name_lower == "right":
+                elif piece_name_lower == "rook":
                     symbol = 'r'
                 elif piece_name_lower == "pawn":
                     symbol = 'p'
@@ -103,10 +103,10 @@ def log_board_to_moves_file(board, title=""):
         MOVES_LOG_FILE.write(f"\n{title}\n")
     
     # Write board representation
-    MOVES_LOG_FILE.write("  0 1 2 3 4\n")
-    for y in range(5):
+    MOVES_LOG_FILE.write("  0 1 2 3 4 5 6 7\n")
+    for y in range(8):
         MOVES_LOG_FILE.write(f"{y} ")
-        for x in range(5):
+        for x in range(8):
             piece = None
             for p in board.get_pieces():
                 if p.position.x == x and p.position.y == y:
@@ -123,7 +123,7 @@ def log_board_to_moves_file(board, title=""):
                     symbol = 'q'
                 elif piece_name_lower == "bishop":
                     symbol = 'b'
-                elif piece_name_lower == "right":
+                elif piece_name_lower == "rook":
                     symbol = 'r'
                 elif piece_name_lower == "pawn":
                     symbol = 'p'

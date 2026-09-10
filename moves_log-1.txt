@@ -1,0 +1,654 @@
+=== MOVES LOG ===
+
+
+============================================================
+GAME START - Initial Position
+============================================================
+  0 1 2 3 4 5 6 7
+0 r n b q k b n r 
+1 p p p p p p p p 
+2 . . . . . . . . 
+3 . . . . . . . . 
+4 . . . . . . . . 
+5 . . . . . . . . 
+6 P P P P P P P P 
+7 R N B Q K B N R 
+
+
+Move 0 - WHITE: Knight from (1,7) to (2,5)
+  0 1 2 3 4 5 6 7
+0 r n b q k b n r 
+1 p p p p p p p p 
+2 . . . . . . . . 
+3 . . . . . . . . 
+4 . . . . . . . . 
+5 . . N . . . . . 
+6 P P P P P P P P 
+7 R . B Q K B N R 
+
+
+Move 1 - BLACK: Knight from (1,0) to (2,2)
+  0 1 2 3 4 5 6 7
+0 r . b q k b n r 
+1 p p p p p p p p 
+2 . . n . . . . . 
+3 . . . . . . . . 
+4 . . . . . . . . 
+5 . . N . . . . . 
+6 P P P P P P P P 
+7 R . B Q K B N R 
+
+
+Move 2 - WHITE: Pawn from (3,6) to (3,4)
+  0 1 2 3 4 5 6 7
+0 r . b q k b n r 
+1 p p p p p p p p 
+2 . . n . . . . . 
+3 . . . . . . . . 
+4 . . . P . . . . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B N R 
+
+
+Move 3 - BLACK: Pawn from (3,1) to (3,3)
+  0 1 2 3 4 5 6 7
+0 r . b q k b n r 
+1 p p p . p p p p 
+2 . . n . . . . . 
+3 . . . p . . . . 
+4 . . . P . . . . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B N R 
+
+
+Move 4 - WHITE: Knight from (6,7) to (5,5)
+  0 1 2 3 4 5 6 7
+0 r . b q k b n r 
+1 p p p . p p p p 
+2 . . n . . . . . 
+3 . . . p . . . . 
+4 . . . P . . . . 
+5 . . N . . N . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 5 - BLACK: Bishop from (2,0) to (6,4)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . n . . . . . 
+3 . . . p . . . . 
+4 . . . P . . b . 
+5 . . N . . N . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 6 - WHITE: Knight from (5,5) to (4,3)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . n . . . . . 
+3 . . . p N . . . 
+4 . . . P . . b . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 7 - BLACK: Knight from (2,2) to (4,3)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . p n . . . 
+4 . . . P . . b . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 8 - WHITE: Pawn from (3,4) to (4,3)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . p P . . . 
+4 . . . . . . b . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 9 - BLACK: Pawn from (3,3) to (3,4)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . p . . b . 
+5 . . N . . . . . 
+6 P P P . P P P P 
+7 R . B Q K B . R 
+
+
+Move 10 - WHITE: Pawn from (5,6) to (5,5)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . p . . b . 
+5 . . N . . P . . 
+6 P P P . P . P P 
+7 R . B Q K B . R 
+
+
+Move 11 - BLACK: Pawn from (3,4) to (2,5)
+  0 1 2 3 4 5 6 7
+0 r . . q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . b . 
+5 . . p . . P . . 
+6 P P P . P . P P 
+7 R . B Q K B . R 
+
+
+Move 12 - WHITE: Queen from (3,7) to (3,0)
+  0 1 2 3 4 5 6 7
+0 r . . Q k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . b . 
+5 . . p . . P . . 
+6 P P P . P . P P 
+7 R . B . K B . R 
+
+
+Move 13 - BLACK: Rook from (0,0) to (3,0)
+  0 1 2 3 4 5 6 7
+0 . . . r k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . b . 
+5 . . p . . P . . 
+6 P P P . P . P P 
+7 R . B . K B . R 
+
+
+Move 14 - WHITE: Pawn from (5,5) to (6,4)
+  0 1 2 3 4 5 6 7
+0 . . . r k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . P . 
+5 . . p . . . . . 
+6 P P P . P . P P 
+7 R . B . K B . R 
+
+
+Move 15 - BLACK: Pawn from (2,5) to (1,6)
+  0 1 2 3 4 5 6 7
+0 . . . r k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . P . 
+5 . . . . . . . . 
+6 P p P . P . P P 
+7 R . B . K B . R 
+
+
+Move 16 - WHITE: Bishop from (2,7) to (1,6)
+  0 1 2 3 4 5 6 7
+0 . . . r k b n r 
+1 p p p . p p p p 
+2 . . . . . . . . 
+3 . . . . P . . . 
+4 . . . . . . P . 
+5 . . . . . . . . 
+6 P B P . P . P P 
+7 R . . . K B . R 
+
+
+Move 17 - BLACK: Knight from (6,0) to (7,2)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p p p p 
+2 . . . . . . . n 
+3 . . . . P . . . 
+4 . . . . . . P . 
+5 . . . . . . . . 
+6 P B P . P . P P 
+7 R . . . K B . R 
+
+
+Move 18 - WHITE: Pawn from (7,6) to (7,5)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p p p p 
+2 . . . . . . . n 
+3 . . . . P . . . 
+4 . . . . . . P . 
+5 . . . . . . . P 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 19 - BLACK: Pawn from (5,1) to (5,3)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p . p p 
+2 . . . . . . . n 
+3 . . . . P p . . 
+4 . . . . . . P . 
+5 . . . . . . . P 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 20 - WHITE: Pawn from (6,4) to (6,3)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p . p p 
+2 . . . . . . . n 
+3 . . . . P p P . 
+4 . . . . . . . . 
+5 . . . . . . . P 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 21 - BLACK: Knight from (7,2) to (5,1)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p n p p 
+2 . . . . . . . . 
+3 . . . . P p P . 
+4 . . . . . . . . 
+5 . . . . . . . P 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 22 - WHITE: Pawn from (7,5) to (7,4)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . p n p p 
+2 . . . . . . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . . . 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 23 - BLACK: Pawn from (4,1) to (4,2)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . . . 
+6 P B P . P . P . 
+7 R . . . K B . R 
+
+
+Move 24 - WHITE: Pawn from (6,6) to (6,5)
+  0 1 2 3 4 5 6 7
+0 . . . r k b . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 P B P . P . . . 
+7 R . . . K B . R 
+
+
+Move 25 - BLACK: Bishop from (5,0) to (1,4)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . b . . . . . P 
+5 . . . . . . P . 
+6 P B P . P . . . 
+7 R . . . K B . R 
+
+
+Move 26 - WHITE: King from (4,7) to (5,6)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . b . . . . . P 
+5 . . . . . . P . 
+6 P B P . P K . . 
+7 R . . . . B . R 
+
+
+Move 27 - BLACK: Bishop from (1,4) to (2,3)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . b . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 P B P . P K . . 
+7 R . . . . B . R 
+
+
+Move 28 - WHITE: King from (5,6) to (5,5)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . b . P p P . 
+4 . . . . . . . P 
+5 . . . . . K P . 
+6 P B P . P . . . 
+7 R . . . . B . R 
+
+
+Move 29 - BLACK: Bishop from (2,3) to (3,4)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . b . . . P 
+5 . . . . . K P . 
+6 P B P . P . . . 
+7 R . . . . B . R 
+
+
+Move 30 - WHITE: Bishop from (1,6) to (3,4)
+  0 1 2 3 4 5 6 7
+0 . . . r k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . B . . . P 
+5 . . . . . K P . 
+6 P . P . P . . . 
+7 R . . . . B . R 
+
+
+Move 31 - BLACK: Rook from (3,0) to (3,4)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . r . . . P 
+5 . . . . . K P . 
+6 P . P . P . . . 
+7 R . . . . B . R 
+
+
+Move 32 - WHITE: Rook from (0,7) to (1,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p p p . . n p p 
+2 . . . . p . . . 
+3 . . . . P p P . 
+4 . . . r . . . P 
+5 . . . . . K P . 
+6 P . P . P . . . 
+7 . R . . . B . R 
+
+
+Move 33 - BLACK: Pawn from (1,1) to (1,2)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . r . . . P 
+5 . . . . . K P . 
+6 P . P . P . . . 
+7 . R . . . B . R 
+
+
+Move 34 - WHITE: King from (5,5) to (5,6)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . r . . . P 
+5 . . . . . . P . 
+6 P . P . P K . . 
+7 . R . . . B . R 
+
+
+Move 35 - BLACK: Rook from (3,4) to (0,4)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 r . . . . . . P 
+5 . . . . . . P . 
+6 P . P . P K . . 
+7 . R . . . B . R 
+
+
+Move 36 - WHITE: Bishop from (5,7) to (6,6)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 r . . . . . . P 
+5 . . . . . . P . 
+6 P . P . P K B . 
+7 . R . . . . . R 
+
+
+Move 37 - BLACK: Rook from (0,4) to (0,6)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 r . P . P K B . 
+7 . R . . . . . R 
+
+
+Move 38 - WHITE: Rook from (1,7) to (0,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 r . P . P K B . 
+7 R . . . . . . R 
+
+
+Move 39 - BLACK: Rook from (0,6) to (0,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 . . P . P K B . 
+7 r . . . . . . R 
+
+
+Move 40 - WHITE: Rook from (7,7) to (0,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 p . p . . n p p 
+2 . p . . p . . . 
+3 . . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 . . P . P K B . 
+7 R . . . . . . . 
+
+
+Move 41 - BLACK: Pawn from (0,1) to (0,3)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . n p p 
+2 . p . . p . . . 
+3 p . . . P p P . 
+4 . . . . . . . P 
+5 . . . . . . P . 
+6 . . P . P K B . 
+7 R . . . . . . . 
+
+
+Move 42 - WHITE: Pawn from (4,6) to (4,4)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . n p p 
+2 . p . . p . . . 
+3 p . . . P p P . 
+4 . . . . P . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 R . . . . . . . 
+
+
+Move 43 - BLACK: Pawn from (5,3) to (4,4)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . n p p 
+2 . p . . p . . . 
+3 p . . . P . P . 
+4 . . . . p . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 R . . . . . . . 
+
+
+Move 44 - WHITE: Rook from (0,7) to (4,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . n p p 
+2 . p . . p . . . 
+3 p . . . P . P . 
+4 . . . . p . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 . . . . R . . . 
+
+
+Move 45 - BLACK: Knight from (5,1) to (4,3)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . n . P . 
+4 . . . . p . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 . . . . R . . . 
+
+
+Move 46 - WHITE: Rook from (4,7) to (4,4)
+  0 1 2 3 4 5 6 7
+0 . . . . k . . r 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . n . P . 
+4 . . . . R . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 . . . . . . . . 
+
+
+Move 47 - BLACK: Rook from (7,0) to (5,0)
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . n . P . 
+4 . . . . R . . P 
+5 . . . . . . P . 
+6 . . P . . K B . 
+7 . . . . . . . . 
+
+
+Move 48 - WHITE: King from (5,6) to (4,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . n . P . 
+4 . . . . R . . P 
+5 . . . . . . P . 
+6 . . P . . . B . 
+7 . . . . K . . . 
+
+
+Move 49 - BLACK: Knight from (4,3) to (5,5)
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . . . P . 
+4 . . . . R . . P 
+5 . . . . . n P . 
+6 . . P . . . B . 
+7 . . . . K . . . 
+
+
+Move 50 - WHITE: King from (4,7) to (4,6)
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . . . P . 
+4 . . . . R . . P 
+5 . . . . . n P . 
+6 . . P . K . B . 
+7 . . . . . . . . 
+
+
+Move 51 - BLACK: Knight from (5,5) to (6,7)
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . . . P . 
+4 . . . . R . . P 
+5 . . . . . . P . 
+6 . . P . K . B . 
+7 . . . . . . n . 
+
+
+============================================================
+GAME ENDED: Draw - game timeout
+============================================================
+  0 1 2 3 4 5 6 7
+0 . . . . k r . . 
+1 . . p . . . p p 
+2 . p . . p . . . 
+3 p . . . . . P . 
+4 . . . . R . . P 
+5 . . . . . . P . 
+6 . . P . K . B . 
+7 . . . . . . n . 
+

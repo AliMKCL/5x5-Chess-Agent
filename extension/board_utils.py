@@ -12,14 +12,14 @@ def print_board_ascii(board):
     -------
     None
     """
-    piece_map = {"pawn": "P", "right": "R", "knight": "N", "bishop": "B", "queen": "Q", "king": "K"}
-    grid = [["." for _ in range(5)] for _ in range(5)]
+    piece_map = {"pawn": "P", "rook": "R", "knight": "N", "bishop": "B", "queen": "Q", "king": "K"}
+    grid = [["." for _ in range(8)] for _ in range(8)]
     for piece in board.get_pieces():
         pos = piece.position
         ch = piece_map.get(piece.name.lower(), "?")
         grid[pos.y][pos.x] = ch.upper() if piece.player.name.lower() == "white" else ch.lower()
-    print("  0 1 2 3 4")
-    for row in (range(5)):
+    print("  0 1 2 3 4 5 6 7")
+    for row in (range(8)):
         print(f"{row} " + " ".join(grid[row]))
 
 def list_legal_moves_for(board, player):

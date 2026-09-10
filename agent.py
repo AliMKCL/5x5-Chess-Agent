@@ -7,8 +7,8 @@ from functools import lru_cache
 
 
 # Type aliases for code clarity
-Bitboard = int  # 32-bit integer representing set of squares
-Square = int    # Square index [0-24]
+Bitboard = int  # 64-bit integer representing set of squares
+Square = int    # Square index [0-63]
 PieceType = int # Piece type index [0-6]
 Color = int     # 0=white, 1=black
 
@@ -18,7 +18,7 @@ KNIGHT = 1
 BISHOP = 2
 QUEEN = 3
 KING = 4
-RIGHT = 5  
+ROOK = 5  
 
 # Piece value constants (for evaluation)
 PIECE_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, R
@@ -26,12 +26,12 @@ PIECE_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, R
 # === Coordinate Mapping Functions for the Bitboard ===
 
 def square_index(x: int, y: int) -> Square:
-    """Convert (x,y) to square index. Example: square_index(2,3) → 17"""
-    return y * 5 + x
+    """Convert (x,y) to square index. Example: square_index(2,3) → 26"""
+    return y * 8 + x
 
 def index_to_xy(sq: Square) -> Tuple[int, int]:
-    """Convert square index to (x,y). Example: index_to_xy(17) → (2,3)"""
-    return (sq % 5, sq // 5)
+    """Convert square index to (x,y). Example: index_to_xy(26) → (2,3)"""
+    return (sq % 8, sq // 8)
 
 
 # === Bit Manipulation Helpers ===
@@ -113,7 +113,7 @@ class BitboardState:
     Occupancy masks are derived from piece bitboards for fast lookups.
 
     Attributes:
-        WP, WN, WB, WQ, WK, WR: White pieces (Pawn, Knight, Bishop, Queen, King, Right)
+        WP, WN, WB, WQ, WK, WR: White pieces (Pawn, Knight, Bishop, Queen, King, Rook)
         BP, BN, BB, BQ, BK, BR: Black pieces
         occ_white: Bitboard of all white pieces (WP | WN | WB | ...)
         occ_black: Bitboard of all black pieces (BP | BN | BB | ...)
@@ -128,7 +128,7 @@ class BitboardState:
     WB: Bitboard  # White bishops
     WQ: Bitboard  # White queens
     WK: Bitboard  # White king
-    WR: Bitboard  # White Rights 
+    WR: Bitboard  # White rooks
 
     # Black pieces
     BP: Bitboard  # Black pawns
@@ -136,7 +136,7 @@ class BitboardState:
     BB: Bitboard  # Black bishops
     BQ: Bitboard  # Black queens
     BK: Bitboard  # Black king
-    BR: Bitboard # Black Rights 
+    BR: Bitboard # Black rooks
 
     # Derived occupancy masks
     occ_white: Bitboard  # All white pieces
@@ -165,28 +165,28 @@ KING_DELTAS = [(-1, -1), (-1, 0), (-1, 1), (0, -1),
 
 def _generate_knight_attacks() -> List[Bitboard]:
     """
-    Precompute knight attack bitboards for all 25 squares.
+    Precompute knight attack bitboards for all 64 squares.
 
     For each square, generate a bitboard showing all squares a knight
     can move to from that square (ignoring occupancy).
 
     Returns:
-        List of 25 bitboards, indexed by square number
+        List of 64 bitboards, indexed by square number
     """
     attacks = []
-    for sq in range(25):
+    for sq in range(64):
         # Inline index_to_xy for performance (Fix #5)
-        x = sq % 5
-        y = sq // 5
+        x = sq % 8
+        y = sq // 8
         attack_bb = 0
 
         # Try all 8 L-shaped knight moves
         for dx, dy in KNIGHT_DELTAS:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
-            if 0 <= nx < 5 and 0 <= ny < 5:
+            if 0 <= nx < 8 and 0 <= ny < 8:
                 # Inline square_index for performance (Fix #5)
-                dest_sq = ny * 5 + nx
+                dest_sq = ny * 8 + nx
                 attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
@@ -196,28 +196,28 @@ def _generate_knight_attacks() -> List[Bitboard]:
 
 def _generate_king_attacks() -> List[Bitboard]:
     """
-    Precompute king attack bitboards for all 25 squares.
+    Precompute king attack bitboards for all 64 squares.
 
     For each square, generate a bitboard showing all squares a king
     can move to from that square (ignoring occupancy).
 
     Returns:
-        List of 25 bitboards, indexed by square number
+        List of 64 bitboards, indexed by square number
     """
     attacks = []
-    for sq in range(25):
+    for sq in range(64):
         # Inline index_to_xy for performance (Fix #5)
-        x = sq % 5
-        y = sq // 5
+        x = sq % 8
+        y = sq // 8
         attack_bb = 0
 
         # Try all 8 adjacent squares
         for dx, dy in KING_DELTAS:
             nx, ny = x + dx, y + dy
             # Check if destination is on the board
-            if 0 <= nx < 5 and 0 <= ny < 5:
+            if 0 <= nx < 8 and 0 <= ny < 8:
                 # Inline square_index for performance (Fix #5)
-                dest_sq = ny * 5 + nx
+                dest_sq = ny * 8 + nx
                 attack_bb |= (1 << dest_sq)  # Inline set_bit
 
         attacks.append(attack_bb)
@@ -232,29 +232,28 @@ KING_ATTACKS = _generate_king_attacks()
 
 # === Precompute Sliding Piece Ray Masks for Rook and Bishops ===
 
-# Rook is not an actual piece here, but "Rook" moves are used by the Rigth and the Queen.
-# The use of the term "rook" follows this purpose throughout the file.
+# The Rook piece uses these rays directly; the Queen combines them with bishop rays.
 
 def _generate_rook_rays() -> List[Bitboard]:
     """
-    Precompute rook ray masks for all 25 squares (ignoring occupancy).
+    Precompute rook ray masks for all 64 squares (ignoring occupancy).
     These are used as a quick mask before computing actual attacks.
     
     Returns:
-        List of 25 bitboards, one for each square
+        List of 64 bitboards, one for each square
     """
     rays = []
-    for sq in range(25):
-        x = sq % 5
-        y = sq // 5
+    for sq in range(64):
+        x = sq % 8
+        y = sq // 8
         attacks = 0
         
         # Cast rays in 4 directions without considering occupancy
         directions = ((0, 1), (0, -1), (1, 0), (-1, 0))
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            while 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = ny * 5 + nx
+            while 0 <= nx < 8 and 0 <= ny < 8:
+                dest_sq = ny * 8 + nx
                 attacks |= (1 << dest_sq)
                 nx += dx
                 ny += dy
@@ -265,23 +264,23 @@ def _generate_rook_rays() -> List[Bitboard]:
 
 def _generate_bishop_rays() -> List[Bitboard]:
     """
-    Precompute bishop ray masks for all 25 squares (ignoring occupancy).
+    Precompute bishop ray masks for all 64 squares (ignoring occupancy).
     
     Returns:
-        List of 25 bitboards, one for each square
+        List of 64 bitboards, one for each square
     """
     rays = []
-    for sq in range(25):
-        x = sq % 5
-        y = sq // 5
+    for sq in range(64):
+        x = sq % 8
+        y = sq // 8
         attacks = 0
         
         # Cast rays in 4 diagonal directions
         directions = ((1, 1), (1, -1), (-1, 1), (-1, -1))
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            while 0 <= nx < 5 and 0 <= ny < 5:
-                dest_sq = ny * 5 + nx
+            while 0 <= nx < 8 and 0 <= ny < 8:
+                dest_sq = ny * 8 + nx
                 attacks |= (1 << dest_sq)
                 nx += dx
                 ny += dy
@@ -321,8 +320,8 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
         return ray_mask
     
     # Slow path: there are blockers, need to compute exact attacks
-    x = sq % 5
-    y = sq // 5
+    x = sq % 8
+    y = sq // 8
     attacks = 0
 
     # Direction vectors: (dx, dy)
@@ -331,8 +330,8 @@ def _get_rook_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
-        while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = ny * 5 + nx
+        while 0 <= nx < 8 and 0 <= ny < 8:
+            dest_sq = ny * 8 + nx
             attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square (include the blocker)
@@ -370,8 +369,8 @@ def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
         return ray_mask
     
     # Slow path: there are blockers, need to compute exact attacks
-    x = sq % 5
-    y = sq // 5
+    x = sq % 8
+    y = sq // 8
     attacks = 0
 
     # Diagonal directions: (dx, dy)
@@ -380,8 +379,8 @@ def _get_bishop_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     for dx, dy in directions:
         # Cast ray in this direction
         nx, ny = x + dx, y + dy
-        while 0 <= nx < 5 and 0 <= ny < 5:
-            dest_sq = ny * 5 + nx
+        while 0 <= nx < 8 and 0 <= ny < 8:
+            dest_sq = ny * 8 + nx
             attacks |= (1 << dest_sq)
 
             # Stop if we hit an occupied square
@@ -401,16 +400,6 @@ def _get_queen_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
     Queen moves in all 8 directions: horizontal, vertical, and diagonal.
     """
     return _get_rook_attacks(sq, occupancy) | _get_bishop_attacks(sq, occupancy)
-
-
-def _get_right_attacks(sq: Square, occupancy: Bitboard) -> Bitboard:
-    """
-    Generate Right piece attack bitboard (combines rook + knight attacks).
-
-    The "Right" piece is a custom piece that moves like a rook OR knight.
-    It can both slide like a rook (horizontal/vertical) AND jump like a knight.
-    """
-    return _get_rook_attacks(sq, occupancy) | KNIGHT_ATTACKS[sq]
 
 
 # ============================================================================
@@ -441,11 +430,11 @@ class ZobristHasher:
         rng = random.Random(seed)
 
         # Generate random 64-bit keys for each (piece_type, color, square) combination
-        # 6 piece types × 2 colors × 25 squares = 300 keys
+        # 6 piece types × 2 colors × 64 squares = 768 keys
         self.piece_keys = {}
-        for piece_type in range(6):  # 0-5: P, N, B, Q, K, Right
+        for piece_type in range(6):  # 0-5: P, N, B, Q, K, Rook
             for color in range(2):   # 0-1: white, black
-                for sq in range(25): # 0-24: all squares
+                for sq in range(64): # 0-63: all squares
                     key = rng.getrandbits(64)
                     self.piece_keys[(piece_type, color, sq)] = key
 
@@ -472,9 +461,9 @@ class ZobristHasher:
         # Get list of all piece bitboards in order
         piece_bitboards = [
             (bb_state.WP, PAWN, 0),   (bb_state.WN, KNIGHT, 0), (bb_state.WB, BISHOP, 0),
-            (bb_state.WQ, QUEEN, 0),  (bb_state.WK, KING, 0),   (bb_state.WR, RIGHT, 0),
+            (bb_state.WQ, QUEEN, 0),  (bb_state.WK, KING, 0),   (bb_state.WR, ROOK, 0),
             (bb_state.BP, PAWN, 1),   (bb_state.BN, KNIGHT, 1), (bb_state.BB, BISHOP, 1),
-            (bb_state.BQ, QUEEN, 1),  (bb_state.BK, KING, 1),   (bb_state.BR, RIGHT, 1)
+            (bb_state.BQ, QUEEN, 1),  (bb_state.BK, KING, 1),   (bb_state.BR, ROOK, 1)
         ]
 
         # XOR in key for each piece
@@ -516,9 +505,9 @@ def is_in_check(bb_state: BitboardState, check_white: bool) -> bool:
 
     Algorithm:
         1. Find king position
-        2. Generate knight attacks from king → check if opponent knights/rights there
+        2. Generate knight attacks from king → check if opponent knights there
         3. Check king adjacency (kings can't be adjacent)
-        4. Generate rook attacks from king → check if opponent queens/rights there
+        4. Generate rook attacks from king → check if opponent queens/rooks there
         5. Generate bishop attacks from king → check if opponent bishops/queens there
         6. Check pawn attacks (special case - asymmetric)
     """
@@ -552,7 +541,7 @@ def _is_in_check_cached(
         opp_knights = BN
         opp_bishops = BB
         opp_queens = BQ
-        opp_rights = BR
+        opp_rooks = BR
         opp_king = BK
         opp_pawns = BP
         king_is_white = True
@@ -561,7 +550,7 @@ def _is_in_check_cached(
         opp_knights = WN
         opp_bishops = WB
         opp_queens = WQ
-        opp_rights = WR
+        opp_rooks = WR
         opp_king = WK
         opp_pawns = WP
         king_is_white = False
@@ -571,18 +560,18 @@ def _is_in_check_cached(
 
     king_sq = pop_lsb(king_bb)
 
-    # 1. Check for knight/Right attacks
+    # 1. Check for knight attacks
     knight_attacks = KNIGHT_ATTACKS[king_sq]
-    if knight_attacks & (opp_knights | opp_rights):
+    if knight_attacks & opp_knights:
         return True
 
     # 2. Check for king adjacency
     if KING_ATTACKS[king_sq] & opp_king:
         return True
 
-    # 3. Check for rook/queen/Right attacks
+    # 3. Check for rook/queen attacks
     rook_attacks = _get_rook_attacks(king_sq, occ_all)
-    if rook_attacks & (opp_queens | opp_rights):
+    if rook_attacks & (opp_queens | opp_rooks):
         return True
 
     # 4. Check for bishop/queen attacks
@@ -598,9 +587,9 @@ def _is_in_check_cached(
     else:
         pawn_attack_y = ky + 1
 
-    if 0 <= pawn_attack_y < 5:
+    if 0 <= pawn_attack_y < 8:
         for pawn_attack_x in [kx - 1, kx + 1]:
-            if 0 <= pawn_attack_x < 5:
+            if 0 <= pawn_attack_x < 8:
                 pawn_sq = square_index(pawn_attack_x, pawn_attack_y)
                 if test_bit(opp_pawns, pawn_sq):
                     return True
@@ -630,7 +619,7 @@ def is_square_attacked(bb_state: BitboardState, sq: Square, by_white: bool) -> b
         atk_knights = bb_state.WN
         atk_bishops = bb_state.WB
         atk_queens = bb_state.WQ
-        atk_rights = bb_state.WR
+        atk_rooks = bb_state.WR
         atk_king = bb_state.WK
         atk_pawns = bb_state.WP
         attacker_is_white = True
@@ -639,22 +628,22 @@ def is_square_attacked(bb_state: BitboardState, sq: Square, by_white: bool) -> b
         atk_knights = bb_state.BN
         atk_bishops = bb_state.BB
         atk_queens = bb_state.BQ
-        atk_rights = bb_state.BR
+        atk_rooks = bb_state.BR
         atk_king = bb_state.BK
         atk_pawns = bb_state.BP
         attacker_is_white = False
 
-    # 1. Check for knight/Right attacks
-    if KNIGHT_ATTACKS[sq] & (atk_knights | atk_rights):
+    # 1. Check for knight attacks
+    if KNIGHT_ATTACKS[sq] & atk_knights:
         return True
 
     # 2. Check for king attacks
     if KING_ATTACKS[sq] & atk_king:
         return True
 
-    # 3. Check for rook/queen/Right attacks (sliding horizontal/vertical)
+    # 3. Check for rook/queen attacks (sliding horizontal/vertical)
     rook_attacks = _get_rook_attacks(sq, occ)
-    if rook_attacks & (atk_queens | atk_rights):
+    if rook_attacks & (atk_queens | atk_rooks):
         return True
 
     # 4. Check for bishop/queen attacks (sliding diagonal)
@@ -674,9 +663,9 @@ def is_square_attacked(bb_state: BitboardState, sq: Square, by_white: bool) -> b
         # Black pawn at (x±1, y-1) would attack square at (x, y)
         pawn_y = y - 1
 
-    if 0 <= pawn_y < 5:
+    if 0 <= pawn_y < 8:
         for pawn_x in [x - 1, x + 1]:
-            if 0 <= pawn_x < 5:
+            if 0 <= pawn_x < 8:
                 pawn_sq = square_index(pawn_x, pawn_y)
                 if test_bit(atk_pawns, pawn_sq):
                     return True
@@ -692,8 +681,8 @@ class BBMove:
     Compact move representation for bitboard engine.
 
     Attributes:
-        from_sq: Source square index [0-24]
-        to_sq: Destination square index [0-24]
+        from_sq: Source square index [0-63]
+        to_sq: Destination square index [0-63]
         piece_type: Moving piece type [0-5]
         captured_type: Captured piece type, or -1 if no capture
         promo: Promotion piece type (3=Queen), or 0 if no promotion
@@ -730,14 +719,14 @@ def generate_legal_moves(bb_state: BitboardState, captures_only: bool = False) -
     if stm_white:
         own_pieces = [
             (bb_state.WP, PAWN), (bb_state.WN, KNIGHT), (bb_state.WB, BISHOP),
-            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, RIGHT)
+            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, ROOK)
         ]
         own_occ = bb_state.occ_white
         opp_occ = bb_state.occ_black
     else:
         own_pieces = [
             (bb_state.BP, PAWN), (bb_state.BN, KNIGHT), (bb_state.BB, BISHOP),
-            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, RIGHT)
+            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, ROOK)
         ]
         own_occ = bb_state.occ_black
         opp_occ = bb_state.occ_white
@@ -817,16 +806,16 @@ def generate_legal_moves(bb_state: BitboardState, captures_only: bool = False) -
                     if not is_in_check(child, stm_white):
                         legal_moves.append(move)
 
-        elif piece_type == RIGHT:
-            # Right piece (bishop + knight hybrid)
+        elif piece_type == ROOK:
+            # Rook sliding moves
             for from_sq in iter_bits(piece_bb):
-                attacks = _get_right_attacks(from_sq, occ_all) & ~own_occ
+                attacks = _get_rook_attacks(from_sq, occ_all) & ~own_occ
                 if captures_only:
                     attacks &= opp_occ
 
                 for to_sq in iter_bits(attacks):
                     captured = _get_captured_piece_type(bb_state, to_sq, not stm_white)
-                    move = BBMove(from_sq, to_sq, RIGHT, captured, 0)
+                    move = BBMove(from_sq, to_sq, ROOK, captured, 0)
 
                     child = apply_move(bb_state, move)
                     if not is_in_check(child, stm_white):
@@ -845,7 +834,7 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
     - Move forward one square if unoccupied
     - Move forward two squares if on starting rank and path is clear (first move)
     - Capture diagonally forward
-    - Promote to queen when reaching back rank (y=0 for white, y=4 for black)
+    - Promote to queen when reaching back rank (y=0 for white, y=7 for black)
 
     Args:
         pawn_bb: Bitboard of pawns to generate moves for
@@ -859,7 +848,7 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
     """
     moves = []
     dir_y = -1 if is_white else 1  # White pawns move up (y decreases), black down
-    starting_rank = 3 if is_white else 1  # White pawns start at y=3, black at y=1
+    starting_rank = 6 if is_white else 1  # White pawns start at y=6, black at y=1
 
     for from_sq in iter_bits(pawn_bb):
         x, y = index_to_xy(from_sq)
@@ -867,12 +856,12 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
         # --- Forward move (1 square) ---
         if not captures_only:
             to_y = y + dir_y
-            if 0 <= to_y < 5:
+            if 0 <= to_y < 8:
                 to_sq = square_index(x, to_y)
                 # Can only move if square is unoccupied
                 if not test_bit(occ_all, to_sq):
                     # Check for promotion (reaching back rank)
-                    promo = QUEEN if (to_y == 0 or to_y == 4) else 0
+                    promo = QUEEN if (to_y == 0 or to_y == 7) else 0
                     move = BBMove(from_sq, to_sq, PAWN, -1, promo)
 
                     # Test legality
@@ -883,7 +872,7 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
                     # --- Forward move (2 squares) - only from starting rank ---
                     if y == starting_rank:
                         to_y_2 = y + (2 * dir_y)
-                        if 0 <= to_y_2 < 5:
+                        if 0 <= to_y_2 < 8:
                             to_sq_2 = square_index(x, to_y_2)
                             # Can only move 2 squares if both intermediate and destination are unoccupied
                             if not test_bit(occ_all, to_sq_2):
@@ -897,14 +886,14 @@ def _generate_pawn_moves(pawn_bb: Bitboard, is_white: bool, own_occ: Bitboard,
 
         # --- Diagonal captures ---
         to_y = y + dir_y
-        if 0 <= to_y < 5:
+        if 0 <= to_y < 8:
             for to_x in [x - 1, x + 1]:  # Left and right diagonals
-                if 0 <= to_x < 5:
+                if 0 <= to_x < 8:
                     to_sq = square_index(to_x, to_y)
                     # Can only capture if opponent piece present
                     if test_bit(opp_occ, to_sq):
                         captured = _get_captured_piece_type(bb_state, to_sq, not is_white)
-                        promo = QUEEN if (to_y == 0 or to_y == 4) else 0
+                        promo = QUEEN if (to_y == 0 or to_y == 7) else 0
                         move = BBMove(from_sq, to_sq, PAWN, captured, promo)
 
                         # Test legality
@@ -952,12 +941,12 @@ def _get_captured_piece_type(bb_state: BitboardState, sq: Square, is_white: bool
     if is_white:
         pieces = [
             (bb_state.WP, PAWN), (bb_state.WN, KNIGHT), (bb_state.WB, BISHOP),
-            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, RIGHT)
+            (bb_state.WQ, QUEEN), (bb_state.WK, KING), (bb_state.WR, ROOK)
         ]
     else:
         pieces = [
             (bb_state.BP, PAWN), (bb_state.BN, KNIGHT), (bb_state.BB, BISHOP),
-            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, RIGHT)
+            (bb_state.BQ, QUEEN), (bb_state.BK, KING), (bb_state.BR, ROOK)
         ]
 
     for piece_bb, piece_type in pieces:
@@ -1125,7 +1114,7 @@ def board_to_bitboard(board, player) -> BitboardState:
             key = color_prefix + 'Q'
         elif piece_name == 'king':
             key = color_prefix + 'K'
-        elif piece_name == 'right':
+        elif piece_name == 'rook':
             key = color_prefix + 'R'
         else:
             continue  # Unknown piece type
@@ -1180,51 +1169,69 @@ def board_to_bitboard(board, player) -> BitboardState:
 # Values encourage good piece placement
 
 PAWN_TABLE = [
-    [10, 10, 10, 10, 10],   
-    [ 5,  5,  5,  5,  5],
-    [ 5,  5,  5,  5,  5],
-    [0, 0, 0,  0,  0],
-    [ 0,  0,  0,  0,  0]    
+    [10, 10, 10, 10, 10, 10, 10, 10],
+    [ 8,  8,  8,  8,  8,  8,  8,  8],
+    [ 6,  6,  6,  6,  6,  6,  6,  6],
+    [ 4,  4,  4,  4,  4,  4,  4,  4],
+    [ 2,  2,  2,  2,  2,  2,  2,  2],
+    [ 1,  1,  1,  1,  1,  1,  1,  1],
+    [ 0,  0,  0,  0,  0,  0,  0,  0],
+    [ 0,  0,  0,  0,  0,  0,  0,  0]
 ]
 
 KNIGHT_TABLE = [
-    [-5, -5, -5, -5, -5],
-    [-5,  0,  0,  0, -5],
-    [-5,  0,  0,  0, -5],   
-    [-5,  0,  0,  0, -5],
-    [-5, -5, -5, -5, -5]
+    [-20, -20, -20, -20, -20, -20, -20, -20],
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-20, -10,   0,   0,   0,   0, -10, -20],
+    [-20, -10,   0,   5,   5,   0, -10, -20],
+    [-20, -10,   0,   5,   5,   0, -10, -20],
+    [-20, -10,   0,   0,   0,   0, -10, -20],
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-20, -20, -20, -20, -20, -20, -20, -20]
 ]
 
 BISHOP_TABLE = [
-    [-10, -5, -5, -5, -10],
-    [ -5,  0,  0,  0,  -5],
-    [ -5,  0,  5,  0,  -5],  
-    [ -5,  0,  0,  0,  -5],
-    [-10, -5, -5, -5, -10]
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-10,   0,   0,   0,   0,   0,   0, -10],
+    [-10,   0,   0,   0,   0,   0,   0, -10],
+    [-10,   0,   0,  10,  10,   0,   0, -10],
+    [-10,   0,   0,  10,  10,   0,   0, -10],
+    [-10,   0,   0,   0,   0,   0,   0, -10],
+    [-10,   0,   0,   0,   0,   0,   0, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20]
 ]
 
-RIGHT_TABLE = [
-    [-5,  5,  5,  5, -5],   
-    [ 0,  5,  5,  5,  0],
-    [ 0,  0,  0,  0,  0],
-    [ 0,  0,  0,  0,  0],
-    [-5,  0,  0,  0, -5]
+ROOK_TABLE = [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [5, 5, 5, 5, 5, 5, 5, 5],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0, 0, 0, 0]
 ]
 
 QUEEN_TABLE = [
-    [-5,  0,  0,  0, -5],
-    [ 0,  5,  5,  5,  0],
-    [ 0,  5,  5,  5,  0],   
-    [ 0,  5,  5,  5,  0],
-    [-5,  0,  0,  0, -5]
+    [-5, -5, -5, -5, -5, -5, -5, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5,  0,  5,  5,  5,  5,  0, -5],
+    [-5,  0,  5, 10, 10,  5,  0, -5],
+    [-5,  0,  5, 10, 10,  5,  0, -5],
+    [-5,  0,  5,  5,  5,  5,  0, -5],
+    [-5,  0,  0,  0,  0,  0,  0, -5],
+    [-5, -5, -5, -5, -5, -5, -5, -5]
 ]
 
 KING_TABLE = [
-    [-20, -20, -20, -20, -20],  
-    [-15, -15, -15, -15, -15],
-    [-10, -10, -10, -10, -10],
-    [ -5,  -5,  -5,  -5,  -5],
-    [  5,   5,   5,   5,   5]   
+    [-20, -20, -20, -20, -20, -20, -20, -20],
+    [-16, -16, -16, -16, -16, -16, -16, -16],
+    [-13, -13, -13, -13, -13, -13, -13, -13],
+    [ -9,  -9,  -9,  -9,  -9,  -9,  -9,  -9],
+    [ -6,  -6,  -6,  -6,  -6,  -6,  -6,  -6],
+    [ -2,  -2,  -2,  -2,  -2,  -2,  -2,  -2],
+    [  1,   1,   1,   1,   1,   1,   1,   1],
+    [  5,   5,   5,   5,   5,   5,   5,   5]
 ]
 
 
@@ -1257,7 +1264,7 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
         (bb_state.WB, BISHOP, BISHOP_TABLE),
         (bb_state.WQ, QUEEN, QUEEN_TABLE),
         (bb_state.WK, KING, KING_TABLE),
-        (bb_state.WR, RIGHT, RIGHT_TABLE)
+        (bb_state.WR, ROOK, ROOK_TABLE)
     ]
 
     black_pieces = [
@@ -1266,7 +1273,7 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
         (bb_state.BB, BISHOP, BISHOP_TABLE),
         (bb_state.BQ, QUEEN, QUEEN_TABLE),
         (bb_state.BK, KING, KING_TABLE),
-        (bb_state.BR, RIGHT, RIGHT_TABLE)
+        (bb_state.BR, ROOK, ROOK_TABLE)
     ]
 
     # Track king positions for king safety evaluation
@@ -1298,8 +1305,8 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
             # Positional value (flip table vertically for black)
             if pst is not None:
                 x, y = index_to_xy(sq)
-                # Flip y coordinate: black's promotion rank is y=4 → index 0
-                flipped_y = 4 - y
+                # Flip y coordinate: black's promotion rank is y=7 → index 0
+                flipped_y = 7 - y
                 score -= pst[flipped_y][x]
 
             # Track king position
@@ -1310,7 +1317,7 @@ def evaluate_bitboard(bb_state: BitboardState, player_is_white: bool) -> int:
     # Count total pieces to determine if we're in middlegame
     total_pieces = count_bits(bb_state.occ_all)
 
-    if total_pieces > 8:  # Middlegame
+    if total_pieces > 13:  # Middlegame
         # Evaluate white king safety
         if white_king_sq != -1:
             # FIX #14: Use precomputed KING_ATTACKS for neighbor squares
@@ -1512,7 +1519,7 @@ TT_UPPER_BOUND = 2  # Score is at most this good (failed to raise alpha)
 
 # Move ordering piece values (for MVV-LVA)
 # Must match PIECE_VALUES from helpersBitboard.py exactly!
-MVV_LVA_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Right (indices 0-5)
+MVV_LVA_VALUES = [100, 330, 320, 900, 20000, 500]  # P, N, B, Q, K, Rook (indices 0-5)
 
 # Statistics tracking
 stats = {
@@ -2055,7 +2062,7 @@ def find_best_move(bb_state: BitboardState, max_depth: int, time_limit: float,
         if best_move:
             from_x, from_y = index_to_xy(best_move.from_sq)
             to_x, to_y = index_to_xy(best_move.to_sq)
-            piece_names = ['Pawn', 'Knight', 'Bishop', 'Queen', 'King', 'Right']
+            piece_names = ['Pawn', 'Knight', 'Bishop', 'Queen', 'King', 'Rook']
             piece_name = piece_names[best_move.piece_type]
             move_str = f"{piece_name} ({from_x},{from_y}) to ({to_x},{to_y})"
         else:
